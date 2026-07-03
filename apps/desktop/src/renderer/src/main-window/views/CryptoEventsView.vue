@@ -25,6 +25,13 @@ const canPrev = computed(() => crypto.currentPage.value > 1);
 const canNext = computed(() => crypto.currentPage.value < crypto.totalPages.value);
 
 onMounted(() => crypto.init());
+
+function reload(): Promise<void> {
+  crypto.currentPage.value = 1;
+  return crypto.loadEvents();
+}
+
+defineExpose({ reload });
 </script>
 
 <template>

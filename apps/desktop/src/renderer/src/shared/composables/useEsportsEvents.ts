@@ -9,7 +9,7 @@ const PAGE_SIZE = 50;
 const SPORTS_TAG_ID = '1';
 const ESPORTS_TAG_ID = '64';
 
-const SPORTS_SORT_FIELDS = new Set([
+const ESPORTS_SORT_FIELDS = new Set([
   'volume24hr',
   'volume',
   'liquidity',
@@ -21,24 +21,24 @@ const SPORTS_SORT_FIELDS = new Set([
   'market_count',
 ]);
 
-type SportsEventsFilters = Pick<
+type EsportsEventsFilters = Pick<
   Filters,
-  'sortField' | 'sortOrder' | 'cryptoCoin' | 'cryptoMarketMode' | 'cryptoTimeframe' | 'sportsSport'
+  'sortField' | 'sortOrder' | 'cryptoCoin' | 'cryptoMarketMode' | 'cryptoTimeframe' | 'esportsSport'
 >;
 
-const DEFAULT_SPORTS_FILTERS: SportsEventsFilters = {
+const DEFAULT_ESPORTS_FILTERS: EsportsEventsFilters = {
   sortField: 'end_date',
   sortOrder: 'asc',
   cryptoCoin: '',
   cryptoMarketMode: '',
   cryptoTimeframe: '',
-  sportsSport: '',
+  esportsSport: '',
 };
 
-function useSportsEvents() {
+function useEsportsEvents() {
   const { refreshWatchlistEventIds, toggleWatchlist, isInWatchlist } = useWatchlist();
 
-  const filters = reactive({ ...DEFAULT_SPORTS_FILTERS });
+  const filters = reactive({ ...DEFAULT_ESPORTS_FILTERS });
   const metadata = ref<SportsMetadataItem[]>([]);
   const currentPage = ref(1);
   const pageEvents = ref<EventListItem[]>([]);
@@ -53,13 +53,10 @@ function useSportsEvents() {
   let ready = false;
 
   const availableSports = computed(() =>
-    metadata.value.filter((item) => {
-      const isEsport = item.tagIds.includes(ESPORTS_TAG_ID);
-      return !isEsport;
-    }),
+    metadata.value.filter((item) => item.tagIds.includes(ESPORTS_TAG_ID)),
   );
 
-  const selectedSport = computed(() => filters.sportsSport || '');
+  const selectedSport = computed(() => filters.esportsSport || '');
   const selectedMetadata = computed(
     () => availableSports.value.find((item) => item.sport === selectedSport.value) ?? null,
   );
@@ -72,13 +69,13 @@ function useSportsEvents() {
     const saved = await window.api.loadFilters();
     if (!saved) return;
 
-    const sortField = saved.sportsSortField || '';
-    const sortOrder = saved.sportsSortOrder;
-    filters.sortField = SPORTS_SORT_FIELDS.has(sortField)
+    const sortField = saved.esportsSortField || '';
+    const sortOrder = saved.esportsSortOrder;
+    filters.sortField = ESPORTS_SORT_FIELDS.has(sortField)
       ? sortField
-      : DEFAULT_SPORTS_FILTERS.sortField;
+      : DEFAULT_ESPORTS_FILTERS.sortField;
     filters.sortOrder = (sortOrder === 'desc' ? 'desc' : 'asc') as SortOrder;
-    filters.sportsSport = saved.sportsSport ?? '';
+    filters.esportsSport = saved.esportsSport ?? '';
   }
 
   async function loadMetadata(): Promise<void> {
@@ -97,7 +94,7 @@ function useSportsEvents() {
   function validateSelectedSport(): void {
     if (!selectedSport.value) return;
     const exists = availableSports.value.some((item) => item.sport === selectedSport.value);
-    if (!exists) filters.sportsSport = '';
+    if (!exists) filters.esportsSport = '';
   }
 
   async function loadEvents(): Promise<void> {
@@ -130,17 +127,17 @@ function useSportsEvents() {
 
   function resolveQueryTagIds(): string[] {
     if (selectedMetadata.value?.tagIds.length) return [...selectedMetadata.value.tagIds];
-    return [SPORTS_TAG_ID];
+    return [SPORTS_TAG_ID, ESPORTS_TAG_ID];
   }
 
   function resolveQueryExcludeTagIds(): string[] {
     if (selectedMetadata.value?.tagIds.length) return [];
-    return [ESPORTS_TAG_ID];
+    return [];
   }
 
   function setSport(sport: string): void {
     if (selectedSport.value === sport) return;
-    filters.sportsSport = sport;
+    filters.esportsSport = sport;
   }
 
   function onFiltersChanged(): void {
@@ -187,9 +184,9 @@ function useSportsEvents() {
     () => {
       if (!ready) return;
       window.api.saveFilters({
-        sportsSport: filters.sportsSport,
-        sportsSortField: filters.sortField,
-        sportsSortOrder: filters.sortOrder,
+        esportsSport: filters.esportsSport,
+        esportsSortField: filters.sortField,
+        esportsSortOrder: filters.sortOrder,
       });
     },
     { deep: true },
@@ -230,4 +227,4 @@ function useSportsEvents() {
   };
 }
 
-export { useSportsEvents };
+export { useEsportsEvents };

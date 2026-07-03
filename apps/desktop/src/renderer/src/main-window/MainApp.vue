@@ -14,9 +14,10 @@ import EventsListView from './views/EventsListView.vue';
 import WatchlistView from './views/WatchlistView.vue';
 import CryptoEventsView from './views/CryptoEventsView.vue';
 import SportsEventsView from './views/SportsEventsView.vue';
+import EsportsEventsView from './views/EsportsEventsView.vue';
 import TitleBar from '../shared/components/TitleBar.vue';
 import { useFilters } from '../shared/composables/useFilters';
-import { preloadSportsMetadata } from '../shared/composables/useSportsEvents';
+import { preloadSportsMetadata } from '../shared/composables/sportsMetadata';
 import { useSync } from '../shared/composables/useSync';
 import { translateUiKey } from '../shared/i18n';
 import { getSingleOpenMarket } from '../shared/utils/markets';
@@ -32,6 +33,9 @@ const activeNav = ref('events');
 const selectedEvent = ref<EventListItem | null>(null);
 const eventsListRef = ref<ReloadableListView | null>(null);
 const watchlistRef = ref<ReloadableListView | null>(null);
+const cryptoEventsRef = ref<ReloadableListView | null>(null);
+const sportsEventsRef = ref<ReloadableListView | null>(null);
+const esportsEventsRef = ref<ReloadableListView | null>(null);
 const closeConfirmOpen = ref(false);
 const developerModeEnabled = ref(false);
 const appVersion = `v${__APP_VERSION__}`;
@@ -65,6 +69,12 @@ const { syncState, syncStatus, setupSync, toggleSync } = useSync(async () => {
     await eventsListRef.value?.reload();
   } else if (activeNav.value === 'watchlist') {
     await watchlistRef.value?.reload();
+  } else if (activeNav.value === 'crypto') {
+    await cryptoEventsRef.value?.reload();
+  } else if (activeNav.value === 'sports') {
+    await sportsEventsRef.value?.reload();
+  } else if (activeNav.value === 'esports') {
+    await esportsEventsRef.value?.reload();
   }
 });
 
@@ -224,6 +234,7 @@ onUnmounted(() => {
           />
           <CryptoEventsView
             v-else-if="activeNav === 'crypto'"
+            ref="cryptoEventsRef"
             :selected-event-id="selectedEventId"
             :sync-state="syncState"
             :sync-status="syncStatus"
@@ -231,15 +242,15 @@ onUnmounted(() => {
           />
           <SportsEventsView
             v-else-if="activeNav === 'sports'"
-            scope="sports"
+            ref="sportsEventsRef"
             :selected-event-id="selectedEventId"
             :sync-state="syncState"
             :sync-status="syncStatus"
             @open-detail="openEventDetail"
           />
-          <SportsEventsView
+          <EsportsEventsView
             v-else-if="activeNav === 'esports'"
-            scope="esports"
+            ref="esportsEventsRef"
             :selected-event-id="selectedEventId"
             :sync-state="syncState"
             :sync-status="syncStatus"

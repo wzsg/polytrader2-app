@@ -19,7 +19,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const allLabel = computed(() => t('sports.allSports'));
+const allLabel = computed(() => t('sports.allEsports'));
 
 function sportTitle(item: SportsMetadataItem): string {
   return sportCodeLabel(item.sport);

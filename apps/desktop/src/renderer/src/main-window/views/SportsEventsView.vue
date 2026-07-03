@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import type { EventListItem, SportsEventScope } from '@polytrader/shared';
+import type { EventListItem } from '@polytrader/shared';
 import SportsFilterBar from '../components/SportsFilterBar.vue';
 import StatsBar from '../components/StatsBar.vue';
 import SportsEventsTable from '../components/SportsEventsTable.vue';
@@ -9,8 +9,7 @@ import Pagination from '../../shared/components/Pagination.vue';
 import { useSportsEvents } from '../../shared/composables/useSportsEvents';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{
-  scope: SportsEventScope;
+defineProps<{
   selectedEventId?: string | null;
   syncState?: string;
   syncStatus?: string;
@@ -20,18 +19,24 @@ const emit = defineEmits<{
   'open-detail': [event: EventListItem];
 }>();
 
-const sports = useSportsEvents({ scope: props.scope });
+const sports = useSportsEvents();
 const { t } = useI18n();
 
 const canPrev = computed(() => sports.currentPage.value > 1);
 const canNext = computed(() => sports.currentPage.value < sports.totalPages.value);
 
 onMounted(() => sports.init());
+
+function reload(): Promise<void> {
+  sports.currentPage.value = 1;
+  return sports.loadEvents();
+}
+
+defineExpose({ reload });
 </script>
 
 <template>
   <SportsFilterBar
-    :scope="scope"
     :sports="sports.availableSports.value"
     :selected-sport="sports.selectedSport.value"
     :loading="sports.metadataLoading.value"
