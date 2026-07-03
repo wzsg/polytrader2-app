@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Check, Copy, LoaderCircle, X } from '@lucide/vue';
 import type {
   PolymarketBridgeSupportedAsset,
-  PolymarketBridgeWithdrawalResult,
+  PolymarketBridgeWithdrawalRecord,
+  PolymarketBridgeWithdrawalStatus,
   PolymarketWalletSummary,
 } from '@polytrader/shared';
 import IconSelect from '@/shared/components/IconSelect.vue';
@@ -32,8 +33,9 @@ const amount = ref('');
 const loading = ref(false);
 const submitting = ref(false);
 const error = ref('');
-const result = ref<PolymarketBridgeWithdrawalResult | null>(null);
+const result = ref<PolymarketBridgeWithdrawalRecord | null>(null);
 const copied = ref(false);
+let unsubscribeWithdrawalEvent: (() => void) | null = null;
 
 const chains = computed(() => {
   const byChainId = new Map<string, PolymarketBridgeSupportedAsset>();
@@ -79,6 +81,21 @@ watch(
     if (open) void load();
   },
 );
+
+onMounted(() => {
+  unsubscribeWithdrawalEvent = window.api.onPolymarketBridgeWithdrawalEvent((event) => {
+    if (result.value?.id !== event.withdrawal.id) return;
+    result.value = event.withdrawal;
+    if (event.type === 'succeeded' || event.type === 'failed' || event.type === 'timed-out') {
+      emit('submitted');
+    }
+  });
+});
+
+onUnmounted(() => {
+  unsubscribeWithdrawalEvent?.();
+  unsubscribeWithdrawalEvent = null;
+});
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -138,7 +155,7 @@ async function submit(): Promise<void> {
       recipientAddr: recipientAddr.value,
     });
     if (!res.ok) throw new Error(res.error);
-    result.value = res.data;
+    result.value = res.data.withdrawal;
     emit('submitted');
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
@@ -163,6 +180,10 @@ function chainLabel(asset: PolymarketBridgeSupportedAsset): string {
 
 function tokenLabel(asset: PolymarketBridgeSupportedAsset): string {
   return asset.token.symbol ?? asset.token.name ?? asset.token.address;
+}
+
+function withdrawalStatusLabel(status: PolymarketBridgeWithdrawalStatus): string {
+  return t(`bridge.withdrawalStatus.${status}`);
 }
 </script>
 
@@ -256,25 +277,36 @@ function tokenLabel(asset: PolymarketBridgeSupportedAsset): string {
             </p>
 
             <div v-if="result" class="space-y-2 text-center text-xs">
-              <div class="text-muted-light">{{ t('bridge.bridgeAddress') }}</div>
+              <div class="text-muted-light">{{ t('bridge.withdrawalStatusLabel') }}</div>
+              <div class="text-text">{{ withdrawalStatusLabel(result.status) }}</div>
+              <div v-if="result.bridgeAddress" class="text-muted-light pt-1">
+                {{ t('bridge.bridgeAddress') }}
+              </div>
               <div class="flex w-full justify-center">
                 <code
+                  v-if="result.bridgeAddress"
                   class="selectable-text bg-bg text-text inline-block max-w-full rounded-md p-3 text-center break-all"
                 >
                   {{ result.bridgeAddress }}
                 </code>
               </div>
-              <div class="text-muted-light pt-1">{{ t('bridge.relayerTransaction') }}</div>
-              <code class="selectable-text text-text block break-all">
-                {{ result.transfer.transactionID }}
+              <div v-if="result.relayerTransactionId" class="text-muted-light pt-1">
+                {{ t('bridge.relayerTransaction') }}
+              </div>
+              <code
+                v-if="result.relayerTransactionId"
+                class="selectable-text text-text block break-all"
+              >
+                {{ result.relayerTransactionId }}
               </code>
+              <p v-if="result.errorMessage" class="text-red-300">{{ result.errorMessage }}</p>
             </div>
           </template>
         </form>
 
         <footer class="border-border flex justify-end gap-2 border-t px-5 py-4">
           <button
-            v-if="result"
+            v-if="result?.bridgeAddress"
             type="button"
             class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-9 items-center gap-2 rounded-md border px-4 text-sm transition-colors"
             @click="copyBridgeAddress"

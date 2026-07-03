@@ -1,6 +1,10 @@
 import { ipcRenderer } from 'electron';
 import type { IpcApi } from '@polytrader/shared';
-import type { PolymarketWalletEvent, StrategyBotRuntimeEvent } from '@polytrader/shared';
+import type {
+  PolymarketBridgeWithdrawalEvent,
+  PolymarketWalletEvent,
+  StrategyBotRuntimeEvent,
+} from '@polytrader/shared';
 import { exposeApi, marketDataApi, preferenceApi, tradingReadApi, windowApi } from './common.js';
 
 const mainWindowApi = {
@@ -80,6 +84,14 @@ const mainWindowApi = {
   withdrawPolymarketBridge: (input) => ipcRenderer.invoke('bridge:withdraw', input),
   getPolymarketBridgeTransactionStatus: (address) =>
     ipcRenderer.invoke('bridge:getTransactionStatus', address),
+  listPolymarketBridgeWithdrawals: (walletId, limit) =>
+    ipcRenderer.invoke('bridge:listWithdrawals', walletId, limit),
+  onPolymarketBridgeWithdrawalEvent: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as PolymarketBridgeWithdrawalEvent);
+    ipcRenderer.on('bridge:withdrawal-event', listener);
+    return () => ipcRenderer.removeListener('bridge:withdrawal-event', listener);
+  },
   listStrategies: () => ipcRenderer.invoke('strategies:list'),
   getStrategy: (id) => ipcRenderer.invoke('strategies:get', id),
   createStrategy: (input) => ipcRenderer.invoke('strategies:create', input),

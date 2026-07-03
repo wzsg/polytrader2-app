@@ -11,6 +11,7 @@ export {
   createSqliteStrategyCatalogRepository,
   createSqliteStrategyRunRepository,
   createSqlitePolymarketWalletRepository,
+  createSqlitePolymarketWithdrawalRepository,
   createSqliteWatchlistRepository,
   createSqliteWorkflowTaskRepository,
 } from './repositoryFactory.js';

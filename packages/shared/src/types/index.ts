@@ -1114,7 +1114,12 @@ export type {
   PolymarketBridgeTransactionStatus,
   PolymarketBridgeTransactionStatusResponse,
   PolymarketBridgeWithdrawalInput,
+  PolymarketBridgeWithdrawalEvent,
+  PolymarketBridgeWithdrawalEventType,
+  PolymarketBridgeWithdrawalRecord,
   PolymarketBridgeWithdrawalResult,
+  PolymarketBridgeWithdrawalStatus,
+  PolymarketBridgeWithdrawalSubmitResult,
 } from './polymarketBridge.js';
 export type {
   AccountOrderCreateInput,

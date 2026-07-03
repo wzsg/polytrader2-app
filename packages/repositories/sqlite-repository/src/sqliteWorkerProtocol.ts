@@ -6,6 +6,7 @@ type SqliteRepositoryName =
   | 'mcpServerAccessLog'
   | 'preference'
   | 'polymarketWallet'
+  | 'polymarketWithdrawal'
   | 'strategyBot'
   | 'strategyCatalog'
   | 'strategyRun'

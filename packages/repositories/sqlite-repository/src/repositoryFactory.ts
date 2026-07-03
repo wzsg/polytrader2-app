@@ -9,6 +9,7 @@ import type {
   StrategyCatalogRepository,
   StrategyRunRepository,
   PolymarketWalletRepository,
+  PolymarketWithdrawalRepository,
   WatchlistRepository,
   WorkflowTaskRepository,
 } from '@polytrader/repository-contract';
@@ -54,6 +55,10 @@ function createSqlitePolymarketWalletRepository(): PolymarketWalletRepository {
   return createRepositoryProxy<PolymarketWalletRepository>('polymarketWallet');
 }
 
+function createSqlitePolymarketWithdrawalRepository(): PolymarketWithdrawalRepository {
+  return createRepositoryProxy<PolymarketWithdrawalRepository>('polymarketWithdrawal');
+}
+
 function createSqliteWatchlistRepository(): WatchlistRepository {
   return createRepositoryProxy<WatchlistRepository>('watchlist');
 }
@@ -73,6 +78,7 @@ export {
   createSqliteStrategyCatalogRepository,
   createSqliteStrategyRunRepository,
   createSqlitePolymarketWalletRepository,
+  createSqlitePolymarketWithdrawalRepository,
   createSqliteWatchlistRepository,
   createSqliteWorkflowTaskRepository,
 };

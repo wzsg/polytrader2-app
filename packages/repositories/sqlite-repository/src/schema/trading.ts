@@ -66,3 +66,59 @@ export const polymarketWallets = sqliteTable(
     }).onDelete('restrict'),
   ],
 );
+
+export const polymarketWithdrawals = sqliteTable(
+  'polymarket_withdrawals',
+  {
+    id: text('id').primaryKey(),
+    walletId: text('wallet_id').notNull(),
+    walletAddress: text('wallet_address').notNull(),
+    depositWalletAddress: text('deposit_wallet_address').notNull(),
+    amount: text('amount').notNull(),
+    amountBaseUnits: text('amount_base_units').notNull(),
+    fromChainId: text('from_chain_id').notNull(),
+    fromTokenAddress: text('from_token_address').notNull(),
+    toChainId: text('to_chain_id').notNull(),
+    toTokenAddress: text('to_token_address').notNull(),
+    recipientAddress: text('recipient_address').notNull(),
+    bridgeAddress: text('bridge_address'),
+    status: text('status', {
+      enum: [
+        'pending',
+        'creating_bridge_address',
+        'transferring_pusd',
+        'waiting_bridge_completion',
+        'succeeded',
+        'failed',
+        'timed_out',
+      ],
+    })
+      .notNull()
+      .default('pending'),
+    bridgeResponseJson: text('bridge_response_json'),
+    bridgeStatus: text('bridge_status'),
+    bridgeStatusResponseJson: text('bridge_status_response_json'),
+    relayerTransactionId: text('relayer_transaction_id'),
+    relayerTransactionState: text('relayer_transaction_state'),
+    relayerTransactionHash: text('relayer_transaction_hash'),
+    errorMessage: text('error_message'),
+    submittedAt: text('submitted_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => [
+    index('idx_polymarket_withdrawals_wallet_created').on(table.walletId, table.createdAt),
+    index('idx_polymarket_withdrawals_status').on(table.status),
+    index('idx_polymarket_withdrawals_bridge_address').on(table.bridgeAddress),
+    foreignKey({
+      columns: [table.walletId],
+      foreignColumns: [polymarketWallets.id],
+      name: 'polymarket_withdrawals_wallet_id_fk',
+    }).onDelete('restrict'),
+  ],
+);

@@ -458,6 +458,16 @@ export const messages = {
       submitWithdrawal: 'Submit withdrawal',
       bridgeAddress: 'Bridge Address',
       relayerTransaction: 'Relayer Transaction',
+      withdrawalStatusLabel: 'Withdrawal Status',
+      withdrawalStatus: {
+        pending: 'Pending',
+        creating_bridge_address: 'Creating bridge address',
+        transferring_pusd: 'Transferring pUSD',
+        waiting_bridge_completion: 'Waiting for bridge completion',
+        succeeded: 'Completed',
+        failed: 'Failed',
+        timed_out: 'Timed out',
+      },
     },
     window: {
       pin: 'Pin window',
@@ -1147,6 +1157,16 @@ export const messages = {
       submitWithdrawal: '提交提款',
       bridgeAddress: '桥地址',
       relayerTransaction: 'Relayer 交易',
+      withdrawalStatusLabel: '提款状态',
+      withdrawalStatus: {
+        pending: '等待处理',
+        creating_bridge_address: '正在创建桥地址',
+        transferring_pusd: '正在转出 pUSD',
+        waiting_bridge_completion: '等待桥完成',
+        succeeded: '已完成',
+        failed: '失败',
+        timed_out: '已超时',
+      },
     },
     window: {
       pin: '置顶窗口',

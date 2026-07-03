@@ -65,7 +65,9 @@ import type {
   PolymarketBridgeSupportedAssetsResponse,
   PolymarketBridgeTransactionStatusResponse,
   PolymarketBridgeWithdrawalInput,
-  PolymarketBridgeWithdrawalResult,
+  PolymarketBridgeWithdrawalEvent,
+  PolymarketBridgeWithdrawalRecord,
+  PolymarketBridgeWithdrawalSubmitResult,
   PolymarketBridgeAddressResponse,
   PolymarketWalletCreateInput,
   PolymarketWalletDerivedInput,
@@ -335,10 +337,17 @@ export interface IpcApi {
   ) => Promise<ApiResult<PolymarketBridgeQuoteResponse>>;
   withdrawPolymarketBridge: (
     input: PolymarketBridgeWithdrawalInput,
-  ) => Promise<ApiResult<PolymarketBridgeWithdrawalResult>>;
+  ) => Promise<ApiResult<PolymarketBridgeWithdrawalSubmitResult>>;
   getPolymarketBridgeTransactionStatus: (
     address: string,
   ) => Promise<ApiResult<PolymarketBridgeTransactionStatusResponse>>;
+  listPolymarketBridgeWithdrawals: (
+    walletId?: string,
+    limit?: number,
+  ) => Promise<ApiResult<PolymarketBridgeWithdrawalRecord[]>>;
+  onPolymarketBridgeWithdrawalEvent: (
+    callback: (event: PolymarketBridgeWithdrawalEvent) => void,
+  ) => () => void;
   listStrategies: () => Promise<ApiResult<StrategyListItem[]>>;
   getStrategy: (id: string) => Promise<ApiResult<StrategyDetail>>;
   createStrategy: (input: StrategyCreateInput) => Promise<ApiResult<StrategyDetail>>;

@@ -8,6 +8,7 @@ import { SqliteStrategyBotRepository } from './repositories/strategyBotRepositor
 import { SqliteStrategyCatalogRepository } from './repositories/strategyCatalogRepository.js';
 import { SqliteStrategyRunRepository } from './repositories/strategyRunRepository.js';
 import { SqlitePolymarketWalletRepository } from './repositories/polymarketWalletRepository.js';
+import { SqlitePolymarketWithdrawalRepository } from './repositories/polymarketWithdrawalRepository.js';
 import { SqliteWatchlistRepository } from './repositories/watchlistRepository.js';
 import { SqliteWorkflowTaskRepository } from './repositories/workflowTaskRepository.js';
 
@@ -51,6 +52,10 @@ function createSyncSqlitePolymarketWalletRepository(): SqlitePolymarketWalletRep
   return new SqlitePolymarketWalletRepository();
 }
 
+function createSyncSqlitePolymarketWithdrawalRepository(): SqlitePolymarketWithdrawalRepository {
+  return new SqlitePolymarketWithdrawalRepository();
+}
+
 function createSyncSqliteWatchlistRepository(): SqliteWatchlistRepository {
   return new SqliteWatchlistRepository();
 }
@@ -70,6 +75,7 @@ export {
   createSyncSqliteStrategyCatalogRepository,
   createSyncSqliteStrategyRunRepository,
   createSyncSqlitePolymarketWalletRepository,
+  createSyncSqlitePolymarketWithdrawalRepository,
   createSyncSqliteWatchlistRepository,
   createSyncSqliteWorkflowTaskRepository,
 };

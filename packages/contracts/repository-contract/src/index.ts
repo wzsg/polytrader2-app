@@ -37,6 +37,11 @@ import type {
   StrategyRunStatus,
   StrategyVersionSummary,
   PolymarketWalletCreationType,
+  PolymarketBridgeTransactionStatus,
+  PolymarketBridgeTransactionStatusResponse,
+  PolymarketBridgeAddressResponse,
+  PolymarketBridgeWithdrawalRecord,
+  PolymarketBridgeWithdrawalStatus,
   PolymarketWalletInitializationStatus,
   PolymarketWalletWalletKeyMaterialType,
   WorkflowTaskRecord,
@@ -230,6 +235,44 @@ interface PolymarketWalletInitializationCredentialFields {
   signatureType: number;
   chainId: number;
   clobHost: string;
+}
+
+interface PolymarketWithdrawalCreateInput {
+  walletId: string;
+  walletAddress: string;
+  depositWalletAddress: string;
+  amount: string;
+  amountBaseUnits: string;
+  fromChainId: string;
+  fromTokenAddress: string;
+  toChainId: string;
+  toTokenAddress: string;
+  recipientAddress: string;
+}
+
+interface PolymarketWithdrawalUpdateInput {
+  status?: PolymarketBridgeWithdrawalStatus;
+  bridgeAddress?: string | null;
+  bridgeResponse?: PolymarketBridgeAddressResponse | null;
+  bridgeStatus?: PolymarketBridgeTransactionStatus | string | null;
+  bridgeStatusResponse?: PolymarketBridgeTransactionStatusResponse | null;
+  relayerTransactionId?: string | null;
+  relayerTransactionState?: string | null;
+  relayerTransactionHash?: string | null;
+  errorMessage?: string | null;
+  submittedAt?: string | null;
+  completedAt?: string | null;
+}
+
+interface PolymarketWithdrawalRepository {
+  create(input: PolymarketWithdrawalCreateInput): Promise<PolymarketBridgeWithdrawalRecord>;
+  get(id: string): Promise<PolymarketBridgeWithdrawalRecord>;
+  listByWallet(walletId: string, limit?: number): Promise<PolymarketBridgeWithdrawalRecord[]>;
+  listRecent(limit?: number): Promise<PolymarketBridgeWithdrawalRecord[]>;
+  update(
+    id: string,
+    input: PolymarketWithdrawalUpdateInput,
+  ): Promise<PolymarketBridgeWithdrawalRecord>;
 }
 
 interface WorkflowTaskCreateInput {
@@ -591,6 +634,9 @@ export type {
   McpServerAccessLogRecord,
   McpServerAccessLogRepository,
   MetaRepository,
+  PolymarketWithdrawalCreateInput,
+  PolymarketWithdrawalRepository,
+  PolymarketWithdrawalUpdateInput,
   PolymarketWalletFields,
   PolymarketWalletInitializationCredentialFields,
   PolymarketWalletInitializationUpdateFields,

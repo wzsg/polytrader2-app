@@ -108,6 +108,59 @@ interface PolymarketBridgeTransactionStatusResponse {
   transactions: PolymarketBridgeTransaction[];
 }
 
+type PolymarketBridgeWithdrawalStatus =
+  | 'pending'
+  | 'creating_bridge_address'
+  | 'transferring_pusd'
+  | 'waiting_bridge_completion'
+  | 'succeeded'
+  | 'failed'
+  | 'timed_out';
+
+interface PolymarketBridgeWithdrawalRecord {
+  id: string;
+  walletId: string;
+  walletAddress: string;
+  depositWalletAddress: string;
+  amount: string;
+  amountBaseUnits: string;
+  fromChainId: string;
+  fromTokenAddress: string;
+  toChainId: string;
+  toTokenAddress: string;
+  recipientAddress: string;
+  bridgeAddress: string | null;
+  status: PolymarketBridgeWithdrawalStatus;
+  bridgeResponse: PolymarketBridgeAddressResponse | null;
+  bridgeStatus: PolymarketBridgeTransactionStatus | string | null;
+  bridgeStatusResponse: PolymarketBridgeTransactionStatusResponse | null;
+  relayerTransactionId: string | null;
+  relayerTransactionState: string | null;
+  relayerTransactionHash: string | null;
+  errorMessage: string | null;
+  submittedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PolymarketBridgeWithdrawalSubmitResult {
+  withdrawal: PolymarketBridgeWithdrawalRecord;
+}
+
+type PolymarketBridgeWithdrawalEventType =
+  | 'created'
+  | 'updated'
+  | 'succeeded'
+  | 'failed'
+  | 'timed-out';
+
+interface PolymarketBridgeWithdrawalEvent {
+  type: PolymarketBridgeWithdrawalEventType;
+  withdrawal: PolymarketBridgeWithdrawalRecord;
+  previousWithdrawal?: PolymarketBridgeWithdrawalRecord;
+}
+
 interface PolymarketBridgeWithdrawalResult {
   withdrawal: PolymarketBridgeAddressResponse;
   bridgeAddress: string;
@@ -129,5 +182,10 @@ export type {
   PolymarketBridgeTransactionStatus,
   PolymarketBridgeTransactionStatusResponse,
   PolymarketBridgeWithdrawalInput,
+  PolymarketBridgeWithdrawalEvent,
+  PolymarketBridgeWithdrawalEventType,
+  PolymarketBridgeWithdrawalRecord,
   PolymarketBridgeWithdrawalResult,
+  PolymarketBridgeWithdrawalStatus,
+  PolymarketBridgeWithdrawalSubmitResult,
 };

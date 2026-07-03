@@ -14,6 +14,7 @@ import {
   createSyncSqliteMcpServerAccessLogRepository,
   createSyncSqlitePreferenceRepository,
   createSyncSqlitePolymarketWalletRepository,
+  createSyncSqlitePolymarketWithdrawalRepository,
   createSyncSqliteStrategyBotRepository,
   createSyncSqliteStrategyCatalogRepository,
   createSyncSqliteStrategyRunRepository,
@@ -37,6 +38,8 @@ function createRepositories(): RepositoryMap {
       createSyncSqliteMcpServerAccessLogRepository() as unknown as RepositoryInstance,
     preference: createSyncSqlitePreferenceRepository() as unknown as RepositoryInstance,
     polymarketWallet: createSyncSqlitePolymarketWalletRepository() as unknown as RepositoryInstance,
+    polymarketWithdrawal:
+      createSyncSqlitePolymarketWithdrawalRepository() as unknown as RepositoryInstance,
     strategyBot: createSyncSqliteStrategyBotRepository() as unknown as RepositoryInstance,
     strategyCatalog: createSyncSqliteStrategyCatalogRepository() as unknown as RepositoryInstance,
     strategyRun: createSyncSqliteStrategyRunRepository() as unknown as RepositoryInstance,

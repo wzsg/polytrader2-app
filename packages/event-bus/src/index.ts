@@ -16,6 +16,14 @@ export type {
   PolymarketEventSyncStatusEvent,
 } from './polymarketEventSyncEvents.js';
 export type {
+  PolymarketWithdrawalCreatedEvent,
+  PolymarketWithdrawalEventMap,
+  PolymarketWithdrawalFailedEvent,
+  PolymarketWithdrawalSucceededEvent,
+  PolymarketWithdrawalTimedOutEvent,
+  PolymarketWithdrawalUpdatedEvent,
+} from './polymarketWithdrawalEvents.js';
+export type {
   PolymarketWalletCreatedEvent,
   PolymarketWalletDefaultChangedEvent,
   PolymarketWalletDeletedEvent,

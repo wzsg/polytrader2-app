@@ -6,6 +6,12 @@ import type { AppLocale, EventSyncTrigger } from '@polytrader/shared';
 
 const POLYMARKET_WALLET_INITIALIZATION_WORKFLOW = 'polymarket-wallet.initialize';
 const POLYMARKET_EVENT_SYNC_WORKFLOW = 'polymarket-event.sync';
+const POLYMARKET_BRIDGE_WITHDRAWAL_WORKFLOW = 'polymarket-bridge.withdrawal';
+
+interface PolymarketBridgeWithdrawalWorkflowInput {
+  withdrawalId: string;
+  walletId: string;
+}
 
 class DesktopWorkflowService {
   private readonly _runtime: WorkflowRuntime;
@@ -23,6 +29,10 @@ class DesktopWorkflowService {
         },
         [POLYMARKET_EVENT_SYNC_WORKFLOW]: {
           mode: 'serial',
+        },
+        [POLYMARKET_BRIDGE_WITHDRAWAL_WORKFLOW]: {
+          mode: 'parallel',
+          concurrency: 1,
         },
       },
     });
@@ -45,6 +55,26 @@ class DesktopWorkflowService {
       payload: input,
       idempotencyKey: `${POLYMARKET_WALLET_INITIALIZATION_WORKFLOW}:${input.walletId}`,
       maxAttempts: 5,
+    });
+  }
+
+  public registerPolymarketBridgeWithdrawalHandler(
+    handler: (input: PolymarketBridgeWithdrawalWorkflowInput) => Promise<unknown>,
+  ): void {
+    this._runtime.register(POLYMARKET_BRIDGE_WITHDRAWAL_WORKFLOW, async (context) =>
+      handler(this._parsePolymarketBridgeWithdrawalInput(context)),
+    );
+  }
+
+  public async enqueuePolymarketBridgeWithdrawal(
+    input: PolymarketBridgeWithdrawalWorkflowInput,
+  ): Promise<void> {
+    await this._runtime.enqueue({
+      type: POLYMARKET_BRIDGE_WITHDRAWAL_WORKFLOW,
+      groupKey: `${POLYMARKET_BRIDGE_WITHDRAWAL_WORKFLOW}:${input.walletId}`,
+      payload: input,
+      idempotencyKey: `${POLYMARKET_BRIDGE_WITHDRAWAL_WORKFLOW}:${input.withdrawalId}`,
+      maxAttempts: 1,
     });
   }
 
@@ -114,6 +144,16 @@ class DesktopWorkflowService {
     return payload;
   }
 
+  private _parsePolymarketBridgeWithdrawalInput(
+    context: WorkflowHandlerContext,
+  ): PolymarketBridgeWithdrawalWorkflowInput {
+    const payload = context.payload;
+    if (!this._isPolymarketBridgeWithdrawalInput(payload)) {
+      throw new Error(`Invalid bridge withdrawal workflow payload: ${context.task.id}`);
+    }
+    return payload;
+  }
+
   private _isPolymarketEventSyncInput(value: unknown): value is EventSyncWorkflowInput {
     if (typeof value !== 'object' || value === null) return false;
     const input = value as Partial<{ locale: AppLocale; trigger: EventSyncTrigger }>;
@@ -126,8 +166,17 @@ class DesktopWorkflowService {
         input.trigger === 'locale-change')
     );
   }
+
+  private _isPolymarketBridgeWithdrawalInput(
+    value: unknown,
+  ): value is PolymarketBridgeWithdrawalWorkflowInput {
+    if (typeof value !== 'object' || value === null) return false;
+    const input = value as Partial<PolymarketBridgeWithdrawalWorkflowInput>;
+    return Boolean(input.withdrawalId?.trim() && input.walletId?.trim());
+  }
 }
 
 const desktopWorkflowService = new DesktopWorkflowService();
 
 export { desktopWorkflowService };
+export type { PolymarketBridgeWithdrawalWorkflowInput };
