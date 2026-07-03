@@ -20,8 +20,27 @@ interface PolymarketRelayerSubmitResult {
   hash?: string;
 }
 
+interface PolymarketRelayerTransactionResult {
+  transactionID: string;
+  transactionHash?: string;
+  from?: string;
+  to?: string;
+  proxyAddress?: string;
+  nonce?: string;
+  value?: string;
+  state: string;
+  type?: string;
+  metadata?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface RelayerNonceResult {
   nonce: string;
+}
+
+interface RelayerDeployedResult {
+  deployed: boolean;
 }
 
 interface PolymarketRelayerApprovalInput {
@@ -62,7 +81,9 @@ export type {
   PolymarketRelayerApprovalInput,
   PolymarketRelayerCtfAmountInput,
   PolymarketRelayerMergeInput,
+  PolymarketRelayerTransactionResult,
   PolymarketRelayerTransferPusdInput,
+  RelayerDeployedResult,
   RelayerNonceResult,
   PolymarketRelayerRedeemInput,
   PolymarketRelayerSplitInput,

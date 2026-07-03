@@ -17,6 +17,7 @@ const polymarketWalletService = createPolymarketWalletService({
   },
   accountCredentialDeriver: polymarketApiClient,
   depositWalletDeployer: polymarketApiClient,
+  depositWalletApprover: polymarketApiClient,
   initializationWorkflowScheduler: desktopWorkflowService,
   repository: createSqlitePolymarketWalletRepository(),
   eventBus: applicationEventBus,

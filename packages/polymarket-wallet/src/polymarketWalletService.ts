@@ -11,6 +11,7 @@ import type {
 import {
   POLYMARKET_CLOB_BASE_URL,
   POLYMARKET_WALLET_LIMIT,
+  POLYTRADER_RELAYER_API_BASE_URL,
   type BalanceAllowance,
   type PolymarketAccountCredentialDerivationResult,
   type PolymarketWalletCreateInput,
@@ -26,6 +27,8 @@ import { ElectronWalletKeyMaterialSecurityService } from './security/electronWal
 import type { WalletKeyMaterialSecurityService } from './security/walletKeyMaterialSecurityService.js';
 import type {
   PolymarketAccountCredentialDeriver,
+  PolymarketDepositWalletApprover,
+  PolymarketDepositWalletApprovalResult,
   PolymarketDepositWalletDeployer,
   PolymarketDepositWalletDeploymentResult,
   PolymarketWalletInitializationWorkflowInput,
@@ -57,6 +60,7 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
   private readonly _secretStore: WalletKeyMaterialSecurityService;
   private readonly _accountCredentialDeriver: PolymarketAccountCredentialDeriver;
   private readonly _depositWalletDeployer: PolymarketDepositWalletDeployer;
+  private readonly _depositWalletApprover: PolymarketDepositWalletApprover;
   private readonly _initializationWorkflowScheduler: PolymarketWalletInitializationWorkflowScheduler;
   private readonly _repository: PolymarketWalletRepository;
   private readonly _eventBus: ApplicationEventBus | null;
@@ -65,6 +69,7 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
     this._secretStore = new ElectronWalletKeyMaterialSecurityService(options.safeStorage);
     this._accountCredentialDeriver = options.accountCredentialDeriver;
     this._depositWalletDeployer = options.depositWalletDeployer;
+    this._depositWalletApprover = options.depositWalletApprover;
     this._initializationWorkflowScheduler = options.initializationWorkflowScheduler;
     this._repository = options.repository;
     this._eventBus = options.eventBus ?? null;
@@ -175,12 +180,15 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
       return {
         wallet: this._mapSummary(current),
         depositWalletDeployment: null,
+        polymarketApproval: null,
       };
     }
 
     try {
       let wallet = current;
       let accountCredentials: PolymarketAccountCredentialDerivationResult;
+      let depositWalletDeployment: PolymarketDepositWalletDeploymentResult | null = null;
+      let polymarketApproval: PolymarketDepositWalletApprovalResult | null = null;
       if (this._rawCredentialsConfigured(wallet)) {
         accountCredentials = this._accountCredentialsFromRecord(wallet);
       } else {
@@ -202,7 +210,15 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
         initializationStatus: 'deploying_deposit_wallet',
         initializationError: '',
       });
-      const depositWalletDeployment = await this._deployDepositWallet(
+      depositWalletDeployment = await this._deployDepositWallet(
+        this._resolvePrivateKey(wallet),
+        accountCredentials,
+      );
+      wallet = await this._updateInitialization(id, {
+        initializationStatus: 'approving_polymarket',
+        initializationError: '',
+      });
+      polymarketApproval = await this._approvePolymarket(
         this._resolvePrivateKey(wallet),
         accountCredentials,
       );
@@ -213,6 +229,7 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
       return {
         wallet: this._mapSummary(readyWallet),
         depositWalletDeployment,
+        polymarketApproval,
       };
     } catch (error) {
       await this._updateInitialization(id, {
@@ -892,6 +909,24 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
       signatureType: accountCredentials.signatureType,
       chainId: accountCredentials.chainId,
       clobHost: accountCredentials.clobHost,
+      relayerApiBaseUrl: POLYTRADER_RELAYER_API_BASE_URL,
+    });
+  }
+
+  private async _approvePolymarket(
+    privateKey: string,
+    accountCredentials: PolymarketAccountCredentialDerivationResult,
+  ): Promise<PolymarketDepositWalletApprovalResult> {
+    return await this._depositWalletApprover.approvePolymarket({
+      privateKey,
+      apiKey: accountCredentials.apiKey,
+      secret: accountCredentials.secret,
+      passphrase: accountCredentials.passphrase,
+      depositWalletAddress: accountCredentials.depositWalletAddress,
+      signatureType: accountCredentials.signatureType,
+      chainId: accountCredentials.chainId,
+      clobHost: accountCredentials.clobHost,
+      relayerApiBaseUrl: POLYTRADER_RELAYER_API_BASE_URL,
     });
   }
 

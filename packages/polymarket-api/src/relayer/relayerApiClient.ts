@@ -10,12 +10,24 @@ import type {
   PolymarketRelayerRedeemInput,
   PolymarketRelayerSplitInput,
   PolymarketRelayerSubmitResult,
+  PolymarketRelayerTransactionResult,
   PolymarketRelayerTransferPusdInput,
+  RelayerDeployedResult,
   RelayerNonceResult,
 } from './types.js';
 
 const DEFAULT_CHAIN_ID = 137;
 const DEFAULT_DEPOSIT_WALLET_DEADLINE_SECONDS = 10 * 60;
+const DEFAULT_TRANSACTION_POLL_ATTEMPTS = 30;
+const DEFAULT_TRANSACTION_POLL_INTERVAL_MS = 2000;
+const DEFAULT_DEPLOYED_POLL_ATTEMPTS = 30;
+const DEFAULT_DEPLOYED_POLL_INTERVAL_MS = 2000;
+const RELAYER_TRANSACTION_READY_STATES = new Set([
+  'STATE_EXECUTED',
+  'STATE_MINED',
+  'STATE_CONFIRMED',
+]);
+const RELAYER_TRANSACTION_FAILED_STATES = new Set(['STATE_FAILED', 'STATE_INVALID']);
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const DEFAULT_PARTITION = [1, 2] as const;
 
@@ -117,8 +129,31 @@ class PolymarketRelayerApiClient {
     return result.nonce;
   }
 
-  public deploy(): Promise<PolymarketRelayerSubmitResult> {
-    return this.postJson('/v1/deploy', { from: this._account.address });
+  public async deploy(): Promise<PolymarketRelayerSubmitResult> {
+    const result = await this.postJson<PolymarketRelayerSubmitResult>('/v1/deploy', {
+      from: this._account.address,
+    });
+    const readyResult = await this.waitForTransactionReady(result);
+    await this.waitForDepositWalletDeployed();
+    return readyResult;
+  }
+
+  public async getDeployed(): Promise<boolean> {
+    const search = new URLSearchParams({
+      address: this._credentials.depositWalletAddress,
+      type: 'WALLET',
+    });
+    const result = await this.getJson<RelayerDeployedResult>(`/v1/deployed?${search.toString()}`);
+    return result.deployed;
+  }
+
+  public async getTransaction(
+    transactionID: string,
+  ): Promise<PolymarketRelayerTransactionResult[]> {
+    const search = new URLSearchParams({ id: transactionID });
+    return this.getJson<PolymarketRelayerTransactionResult[]>(
+      `/v1/transaction?${search.toString()}`,
+    );
   }
 
   public approval(input: PolymarketRelayerApprovalInput): Promise<PolymarketRelayerSubmitResult> {
@@ -277,6 +312,45 @@ class PolymarketRelayerApiClient {
       throw new Error(`Polymarket relayer API request failed: HTTP ${response.status} ${body}`);
     }
     return JSON.parse(body) as T;
+  }
+
+  private async waitForTransactionReady(
+    result: PolymarketRelayerSubmitResult,
+  ): Promise<PolymarketRelayerSubmitResult> {
+    if (!result.transactionID || RELAYER_TRANSACTION_READY_STATES.has(result.state)) return result;
+    for (let attempt = 0; attempt < DEFAULT_TRANSACTION_POLL_ATTEMPTS; attempt++) {
+      await this.sleep(DEFAULT_TRANSACTION_POLL_INTERVAL_MS);
+      const transactions = await this.getTransaction(result.transactionID);
+      const transaction = transactions[0];
+      if (!transaction) continue;
+      if (RELAYER_TRANSACTION_READY_STATES.has(transaction.state)) {
+        return {
+          ...result,
+          state: transaction.state,
+          transactionHash: transaction.transactionHash ?? result.transactionHash,
+        };
+      }
+      if (RELAYER_TRANSACTION_FAILED_STATES.has(transaction.state)) {
+        throw new Error(`Polymarket relayer transaction ${result.transactionID} failed`);
+      }
+    }
+    throw new Error(`Polymarket relayer transaction ${result.transactionID} did not become ready`);
+  }
+
+  private async waitForDepositWalletDeployed(): Promise<void> {
+    for (let attempt = 0; attempt < DEFAULT_DEPLOYED_POLL_ATTEMPTS; attempt++) {
+      if (await this.getDeployed()) return;
+      await this.sleep(DEFAULT_DEPLOYED_POLL_INTERVAL_MS);
+    }
+    throw new Error(
+      `Polymarket deposit wallet ${this._credentials.depositWalletAddress} did not become deployed`,
+    );
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   private normalizeCredentials(

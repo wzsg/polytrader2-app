@@ -657,6 +657,7 @@ export type PolymarketWalletInitializationStatus =
   | 'pending'
   | 'deriving_credentials'
   | 'deploying_deposit_wallet'
+  | 'approving_polymarket'
   | 'ready'
   | 'failed';
 const POLYMARKET_WALLET_LIMIT = 30 as const;

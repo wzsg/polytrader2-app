@@ -538,7 +538,8 @@ function isWalletInitializing(account: PolymarketWalletSummary): boolean {
   return (
     account.initializationStatus === 'pending' ||
     account.initializationStatus === 'deriving_credentials' ||
-    account.initializationStatus === 'deploying_deposit_wallet'
+    account.initializationStatus === 'deploying_deposit_wallet' ||
+    account.initializationStatus === 'approving_polymarket'
   );
 }
 
@@ -549,6 +550,9 @@ function walletStatusLabel(account: PolymarketWalletSummary): string {
   }
   if (account.initializationStatus === 'deploying_deposit_wallet') {
     return t('account.initializationDeployingDepositWallet');
+  }
+  if (account.initializationStatus === 'approving_polymarket') {
+    return t('account.initializationApprovingPolymarket');
   }
   if (account.initializationStatus === 'failed') return t('account.initializationFailed');
   return account.credentialsConfigured ? t('account.tradable') : t('account.walletOnly');

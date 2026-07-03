@@ -31,7 +31,14 @@ export const polymarketWallets = sqliteTable(
     chainId: integer('chain_id').notNull().default(137),
     clobHost: text('clob_host').notNull().default(POLYMARKET_CLOB_BASE_URL),
     initializationStatus: text('initialization_status', {
-      enum: ['pending', 'deriving_credentials', 'deploying_deposit_wallet', 'ready', 'failed'],
+      enum: [
+        'pending',
+        'deriving_credentials',
+        'deploying_deposit_wallet',
+        'approving_polymarket',
+        'ready',
+        'failed',
+      ],
     })
       .notNull()
       .default('ready'),

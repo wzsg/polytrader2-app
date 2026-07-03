@@ -89,9 +89,19 @@ interface PolymarketDepositWalletDeployer {
   ): Promise<PolymarketDepositWalletDeploymentResult>;
 }
 
+type PolymarketDepositWalletApprovalInput = PolymarketDepositWalletDeploymentInput;
+type PolymarketDepositWalletApprovalResult = PolymarketDepositWalletDeploymentResult;
+
+interface PolymarketDepositWalletApprover {
+  approvePolymarket(
+    input: PolymarketDepositWalletApprovalInput,
+  ): Promise<PolymarketDepositWalletApprovalResult>;
+}
+
 interface PolymarketWalletInitializationResult {
   wallet: PolymarketWalletSummary;
   depositWalletDeployment: PolymarketDepositWalletDeploymentResult | null;
+  polymarketApproval: PolymarketDepositWalletApprovalResult | null;
 }
 
 interface PolymarketWalletInitializationWorkflowInput {
@@ -109,6 +119,7 @@ interface PolymarketWalletServiceOptions {
   safeStorage: ElectronSafeStorageProvider;
   accountCredentialDeriver: PolymarketAccountCredentialDeriver;
   depositWalletDeployer: PolymarketDepositWalletDeployer;
+  depositWalletApprover: PolymarketDepositWalletApprover;
   initializationWorkflowScheduler: PolymarketWalletInitializationWorkflowScheduler;
   repository: PolymarketWalletRepository;
   eventBus?: ApplicationEventBus;
@@ -240,6 +251,9 @@ interface PolymarketWalletService {
 export type {
   ElectronSafeStorageProvider,
   PolymarketAccountCredentialDeriver,
+  PolymarketDepositWalletApprover,
+  PolymarketDepositWalletApprovalInput,
+  PolymarketDepositWalletApprovalResult,
   PolymarketDepositWalletDeployer,
   PolymarketDepositWalletDeploymentInput,
   PolymarketDepositWalletDeploymentResult,

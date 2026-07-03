@@ -41,6 +41,8 @@ import type { PolymarketAccount, PolymarketWalletCredentials } from './account/i
 import type { PolymarketApiClientOptions } from './types.js';
 
 const DEFAULT_CHAIN_ID = 137;
+const DEFAULT_APPROVAL_REGISTRY_RETRY_ATTEMPTS = 30;
+const DEFAULT_APPROVAL_REGISTRY_RETRY_INTERVAL_MS = 2000;
 
 class PolymarketApiClient {
   private static _instance?: PolymarketApiClient;
@@ -83,6 +85,26 @@ class PolymarketApiClient {
   ): Promise<PolymarketRelayerSubmitResult> {
     const relayerApiClient = new PolymarketRelayerApiClient(credentials);
     return relayerApiClient.deploy();
+  }
+
+  public async approvePolymarket(
+    credentials: PolymarketWalletCredentials,
+  ): Promise<PolymarketRelayerSubmitResult> {
+    const relayerApiClient = new PolymarketRelayerApiClient(credentials);
+    let lastRegistryError: unknown = null;
+    for (let attempt = 0; attempt < DEFAULT_APPROVAL_REGISTRY_RETRY_ATTEMPTS; attempt++) {
+      try {
+        const nonce = await relayerApiClient.getNonce();
+        return await relayerApiClient.approval({ nonce });
+      } catch (error) {
+        if (!this._isWalletRegistryValidationError(error)) throw error;
+        lastRegistryError = error;
+        if (attempt < DEFAULT_APPROVAL_REGISTRY_RETRY_ATTEMPTS - 1) {
+          await this._sleep(DEFAULT_APPROVAL_REGISTRY_RETRY_INTERVAL_MS);
+        }
+      }
+    }
+    throw lastRegistryError;
   }
 
   public listBridgeSupportedAssets(): Promise<PolymarketBridgeSupportedAssetsResponse> {
@@ -344,6 +366,16 @@ class PolymarketApiClient {
       'status' in error &&
       typeof error.status === 'number'
     );
+  }
+
+  private _isWalletRegistryValidationError(error: unknown): boolean {
+    return this._errorMessage(error).includes('wallet registry validation failed');
+  }
+
+  private _sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   private async collectPriceHistory(
