@@ -229,6 +229,7 @@ const {
           <TradingCenterTabs
             v-model:active-tab="activeCenterTab"
             v-model:order-book-depth="orderBookDepth"
+            v-model:price-history-range="priceHistoryRange"
             :market-id="marketId"
             :condition-id="conditionId"
             :market-detail-ready="marketDetailReady"
@@ -238,7 +239,6 @@ const {
             :holders="holders"
             :price-history="priceHistory"
             :price-history-loading="priceHistoryLoading"
-            v-model:price-history-range="priceHistoryRange"
             :default-market-trades="defaultMarketTrades"
             :default-market-trades-sync-status="defaultMarketTradesSyncStatus"
             :display-books="displayBooks"

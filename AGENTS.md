@@ -26,7 +26,4 @@ http://docs.polymarket.com/llms.txt
 - 完成涉及文案的修改后，必须用 `rg -n "[\p{Han}]" apps packages -S --glob "*.ts" --glob "*.vue" --glob "!**/shared/i18n/messages.ts" --glob "!**/shared/i18n/autoTranslate.ts"` 检查是否有中文硬编码残留；若存在残留，必须确认它是数据常量、测试样例或其他非用户文案，否则应迁入 i18n 资源。
 
 注意事项
-1、始终用中文回答
-2、需要检查或操作本地 SQLite 数据库时，可以直接使用 sqlite CLI 工具，不要受 Node.js / better-sqlite3 原生模块版本不匹配影响。
-3、本项目的sqlite 数据库文件路径为 %USERPROFILE%\AppData\Roaming\polytrader2\polytrader2.db
-4、所有 git commit 信息必须使用英文。
+1、本项目的sqlite 数据库文件路径为 %USERPROFILE%\AppData\Roaming\polytrader2\polytrader2.db
