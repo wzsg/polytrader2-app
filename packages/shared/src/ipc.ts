@@ -1,0 +1,443 @@
+import type {
+  ApiResult,
+  AuthEmailInput,
+  AuthProvider,
+  AuthProviderStartResult,
+  AuthState,
+  BrowserModalPayload,
+  BrowserNavigateOptions,
+  BrowserNavigationState,
+  BrowserProviderResponseInput,
+  BrowserViewBounds,
+  CacheStats,
+  ClobOrder,
+  ClobTrade,
+  CryptoCategoryConfig,
+  CryptoEventsResult,
+  DataPosition,
+  DeveloperModeConfig,
+  DeveloperOrderRecord,
+  EventCategoryConfig,
+  EventListItem,
+  Filters,
+  GammaEventRaw,
+  ListEventsParams,
+  ManualPlaceOrderInput,
+  MarketDetailData,
+  McpServerAccessLogRecord,
+  McpServerConfig,
+  McpServerStatus,
+  MarketTradeAnalysisQuery,
+  MarketTradeAnalysisResult,
+  MarketTradeListResult,
+  MarketTradeQuery,
+  MarketTradeSyncStatus,
+  MarketTradeTick,
+  PriceHistoryPoint,
+  StrategyBotCreateInput,
+  StrategyBotDetail,
+  StrategyBotListItem,
+  StrategyBotListParams,
+  StrategyBotRuntimeEvent,
+  StrategyBotUpdateInput,
+  StrategyCompileResult,
+  StrategyCreateInput,
+  StrategyDetail,
+  StrategyEditorWindowInput,
+  StrategyListItem,
+  StrategyRunDetail,
+  StrategyRunListItem,
+  StrategyRunListParams,
+  StrategyRunLogEntry,
+  StrategyRunOrderRecord,
+  StrategyRunRuntimeEvent,
+  StrategyUpdateInput,
+  StrategyVersionSummary,
+  SportsEventScope,
+  SportsEventsResult,
+  SportsMetadataItem,
+  SyncScheduleConfig,
+  SyncStatus,
+  PolymarketWalletImportInput,
+  PolymarketBridgeDepositInput,
+  PolymarketBridgeQuoteInput,
+  PolymarketBridgeQuoteResponse,
+  PolymarketBridgeSupportedAssetsResponse,
+  PolymarketBridgeTransactionStatusResponse,
+  PolymarketBridgeWithdrawalInput,
+  PolymarketBridgeWithdrawalResult,
+  PolymarketBridgeAddressResponse,
+  PolymarketWalletCreateInput,
+  PolymarketWalletDerivedInput,
+  PolymarketWalletEvent,
+  PolymarketWalletKeyMaterialReveal,
+  PolymarketWalletSummary,
+  PolymarketWalletUpdateInput,
+  TradingAccountDataEvent,
+  TradingAccountDataQuery,
+  TradingAccountPositionMergeInput,
+  TradingAccountPositionOperationResult,
+  TradingAccountPositionRedeemInput,
+  TradingAccountPositionSplitInput,
+  TradingMarketEvent,
+  TradingMarketSubscribeOptions,
+  TradingRuntimeAccountState,
+  TradingMarketSnapshot,
+  TradingStrategyState,
+  TradingStrategyStateEvent,
+  TradingWindowInput,
+  UserSyncResult,
+  WorkflowTaskRecord,
+} from './types/index.js';
+import type { AppLocalePreference, AppPreferences } from './i18n.js';
+
+export type {
+  ApiEvent,
+  ApiResult,
+  AuthEmailInput,
+  AuthProvider,
+  AuthProviderStartResult,
+  AuthState,
+  AuthStatus,
+  BalanceAllowance,
+  BrowserNavigationState,
+  BrowserModalPayload,
+  BrowserNavigateOptions,
+  BrowserProviderAccount,
+  BrowserProviderRequest,
+  BrowserProviderResponseInput,
+  BrowserProviderRequestKind,
+  BrowserWalletConnectionState,
+  BrowserViewBounds,
+  CacheStats,
+  CryptoCategoryConfig,
+  CryptoEventsResult,
+  DbMarket,
+  DeveloperModeConfig,
+  DeveloperOrderRecord,
+  EventCategoryConfig,
+  EventListItem,
+  Filters,
+  GammaEventRaw,
+  GammaMarketRaw,
+  HolderGroup,
+  ListEventsParams,
+  Market,
+  MarketDetailData,
+  McpServerAccessLogRecord,
+  McpServerConfig,
+  McpServerStatus,
+  MarketTradeAnalysisBucket,
+  MarketTradeAnalysisBreakdown,
+  MarketTradeAnalysisPoint,
+  MarketTradeAnalysisQuery,
+  MarketTradeAnalysisResult,
+  MarketTradeAnalysisSummary,
+  MarketTradeListResult,
+  MarketTradeQuery,
+  MarketTradeSortField,
+  MarketTradeSyncStatus,
+  MarketTradeSyncState,
+  MarketOutcome,
+  MarketTradeTick,
+  PriceHistoryPoint,
+  OrderBook,
+  SortOrder,
+  SyncStatus,
+  WsMessage,
+  ClobOrder,
+  ClobTrade,
+  DataPosition,
+  PolymarketWalletImportInput,
+  PolymarketWalletCreateInput,
+  PolymarketWalletDerivedInput,
+  PolymarketWalletKeyMaterialReveal,
+  PolymarketWalletSummary,
+  PolymarketWalletUpdateInput,
+  TradingAccountDataEvent,
+  TradingAccountDataQuery,
+  TradingAccountPositionMergeInput,
+  TradingAccountPositionOperationResult,
+  TradingAccountPositionRedeemInput,
+  TradingAccountPositionSplitInput,
+  TradingMarketEvent,
+  TradingMarketSubscribeOptions,
+  TradingMarketSnapshot,
+  TradingWindowInput,
+  UserSyncResult,
+  UserSyncState,
+  ManualPlaceOrderInput,
+  StrategyBotCreateInput,
+  StrategyBotDetail,
+  StrategyBotListItem,
+  StrategyBotListParams,
+  StrategyBotRuntimeEvent,
+  StrategyBotStatus,
+  StrategyBotUpdateInput,
+  StrategyCompileResult,
+  StrategyCreateInput,
+  StrategyDetail,
+  StrategyEditorWindowInput,
+  StrategyListItem,
+  StrategyUpdateInput,
+  StrategyVersionSummary,
+  SyncScheduleConfig,
+  StrategyRunDetail,
+  StrategyRunListItem,
+  StrategyRunListParams,
+  StrategyRunLogEntry,
+  StrategyRunOrderRecord,
+  StrategyRunRuntimeEvent,
+} from './types/index.js';
+export type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
+
+export interface ListCryptoEventsParams {
+  tagIds: string[];
+  startTimeMinutes?: number;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+export interface ListSportsEventsParams {
+  scope: SportsEventScope;
+  tagIds?: string[];
+  excludeTagIds?: string[];
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+export interface TradingAccountStatusData {
+  credentialsConfigured: boolean;
+  positionsConfigured: boolean;
+}
+
+export interface IpcApi {
+  getAuthState: () => Promise<AuthState>;
+  signUpWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;
+  signInWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;
+  signInWithProvider: (provider: AuthProvider) => Promise<ApiResult<AuthProviderStartResult>>;
+  resendSignupConfirmation: (email: string) => Promise<ApiResult<void>>;
+  signOut: () => Promise<ApiResult<AuthState>>;
+  syncUserData: () => Promise<ApiResult<UserSyncResult>>;
+  onAuthChanged: (callback: (state: AuthState) => void) => () => void;
+  getAppPreferences: () => Promise<AppPreferences>;
+  setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
+  setOrderConfirmationThresholdUsd: (thresholdUsd: number) => Promise<AppPreferences>;
+  onPreferencesChanged: (callback: (preferences: AppPreferences) => void) => () => void;
+  startSync: () => void;
+  onSyncStatus: (callback: (status: SyncStatus) => void) => void;
+  getSyncScheduleConfig: () => Promise<SyncScheduleConfig>;
+  setSyncScheduleConfig: (config: Partial<SyncScheduleConfig>) => Promise<SyncScheduleConfig>;
+  getMcpServerConfig: () => Promise<McpServerConfig>;
+  setMcpServerConfig: (config: Partial<McpServerConfig>) => Promise<McpServerConfig>;
+  resetMcpServerToken: () => Promise<McpServerConfig>;
+  getMcpServerStatus: () => Promise<McpServerStatus>;
+  getDeveloperModeConfig: () => Promise<DeveloperModeConfig>;
+  setDeveloperModeConfig: (config: Partial<DeveloperModeConfig>) => Promise<DeveloperModeConfig>;
+  listDeveloperMcpAccessLogs: (limit?: number) => Promise<McpServerAccessLogRecord[]>;
+  listDeveloperOrderRecords: (limit?: number) => Promise<DeveloperOrderRecord[]>;
+  listDeveloperWorkflowTasks: (limit?: number) => Promise<WorkflowTaskRecord[]>;
+  listEvents: (params: ListEventsParams) => Promise<EventListItem[]>;
+  listChildEvents: (parentEventId: string) => Promise<EventListItem[]>;
+  countEvents: (params: ListEventsParams) => Promise<number>;
+  getTotalCount: () => Promise<number>;
+  countEventsByTags: (tagIds: string[]) => Promise<number>;
+  countActiveByTags: (tagIds: string[]) => Promise<number>;
+  getCacheStats: () => Promise<CacheStats>;
+  countActive: () => Promise<number>;
+  getWatchlistEventIds: () => Promise<string[]>;
+  addToWatchlist: (eventId: string) => Promise<boolean>;
+  removeFromWatchlist: (eventId: string) => Promise<void>;
+  countWatchlist: () => Promise<number>;
+  loadFilters: () => Promise<Partial<Filters> | null>;
+  saveFilters: (data: Partial<Filters>) => Promise<void>;
+  fetchEvent: (eventId: string) => Promise<GammaEventRaw>;
+  fetchCryptoCategory: () => Promise<CryptoCategoryConfig>;
+  fetchEventCategory: () => Promise<EventCategoryConfig>;
+  listCryptoEvents: (params: ListCryptoEventsParams) => Promise<CryptoEventsResult>;
+  fetchSportsMetadata: () => Promise<SportsMetadataItem[]>;
+  listSportsEvents: (params: ListSportsEventsParams) => Promise<SportsEventsResult>;
+  fetchMarketDetail: (marketId: string) => Promise<ApiResult<MarketDetailData>>;
+  fetchMarketTrades: (conditionId: string, limit?: number) => Promise<ApiResult<MarketTradeTick[]>>;
+  startMarketTradeSync: (
+    marketId: string,
+    conditionId: string,
+  ) => Promise<ApiResult<MarketTradeSyncStatus>>;
+  listMarketTrades: (query: MarketTradeQuery) => Promise<ApiResult<MarketTradeListResult>>;
+  getMarketTradeAnalysis: (
+    query: MarketTradeAnalysisQuery,
+  ) => Promise<ApiResult<MarketTradeAnalysisResult>>;
+  onMarketTradesUpdated: (callback: (status: MarketTradeSyncStatus) => void) => () => void;
+  fetchPriceHistory: (
+    tokenId: string,
+    interval?: string,
+    fidelity?: number,
+  ) => Promise<ApiResult<PriceHistoryPoint[]>>;
+  getTradingAccountStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
+  getTradingAccountData: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<TradingRuntimeAccountState>>;
+  getTradingWalletOrders: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobOrder[]>>;
+  cancelTradingAccountOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
+  cancelTradingWalletOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
+  deleteFailedTradingAccountOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
+  cancelAllTradingWalletOrders: (walletId: string) => Promise<ApiResult<unknown>>;
+  getTradingWalletTrades: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobTrade[]>>;
+  getTradingWalletPositions: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<DataPosition[]>>;
+  placeManualTradingAccountOrder: (input: ManualPlaceOrderInput) => Promise<ApiResult<unknown>>;
+  splitTradingAccountPosition: (
+    input: TradingAccountPositionSplitInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  mergeTradingWalletPositions: (
+    input: TradingAccountPositionMergeInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  redeemTradingWalletPositions: (
+    input: TradingAccountPositionRedeemInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  onTradingAccountEvent: (callback: (event: TradingAccountDataEvent) => void) => () => void;
+  onPolymarketWalletEvent: (callback: (event: PolymarketWalletEvent) => void) => () => void;
+  listPolymarketWallets: () => Promise<ApiResult<PolymarketWalletSummary[]>>;
+  getPolymarketWalletKeyMaterial: (
+    id: string,
+  ) => Promise<ApiResult<PolymarketWalletKeyMaterialReveal>>;
+  createPolymarketWallet: (
+    input: PolymarketWalletCreateInput,
+  ) => Promise<ApiResult<PolymarketWalletSummary>>;
+  createDerivedPolymarketWallet: (
+    input: PolymarketWalletDerivedInput,
+  ) => Promise<ApiResult<PolymarketWalletSummary>>;
+  importPolymarketWallet: (
+    input: PolymarketWalletImportInput,
+  ) => Promise<ApiResult<PolymarketWalletSummary>>;
+  updatePolymarketWallet: (
+    input: PolymarketWalletUpdateInput,
+  ) => Promise<ApiResult<PolymarketWalletSummary>>;
+  markPolymarketWalletKeyMaterialBackedUp: (
+    id: string,
+  ) => Promise<ApiResult<PolymarketWalletSummary>>;
+  retryPolymarketWalletInitialization: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  setDefaultPolymarketWallet: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  deletePolymarketWallet: (id: string) => Promise<ApiResult<void>>;
+  listPolymarketBridgeSupportedAssets: () => Promise<
+    ApiResult<PolymarketBridgeSupportedAssetsResponse>
+  >;
+  createPolymarketBridgeDeposit: (
+    input: PolymarketBridgeDepositInput,
+  ) => Promise<ApiResult<PolymarketBridgeAddressResponse>>;
+  quotePolymarketBridgeTransfer: (
+    input: PolymarketBridgeQuoteInput,
+  ) => Promise<ApiResult<PolymarketBridgeQuoteResponse>>;
+  withdrawPolymarketBridge: (
+    input: PolymarketBridgeWithdrawalInput,
+  ) => Promise<ApiResult<PolymarketBridgeWithdrawalResult>>;
+  getPolymarketBridgeTransactionStatus: (
+    address: string,
+  ) => Promise<ApiResult<PolymarketBridgeTransactionStatusResponse>>;
+  listStrategies: () => Promise<ApiResult<StrategyListItem[]>>;
+  getStrategy: (id: string) => Promise<ApiResult<StrategyDetail>>;
+  createStrategy: (input: StrategyCreateInput) => Promise<ApiResult<StrategyDetail>>;
+  updateStrategy: (input: StrategyUpdateInput) => Promise<ApiResult<StrategyDetail>>;
+  compileStrategySource: (sourceCode: string) => Promise<ApiResult<StrategyCompileResult>>;
+  listStrategyVersions: (strategyId: string) => Promise<ApiResult<StrategyVersionSummary[]>>;
+  deleteStrategy: (id: string) => Promise<ApiResult<void>>;
+  getStrategyDts: () => Promise<string>;
+  getDefaultStrategySource: () => Promise<string>;
+  listBots: (params?: StrategyBotListParams) => Promise<ApiResult<StrategyBotListItem[]>>;
+  createBot: (input: StrategyBotCreateInput) => Promise<ApiResult<StrategyBotDetail>>;
+  updateBot: (input: StrategyBotUpdateInput) => Promise<ApiResult<StrategyBotDetail>>;
+  deleteBot: (id: string) => Promise<ApiResult<void>>;
+  startBot: (id: string) => Promise<ApiResult<StrategyBotDetail>>;
+  stopBot: (id: string) => Promise<ApiResult<StrategyBotDetail>>;
+  getBotActiveRun: (id: string) => Promise<ApiResult<StrategyRunDetail | null>>;
+  listBotRuns: (botId: string, limit?: number) => Promise<ApiResult<StrategyRunListItem[]>>;
+  getBotLogs: (runId: string, limit?: number) => Promise<ApiResult<StrategyRunLogEntry[]>>;
+  getBotOrders: (runId: string, limit?: number) => Promise<ApiResult<StrategyRunOrderRecord[]>>;
+  onBotRuntimeEvent: (callback: (event: StrategyBotRuntimeEvent) => void) => () => void;
+  getActiveStrategyRun: (marketId: string) => Promise<ApiResult<StrategyRunDetail | null>>;
+  listStrategyRunHistory: (
+    params?: StrategyRunListParams,
+  ) => Promise<ApiResult<StrategyRunListItem[]>>;
+  getStrategyRunLogs: (runId: string, limit?: number) => Promise<ApiResult<StrategyRunLogEntry[]>>;
+  getStrategyRunOrders: (
+    runId: string,
+    limit?: number,
+  ) => Promise<ApiResult<StrategyRunOrderRecord[]>>;
+  onStrategyRunEvent: (callback: (event: StrategyRunRuntimeEvent) => void) => () => void;
+  windowMinimize: () => Promise<void>;
+  windowMaximize: () => Promise<void>;
+  windowClose: () => Promise<void>;
+  confirmMainWindowClose: () => Promise<void>;
+  windowIsMaximized: () => Promise<boolean>;
+  windowSetAlwaysOnTop: (pinned: boolean) => Promise<boolean>;
+  windowIsAlwaysOnTop: () => Promise<boolean>;
+  onWindowMaximizedChanged: (callback: (maximized: boolean) => void) => () => void;
+  onMainWindowCloseRequested: (callback: () => void) => () => void;
+  openBotManagement: () => Promise<void>;
+  onMainWindowNavigate: (callback: (nav: string) => void) => () => void;
+  openStrategyEditor: (input: StrategyEditorWindowInput) => Promise<void>;
+  onStrategiesChanged: (callback: () => void) => () => void;
+  openTradingWindow: (input: TradingWindowInput) => Promise<void>;
+  onTradingWindowParams: (callback: (input: TradingWindowInput) => void) => () => void;
+  onTradingWindowCloseBlocked: (callback: () => void) => () => void;
+  updateTradingWindowMarketScope: (marketIds: string[]) => Promise<void>;
+  confirmTradingWindowClose: () => Promise<void>;
+  onTradingWindowCloseRequested: (callback: () => void) => () => void;
+  subscribeTradingMarket: (
+    input: TradingWindowInput,
+    options?: TradingMarketSubscribeOptions,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  getTradingMarketSnapshot: (marketId: string) => Promise<ApiResult<TradingMarketSnapshot | null>>;
+  selectTradingMarketToken: (
+    marketId: string,
+    tokenId: string,
+    outcome?: string | null,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  getTradingStrategyState: (marketId: string) => Promise<ApiResult<TradingStrategyState>>;
+  selectTradingStrategyRun: (
+    marketId: string,
+    runId: string,
+  ) => Promise<ApiResult<TradingStrategyState>>;
+  getTradingStrategyActiveRun: (marketId: string) => Promise<ApiResult<StrategyRunDetail | null>>;
+  onTradingStrategyEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
+  loadTradingMarketPriceHistory: (
+    marketId: string,
+    interval?: string,
+    fidelity?: number,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  listTradingMarketTrades: (
+    marketId: string,
+    query: MarketTradeQuery,
+  ) => Promise<ApiResult<MarketTradeListResult>>;
+  getTradingMarketTradeAnalysis: (
+    marketId: string,
+    query: MarketTradeAnalysisQuery,
+  ) => Promise<ApiResult<MarketTradeAnalysisResult>>;
+  unsubscribeTradingMarket: (marketId: string) => Promise<void>;
+  onTradingMarketEvent: (callback: (event: TradingMarketEvent) => void) => () => void;
+  openBrowserWindow: () => Promise<void>;
+  browserNavigate: (
+    url: string,
+    options?: BrowserNavigateOptions,
+  ) => Promise<ApiResult<BrowserNavigationState>>;
+  browserGoBack: () => Promise<ApiResult<BrowserNavigationState>>;
+  browserGoForward: () => Promise<ApiResult<BrowserNavigationState>>;
+  browserReload: () => Promise<ApiResult<BrowserNavigationState>>;
+  browserStop: () => Promise<ApiResult<BrowserNavigationState>>;
+  browserGetState: () => Promise<ApiResult<BrowserNavigationState>>;
+  browserDisconnectWallet: () => Promise<ApiResult<BrowserNavigationState>>;
+  browserOpenConnectionDialog: () => Promise<ApiResult<void>>;
+  browserSetViewBounds: (bounds: BrowserViewBounds) => Promise<ApiResult<void>>;
+  browserModalGetPayload: () => Promise<ApiResult<BrowserModalPayload>>;
+  browserModalRespondProviderRequest: (
+    input: BrowserProviderResponseInput,
+  ) => Promise<ApiResult<void>>;
+  browserModalDisconnectWallet: () => Promise<ApiResult<BrowserNavigationState>>;
+  browserModalClose: () => Promise<void>;
+  onBrowserNavigationState: (callback: (state: BrowserNavigationState) => void) => () => void;
+}

@@ -1,0 +1,64 @@
+appId: com.wzsg.fbapp
+productName: Polytrader2
+copyright: Copyright © 2026 wzsg
+
+directories:
+  output: ../../dist
+  buildResources: build
+
+files:
+  - out/**
+  - build/**
+  - package.json
+
+extraResources:
+  - from: resources/strategy-runtime
+    to: strategy-runtime
+    filter:
+      - '**/*'
+  - from: ../../node_modules/isolated-vm
+    to: strategy-runtime/win32-x64/node_modules/isolated-vm
+  - from: ../../node_modules/node-gyp-build
+    to: strategy-runtime/win32-x64/node_modules/node-gyp-build
+  - from: ../../node_modules/@noble
+    to: node_modules/@noble
+  - from: ../../node_modules/@scure
+    to: node_modules/@scure
+  - from: ../../node_modules/isows
+    to: node_modules/isows
+  - from: ../../node_modules/ws
+    to: node_modules/ws
+
+asar: true
+asarUnpack:
+  - out/main/strategyWorker.mjs
+  - out/main/workerProtocol.js
+  - out/main/chunks/**
+  - '**/*.node'
+  - node_modules/better-sqlite3/**
+  - node_modules/@duckdb/node-bindings*/**
+
+npmRebuild: false
+
+publish:
+  provider: github
+  owner: polytrader2
+  repo: polytrader2-app
+  private: true
+  releaseType: draft
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ${productName}

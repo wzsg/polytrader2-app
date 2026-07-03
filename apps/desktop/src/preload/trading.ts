@@ -1,0 +1,130 @@
+import { ipcRenderer } from 'electron';
+import type { IpcApi } from '@polytrader/shared';
+import type {
+  StrategyBotRuntimeEvent,
+  StrategyRunRuntimeEvent,
+  TradingMarketEvent,
+  TradingStrategyStateEvent,
+  TradingWindowInput,
+} from '@polytrader/shared';
+import { exposeApi, marketDataApi, preferenceApi, tradingReadApi, windowApi } from './common.js';
+
+const tradingWindowApi = {
+  // App preferences and window controls.
+  ...preferenceApi,
+  ...windowApi,
+
+  // Market basics and trade data.
+  ...marketDataApi,
+  fetchEvent: (eventId) => ipcRenderer.invoke('api:fetchEvent', eventId),
+
+  // Account trading read data and manual trading actions.
+  getTradingAccountStatus: tradingReadApi.getTradingAccountStatus,
+  getTradingAccountData: tradingReadApi.getTradingAccountData,
+  getTradingWalletOrders: tradingReadApi.getTradingWalletOrders,
+  getTradingWalletTrades: tradingReadApi.getTradingWalletTrades,
+  getTradingWalletPositions: tradingReadApi.getTradingWalletPositions,
+  cancelTradingAccountOrder: tradingReadApi.cancelTradingAccountOrder,
+  cancelTradingWalletOrders: tradingReadApi.cancelTradingWalletOrders,
+  deleteFailedTradingAccountOrder: tradingReadApi.deleteFailedTradingAccountOrder,
+  splitTradingAccountPosition: tradingReadApi.splitTradingAccountPosition,
+  mergeTradingWalletPositions: tradingReadApi.mergeTradingWalletPositions,
+  redeemTradingWalletPositions: tradingReadApi.redeemTradingWalletPositions,
+  onTradingAccountEvent: tradingReadApi.onTradingAccountEvent,
+  listPolymarketWallets: tradingReadApi.listPolymarketWallets,
+  placeManualTradingAccountOrder: (input) =>
+    ipcRenderer.invoke('trading-account:placeManualOrder', input),
+
+  // Strategy catalog and bot runtime management.
+  listStrategies: () => ipcRenderer.invoke('strategies:list'),
+  listStrategyVersions: (strategyId) => ipcRenderer.invoke('strategies:versions', strategyId),
+  listBots: (params) => ipcRenderer.invoke('bots:list', params),
+  createBot: (input) => ipcRenderer.invoke('bots:create', input),
+  updateBot: (input) => ipcRenderer.invoke('bots:update', input),
+  deleteBot: (id) => ipcRenderer.invoke('bots:delete', id),
+  startBot: (id) => ipcRenderer.invoke('bots:start', id),
+  stopBot: (id) => ipcRenderer.invoke('bots:stop', id),
+  getBotActiveRun: (id) => ipcRenderer.invoke('bots:getActiveRun', id),
+  listBotRuns: (botId, limit) => ipcRenderer.invoke('bots:listRuns', botId, limit),
+  getBotLogs: (runId, limit) => ipcRenderer.invoke('bots:getLogs', runId, limit),
+  getBotOrders: (runId, limit) => ipcRenderer.invoke('bots:getOrders', runId, limit),
+  onBotRuntimeEvent: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as StrategyBotRuntimeEvent);
+    ipcRenderer.on('bots:event', listener);
+    return () => ipcRenderer.removeListener('bots:event', listener);
+  },
+
+  // Strategy run history, logs, orders, and realtime events.
+  getActiveStrategyRun: (marketId) =>
+    ipcRenderer.invoke('strategy-runs:getActiveByMarket', marketId),
+  listStrategyRunHistory: (params) => ipcRenderer.invoke('strategy-runs:listHistory', params),
+  getStrategyRunLogs: (runId, limit) => ipcRenderer.invoke('strategy-runs:getLogs', runId, limit),
+  getStrategyRunOrders: (runId, limit) =>
+    ipcRenderer.invoke('strategy-runs:getOrders', runId, limit),
+  onStrategyRunEvent: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as StrategyRunRuntimeEvent);
+    ipcRenderer.on('strategy-runs:event', listener);
+    return () => ipcRenderer.removeListener('strategy-runs:event', listener);
+  },
+
+  // Trading window lifecycle and parameter sync.
+  onTradingWindowParams: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as TradingWindowInput);
+    ipcRenderer.on('trading-window:params', listener);
+    return () => ipcRenderer.removeListener('trading-window:params', listener);
+  },
+  onTradingWindowCloseBlocked: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('trading-window:close-blocked', listener);
+    return () => ipcRenderer.removeListener('trading-window:close-blocked', listener);
+  },
+  updateTradingWindowMarketScope: (marketIds) =>
+    ipcRenderer.invoke('trading-window:update-market-scope', marketIds),
+  confirmTradingWindowClose: () => ipcRenderer.invoke('trading-window:confirm-close'),
+  onTradingWindowCloseRequested: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('trading-window:close-requested', listener);
+    return () => ipcRenderer.removeListener('trading-window:close-requested', listener);
+  },
+
+  // Cross-window navigation entrypoints.
+  openBotManagement: () => ipcRenderer.invoke('main-window:open-bots'),
+
+  // Trading market snapshots, selections, price history, and trade analysis.
+  subscribeTradingMarket: (input, options) =>
+    ipcRenderer.invoke('trading-market:subscribe', input, options),
+  getTradingMarketSnapshot: (marketId) =>
+    ipcRenderer.invoke('trading-market:getSnapshot', marketId),
+  selectTradingMarketToken: (marketId, tokenId, outcome) =>
+    ipcRenderer.invoke('trading-market:selectToken', marketId, tokenId, outcome),
+  getTradingStrategyState: (marketId) => ipcRenderer.invoke('trading-strategy:getState', marketId),
+  selectTradingStrategyRun: (marketId, runId) =>
+    ipcRenderer.invoke('trading-strategy:selectRun', marketId, runId),
+  getTradingStrategyActiveRun: (marketId) =>
+    ipcRenderer.invoke('trading-strategy:getActiveRun', marketId),
+  onTradingStrategyEvent: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as TradingStrategyStateEvent);
+    ipcRenderer.on('trading-strategy:event', listener);
+    return () => ipcRenderer.removeListener('trading-strategy:event', listener);
+  },
+  loadTradingMarketPriceHistory: (marketId, interval, fidelity) =>
+    ipcRenderer.invoke('trading-market:loadPriceHistory', marketId, interval, fidelity),
+  listTradingMarketTrades: (marketId, query) =>
+    ipcRenderer.invoke('trading-market:listMarketTrades', marketId, query),
+  getTradingMarketTradeAnalysis: (marketId, query) =>
+    ipcRenderer.invoke('trading-market:getTradeAnalysis', marketId, query),
+  unsubscribeTradingMarket: (marketId) =>
+    ipcRenderer.invoke('trading-market:unsubscribe', marketId),
+  onTradingMarketEvent: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as TradingMarketEvent);
+    ipcRenderer.on('trading-market:event', listener);
+    return () => ipcRenderer.removeListener('trading-market:event', listener);
+  },
+} satisfies Partial<IpcApi>;
+
+exposeApi(tradingWindowApi);

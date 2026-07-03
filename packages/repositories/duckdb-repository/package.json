@@ -1,0 +1,22 @@
+{
+  "name": "@polytrader/duckdb-repository",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "1.5.3-r.3",
+    "@duckdb/node-bindings-win32-x64": "1.5.3-r.3",
+    "@polytrader/repository-contract": "workspace:*",
+    "@polytrader/shared": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}

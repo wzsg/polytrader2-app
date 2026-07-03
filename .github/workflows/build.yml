@@ -1,0 +1,99 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, lint, and build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.5.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build
+        run: pnpm run build
+
+  release-windows:
+    name: Release Windows artifact
+    runs-on: windows-latest
+    needs: check
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.5.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set CI build version
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const packageJsonPath = 'apps/desktop/package.json';
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+          const [major, minor] = String(packageJson.version).split('.');
+          const buildVersion = `${major}.${minor}.${process.env.GITHUB_RUN_NUMBER}`;
+          packageJson.version = buildVersion;
+          fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `P2_CI_BUILD_VERSION=${buildVersion}\n`);
+          console.log(`CI build version: ${buildVersion}`);
+          NODE
+
+      - name: Build renderer and main process
+        run: pnpm run build
+
+      - name: Build Windows installer
+        run: pnpm --filter @polytrader2/app run dist:win:app
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: polytrader2-windows-${{ env.P2_CI_BUILD_VERSION }}
+          path: dist/Polytrader2-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 14

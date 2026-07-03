@@ -1,0 +1,77 @@
+<script setup lang="ts">
+import { computed, onMounted } from 'vue';
+import type { EventListItem, SportsEventScope } from '@polytrader/shared';
+import SportsFilterBar from '../components/SportsFilterBar.vue';
+import StatsBar from '../components/StatsBar.vue';
+import SportsEventsTable from '../components/SportsEventsTable.vue';
+import EventSyncStatusIndicator from '../components/EventSyncStatusIndicator.vue';
+import Pagination from '../../shared/components/Pagination.vue';
+import { useSportsEvents } from '../../shared/composables/useSportsEvents';
+import { useI18n } from 'vue-i18n';
+
+const props = defineProps<{
+  scope: SportsEventScope;
+  selectedEventId?: string | null;
+  syncState?: string;
+  syncStatus?: string;
+}>();
+
+const emit = defineEmits<{
+  'open-detail': [event: EventListItem];
+}>();
+
+const sports = useSportsEvents({ scope: props.scope });
+const { t } = useI18n();
+
+const canPrev = computed(() => sports.currentPage.value > 1);
+const canNext = computed(() => sports.currentPage.value < sports.totalPages.value);
+
+onMounted(() => sports.init());
+</script>
+
+<template>
+  <SportsFilterBar
+    :scope="scope"
+    :sports="sports.availableSports.value"
+    :selected-sport="sports.selectedSport.value"
+    :loading="sports.metadataLoading.value"
+    :error="sports.metadataError.value"
+    @select-sport="sports.setSport"
+  />
+
+  <StatsBar
+    variant="events"
+    :total-count="sports.totalCount.value"
+    :filtered-count="sports.filteredCount.value"
+    :active-count="sports.activeCount.value"
+  >
+    <template #actions>
+      <EventSyncStatusIndicator :sync-state="syncState" :sync-status="syncStatus" />
+    </template>
+  </StatsBar>
+
+  <div
+    v-if="sports.error.value"
+    class="border-border bg-surface border-b px-6 py-2 text-sm text-red-400"
+  >
+    {{ t('sports.loadEventsFailed', { error: sports.error.value }) }}
+  </div>
+
+  <SportsEventsTable
+    :events="sports.pageEvents.value"
+    :filters="sports.filters"
+    :selected-event-id="selectedEventId"
+    :is-in-watchlist="sports.isInWatchlist"
+    @sort="sports.setSortField"
+    @toggle-watchlist="sports.toggleWatchlist"
+    @open-detail="emit('open-detail', $event)"
+  />
+
+  <Pagination
+    :page-info="sports.pageInfo.value"
+    :can-prev="canPrev"
+    :can-next="canNext"
+    @prev="sports.goPrevPage"
+    @next="sports.goNextPage"
+  />
+</template>

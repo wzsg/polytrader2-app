@@ -1,0 +1,26 @@
+{
+  "name": "@polytrader/polymarket-wallet",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "@polytrader/event-bus": "workspace:*",
+    "@polytrader/repository-contract": "workspace:*",
+    "@polytrader/shared": "workspace:*",
+    "@scure/bip39": "^1.6.0",
+    "viem": "^2.52.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}

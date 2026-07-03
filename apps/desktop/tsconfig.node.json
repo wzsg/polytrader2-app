@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ESNext", "DOM"],
+    "types": ["node", "electron-vite/node"]
+  },
+  "include": [
+    "drizzle.config.ts",
+    "electron.vite.config.*",
+    "src/env.d.ts",
+    "src/main/**/*",
+    "src/preload/**/*"
+  ]
+}

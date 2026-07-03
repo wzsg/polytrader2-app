@@ -1,0 +1,1 @@
+ALTER TABLE `app_preferences` ADD `order_confirmation_threshold_usd` real DEFAULT 100 NOT NULL;

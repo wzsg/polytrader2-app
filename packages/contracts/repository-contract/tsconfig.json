@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/repository-contract.tsbuildinfo"
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../../shared" }]
+}

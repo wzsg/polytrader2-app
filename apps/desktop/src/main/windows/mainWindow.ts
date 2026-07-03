@@ -1,0 +1,102 @@
+import { app, BrowserWindow } from 'electron';
+import { join } from 'path';
+import { closeBrowserWindow } from './browserWindow.js';
+import { getWindowIcon } from './icon.js';
+import { closeAllStrategyEditorWindows } from './strategyEditorWindow.js';
+import { closeAllTradingWindows } from './tradingWindow.js';
+
+let mainWindow: BrowserWindow | null = null;
+let mainWindowCloseConfirmed = false;
+
+function getMainWindow(): BrowserWindow | null {
+  return mainWindow;
+}
+
+function focusMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.show();
+  mainWindow.focus();
+
+  if (process.platform === 'darwin') {
+    app.focus({ steal: true });
+  }
+}
+
+function confirmMainWindowClose(): void {
+  if (!mainWindow || mainWindowCloseConfirmed) return;
+
+  mainWindowCloseConfirmed = true;
+  if (!closeAllTradingWindows()) {
+    mainWindowCloseConfirmed = false;
+    return;
+  }
+  closeAllStrategyEditorWindows();
+  closeBrowserWindow();
+  mainWindow.close();
+}
+
+function openBotManagement(): void {
+  if (!__TRADING_MANAGEMENT_ENABLED__) return;
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  focusMainWindow();
+  mainWindow.webContents.send('main-window:navigate', 'bots');
+}
+
+function wireWindowStateEvents(window: BrowserWindow): void {
+  window.on('maximize', () => {
+    window.webContents.send('window:maximized-changed', true);
+  });
+  window.on('unmaximize', () => {
+    window.webContents.send('window:maximized-changed', false);
+  });
+}
+
+function createMainWindow(): BrowserWindow {
+  mainWindowCloseConfirmed = false;
+  mainWindow = new BrowserWindow({
+    title: 'Polytrader2',
+    icon: getWindowIcon(),
+    width: 1680,
+    height: 1050,
+    frame: false,
+    backgroundColor: '#0f0f1a',
+    webPreferences: {
+      preload: join(__dirname, '../preload/main.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  wireWindowStateEvents(mainWindow);
+  mainWindow.on('close', (event) => {
+    if (mainWindowCloseConfirmed || !mainWindow) return;
+
+    event.preventDefault();
+    mainWindow.webContents.send('main-window:close-requested');
+  });
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+  }
+
+  return mainWindow;
+}
+
+export {
+  confirmMainWindowClose,
+  createMainWindow,
+  focusMainWindow,
+  getMainWindow,
+  openBotManagement,
+};

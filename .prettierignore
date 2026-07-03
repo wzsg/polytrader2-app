@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+cache/
+**/node_modules/
+**/out/
+**/dist/
+**/cache/
+package-lock.json
+pnpm-lock.yaml
+*.db
+.env
+*.tsbuildinfo
+apps/desktop/src/renderer/src/assets/*.svg

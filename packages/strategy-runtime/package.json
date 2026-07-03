@@ -1,0 +1,27 @@
+{
+  "name": "@polytrader/strategy-runtime",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "@polytrader/bot-runtime-contract": "workspace:*",
+    "@polytrader/polymarket-api": "workspace:*",
+    "@polytrader/repository-contract": "workspace:*",
+    "@polytrader/shared": "workspace:*",
+    "@polytrader/sqlite-repository": "workspace:*",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/src/*"]
+    }
+  },
+  "references": [
+    { "path": "../../packages/contracts/bot-runtime-contract" },
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/event-bus" },
+    { "path": "../../packages/app-preferences" },
+    { "path": "../../packages/kv-store" },
+    { "path": "../../packages/contracts/repository-contract" },
+    { "path": "../../packages/repositories/sqlite-repository" },
+    { "path": "../../packages/repositories/duckdb-repository" },
+    { "path": "../../packages/polymarket-api" },
+    { "path": "../../packages/polymarket-market" },
+    { "path": "../../packages/polymarket-wallet" },
+    { "path": "../../packages/trading-account" },
+    { "path": "../../packages/trading-market" },
+    { "path": "../../packages/trading-strategy" },
+    { "path": "../../packages/strategy-runtime" },
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.web.json" }
+  ],
+  "files": []
+}

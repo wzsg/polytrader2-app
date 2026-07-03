@@ -1,0 +1,35 @@
+{
+  "name": "polytrader2-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "scripts": {
+    "build:references": "tsc -b tsconfig.references.json",
+    "build:references:watch": "tsc -b -w tsconfig.references.json",
+    "prepare:repository-packages": "turbo run build --filter=@polytrader/sqlite-repository --filter=@polytrader/duckdb-repository --filter=@polytrader/polymarket-market",
+    "prepare:strategy-runtime": "turbo run build --filter=@polytrader/strategy-runtime --filter=@polytrader/bot-vm",
+    "prepare:workspace-packages": "turbo run build --filter=@polytrader2/app",
+    "prepare:desktop-runtime": "pnpm run prepare:workspace-packages",
+    "dev": "turbo run dev --filter=@polytrader2/app",
+    "build": "turbo run build --filter=@polytrader2/app",
+    "start": "pnpm --filter @polytrader2/app run start",
+    "dist:win": "pnpm run build && pnpm --filter @polytrader2/app run dist:win:app",
+    "publish:win": "pnpm run build && pnpm --filter @polytrader2/app run publish:win:app",
+    "typecheck": "turbo run typecheck --filter=@polytrader2/app",
+    "lint": "turbo run lint --filter=@polytrader2/app",
+    "lint:fix": "turbo run lint:fix --filter=@polytrader2/app",
+    "format": "turbo run format --filter=@polytrader2/app",
+    "format:check": "turbo run format:check --filter=@polytrader2/app",
+    "check": "turbo run typecheck lint format:check --filter=@polytrader2/app",
+    "db:generate": "pnpm --filter @polytrader2/app run db:generate",
+    "db:migrate": "pnpm --filter @polytrader2/app run db:migrate",
+    "db:push": "pnpm --filter @polytrader2/app run db:push",
+    "db:studio": "pnpm --filter @polytrader2/app run db:studio",
+    "db:rebuild-local": "pnpm --filter @polytrader2/app run db:rebuild-local"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "turbo": "^2.9.18"
+  }
+}
