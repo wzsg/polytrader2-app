@@ -480,6 +480,10 @@ export function translateText(value: string, locale = activeLocale): string {
 }
 
 function translateTextNode(node: Text, refreshOriginal = false): void {
+  if (refreshOriginal && !HAN_RE.test(node.data)) {
+    originalTextNodes.delete(node);
+    return;
+  }
   const original = originalTextNodes.get(node) ?? node.data;
   if ((refreshOriginal || !originalTextNodes.has(node)) && HAN_RE.test(node.data)) {
     originalTextNodes.set(node, node.data);
@@ -497,6 +501,10 @@ function translateElementAttrs(element: Element, refreshOriginal = false): void 
   for (const attr of TRANSLATABLE_ATTRS) {
     const value = element.getAttribute(attr);
     if (!value) continue;
+    if (refreshOriginal && !HAN_RE.test(value)) {
+      attrMap?.delete(attr);
+      continue;
+    }
     if (!attrMap && HAN_RE.test(value)) {
       attrMap = new Map<string, string>();
       originalAttrs.set(element, attrMap);
