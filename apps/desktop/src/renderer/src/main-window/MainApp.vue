@@ -122,8 +122,17 @@ function openTradingWindowForMarket(
     eventId,
     tokenId: tokenId || fallbackOutcome?.tokenId || null,
     outcome: outcome ?? fallbackOutcome?.label ?? null,
-    metadata,
+    metadata: cloneTradingMetadata(metadata),
   });
+}
+
+function cloneTradingMetadata(metadata: unknown): unknown {
+  if (metadata === undefined) return undefined;
+  try {
+    return JSON.parse(JSON.stringify(metadata));
+  } catch {
+    return undefined;
+  }
 }
 
 async function openEventDetail(event: EventListItem, metadata?: unknown): Promise<void> {

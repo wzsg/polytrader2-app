@@ -235,6 +235,15 @@ export function useTradingApp() {
     }
   }
 
+  function cloneTradingMetadata(metadata: unknown): unknown {
+    if (metadata === undefined) return undefined;
+    try {
+      return JSON.parse(JSON.stringify(metadata));
+    } catch {
+      return undefined;
+    }
+  }
+
   function writeParamsToUrl(input: TradingWindowInput): void {
     const search = new URLSearchParams();
     search.set('marketId', input.marketId);
@@ -253,7 +262,7 @@ export function useTradingApp() {
       eventId: String(input.eventId || ''),
       tokenId: input.tokenId ? String(input.tokenId) : null,
       outcome: input.outcome ? String(input.outcome) : null,
-      metadata: input.metadata,
+      metadata: cloneTradingMetadata(input.metadata),
     };
   }
 
