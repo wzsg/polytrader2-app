@@ -33,11 +33,14 @@ class CryptoEventsService {
     }
 
     const localParams = this.buildLocalParams(params, tagIds);
-    const [events, total, active] = await Promise.all([
+    const [events, total] = await Promise.all([
       this._repository.listEvents(localParams),
       this._repository.countEvents(localParams),
-      this._repository.countEvents({ ...localParams, status: 'active' }),
     ]);
+    const active =
+      localParams.status === 'active'
+        ? total
+        : await this._repository.countEvents({ ...localParams, status: 'active' });
 
     return {
       events,

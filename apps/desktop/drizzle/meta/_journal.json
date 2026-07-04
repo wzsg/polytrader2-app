@@ -64,6 +64,13 @@
       "when": 1783090000000,
       "tag": "0008_add_polymarket_withdrawals",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1783180000000,
+      "tag": "0009_optimize_event_tag_filters",
+      "breakpoints": true
     }
   ]
 }

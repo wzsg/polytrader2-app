@@ -727,19 +727,24 @@ class SqliteEventRepository {
     clauses: string[],
     values: Record<string, unknown>,
   ): void {
-    const tagIds = this._normalizeTagIds(params.tagIds);
+    const tagIds = Array.from(new Set(this._normalizeTagIds(params.tagIds)));
     if (tagIds.length === 0) return;
-    const placeholders = tagIds.map((_id, i) => `@tag${i}`).join(', ');
+
     tagIds.forEach((id, i) => {
       values[`tag${i}`] = id;
     });
-    values.tagCount = tagIds.length;
-    clauses.push(`e.id IN (
-      SELECT event_id FROM event_tags
-      WHERE tag_id IN (${placeholders})
-      GROUP BY event_id
-      HAVING COUNT(DISTINCT tag_id) = @tagCount
-    )`);
+
+    clauses.push(
+      tagIds
+        .map(
+          (_id, i) => `EXISTS (
+      SELECT 1 FROM event_tags included_tags_${i}
+      WHERE included_tags_${i}.event_id = e.id
+      AND included_tags_${i}.tag_id = @tag${i}
+    )`,
+        )
+        .join(' AND '),
+    );
   }
 
   private _appendExcludedTagClauses(

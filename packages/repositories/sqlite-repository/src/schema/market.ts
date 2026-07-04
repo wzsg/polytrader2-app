@@ -35,6 +35,12 @@ export const events = sqliteTable(
     index('idx_events_volume24hr').on(table.volume24hr),
     index('idx_events_active').on(table.active),
     index('idx_events_parent_event_id').on(table.parentEventId),
+    index('idx_events_active_closed_parent_end').on(
+      table.active,
+      table.closed,
+      table.parentEventId,
+      table.endDate,
+    ),
   ],
 );
 
@@ -120,5 +126,6 @@ export const eventTags = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.eventId, table.tagId] }),
     index('idx_event_tags_tag_id').on(table.tagId),
+    index('idx_event_tags_tag_event').on(table.tagId, table.eventId),
   ],
 );

@@ -25,6 +25,7 @@
     "db:rebuild-local": "node scripts/rebuild-local-db.mjs",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "smoke:crypto-events": "node scripts/run-electron-node.mjs scripts/crypto-events-smoke.mjs",
     "postinstall": "node scripts/postinstall.mjs"
   },
   "type": "module",
