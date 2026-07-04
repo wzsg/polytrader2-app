@@ -26,6 +26,10 @@ const { t } = useI18n();
 
 type TickSeries = ISeriesApi<'Line'>;
 
+const TICK_LINE_UP_COLOR = '#22c55e';
+const TICK_LINE_DOWN_COLOR = '#ef4444';
+const TICK_LINE_NEUTRAL_COLOR = '#8b8ba7';
+
 const chartEl = ref<HTMLDivElement | null>(null);
 const chart = shallowRef<IChartApi | null>(null);
 const series = shallowRef<TickSeries | null>(null);
@@ -51,6 +55,8 @@ const referenceLines = ref<
   }>
 >([]);
 let resizeObserver: ResizeObserver | null = null;
+let countdownTimer: ReturnType<typeof setInterval> | null = null;
+const nowMs = ref(Date.now());
 
 const sortedTicks = computed(() =>
   [...props.cryptoTick.ticks]
@@ -87,21 +93,13 @@ const statusDotClass = computed(() => {
 const title = computed(() =>
   t('tradingWindow.cryptoTickTitle', { symbol: formatSymbol(props.cryptoTick.symbol) }),
 );
-const latestPrice = computed(() =>
-  latestTick.value ? formatTickPrice(latestTick.value.price) : t('common.notAvailable'),
-);
-const latestTime = computed(() =>
-  latestTick.value ? formatDateTime(latestTick.value.eventTime) : t('common.notAvailable'),
-);
 const referenceTimes = computed(() => [
   {
     key: 'start' as const,
-    label: t('tradingWindow.cryptoTickReferenceStart'),
     time: props.cryptoTick.referenceStartTime,
   },
   {
     key: 'end' as const,
-    label: t('tradingWindow.cryptoTickReferenceEnd'),
     time: props.cryptoTick.referenceEndTime,
   },
 ]);
@@ -117,6 +115,82 @@ const displayRange = computed(() => {
     to: Math.floor(endMs / 1000) as UTCTimestamp,
   };
 });
+const referenceStartPrice = computed(() =>
+  findReferenceTickPrice(props.cryptoTick.referenceStartTime),
+);
+const latestTickPrice = computed(() => latestTick.value?.price ?? null);
+const marketPhase = computed<'not-started' | 'live' | 'settling' | 'ended' | 'unknown'>(() => {
+  const startMs = parseDateMs(props.cryptoTick.referenceStartTime);
+  const endMs = parseDateMs(props.cryptoTick.referenceEndTime);
+  const displayEndMs = parseDateMs(props.cryptoTick.displayEndTime);
+  if (props.cryptoTick.status === 'closed') return 'ended';
+  if (!startMs || !endMs || !displayEndMs) return 'unknown';
+  if (nowMs.value < startMs) return 'not-started';
+  if (nowMs.value < endMs) return 'live';
+  if (nowMs.value < displayEndMs) return 'settling';
+  return 'ended';
+});
+const comparisonPrice = computed(() => {
+  if (
+    marketPhase.value === 'live' ||
+    marketPhase.value === 'settling' ||
+    marketPhase.value === 'ended'
+  ) {
+    return latestTickPrice.value;
+  }
+  return null;
+});
+const priceMove = computed(() => {
+  if (referenceStartPrice.value === null || comparisonPrice.value === null) return null;
+  return comparisonPrice.value - referenceStartPrice.value;
+});
+const priceMoveLabel = computed(() =>
+  priceMove.value === null ? t('common.notAvailable') : formatSignedTickPrice(priceMove.value),
+);
+const priceMoveClass = computed(() => {
+  if (priceMove.value === null || priceMove.value === 0) return 'text-muted-light';
+  return priceMove.value > 0 ? 'text-green-400' : 'text-red-400';
+});
+const tickLineColor = computed(() => {
+  if (priceMove.value === null || priceMove.value === 0) return TICK_LINE_NEUTRAL_COLOR;
+  return priceMove.value > 0 ? TICK_LINE_UP_COLOR : TICK_LINE_DOWN_COLOR;
+});
+const phaseValueLabel = computed(() => {
+  if (marketPhase.value === 'not-started') return t('tradingWindow.cryptoTickNotStarted');
+  if (marketPhase.value === 'live') return countdownLabel.value;
+  if (marketPhase.value === 'settling') return t('tradingWindow.cryptoTickSettling');
+  if (marketPhase.value === 'ended') return resultLabel.value;
+  return t('common.notAvailable');
+});
+const phaseValueClass = computed(() => {
+  if (marketPhase.value === 'live')
+    return countdownMs.value <= 30_000 ? 'text-amber-300' : 'text-sky-300';
+  if (marketPhase.value === 'settling') return 'text-amber-300';
+  if (marketPhase.value === 'ended') return resultClass.value;
+  if (marketPhase.value === 'not-started') return 'text-muted-light';
+  return 'text-muted-light';
+});
+const phaseLabel = computed(() => {
+  if (marketPhase.value === 'live') return t('tradingWindow.cryptoTickCountdown');
+  if (marketPhase.value === 'ended') return t('tradingWindow.cryptoTickResult');
+  return t('tradingWindow.cryptoTickStatus');
+});
+const countdownMs = computed(() => {
+  const endMs = parseDateMs(props.cryptoTick.referenceEndTime);
+  if (!endMs) return 0;
+  return Math.max(0, endMs - nowMs.value);
+});
+const countdownLabel = computed(() => formatCountdown(countdownMs.value));
+const resultLabel = computed(() => {
+  if (priceMove.value === null) return t('tradingWindow.cryptoTickSettling');
+  if (priceMove.value > 0) return t('tradingWindow.cryptoTickResultUp');
+  if (priceMove.value < 0) return t('tradingWindow.cryptoTickResultDown');
+  return t('tradingWindow.cryptoTickResultFlat');
+});
+const resultClass = computed(() => {
+  if (priceMove.value === null || priceMove.value === 0) return 'text-muted-light';
+  return priceMove.value > 0 ? 'text-green-400' : 'text-red-400';
+});
 
 function formatSymbol(symbol: string): string {
   const normalized = symbol.trim().toUpperCase();
@@ -128,6 +202,22 @@ function formatTickPrice(value: number): string {
   return new Intl.NumberFormat(getCurrentIntlLocale(), {
     maximumFractionDigits: value >= 100 ? 2 : 6,
   }).format(value);
+}
+
+function formatSignedTickPrice(value: number): string {
+  const formatted = new Intl.NumberFormat(getCurrentIntlLocale(), {
+    maximumFractionDigits: 2,
+  }).format(Math.abs(value));
+  if (value > 0) return `+${formatted}`;
+  if (value < 0) return `-${formatted}`;
+  return formatted;
+}
+
+function formatCountdown(value: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(value / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function formatAxisTime(value: number): string {
@@ -160,6 +250,34 @@ function lightweightTimeToMs(time: Time): number {
 
 function toUtcTimestamp(value: string): UTCTimestamp {
   return Math.floor(Date.parse(value) / 1000) as UTCTimestamp;
+}
+
+function parseDateMs(value: string | null): number | null {
+  if (!value) return null;
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : null;
+}
+
+function findReferenceTickPrice(referenceTime: string | null): number | null {
+  const referenceMs = parseDateMs(referenceTime);
+  if (!referenceMs) return null;
+
+  let previousPrice: number | null = null;
+  for (const tick of sortedTicks.value) {
+    const tickMs = Date.parse(tick.eventTime);
+    if (!Number.isFinite(tickMs)) continue;
+    if (tickMs >= referenceMs) return tick.price;
+    previousPrice = tick.price;
+  }
+
+  const latestMs = latestTick.value ? Date.parse(latestTick.value.eventTime) : null;
+  if (!latestMs || !Number.isFinite(latestMs) || latestMs < referenceMs) return null;
+  return previousPrice;
+}
+
+function findReferencePrice(referenceTime: string | null): string {
+  const price = findReferenceTickPrice(referenceTime);
+  return price === null ? '' : formatTickPrice(price);
 }
 
 function createChartOptions(width: number, height: number) {
@@ -230,7 +348,7 @@ function initChart(): void {
     createChartOptions(Math.max(1, clientWidth), Math.max(1, clientHeight)),
   );
   series.value = chart.value.addSeries(LineSeries, {
-    color: '#22c55e',
+    color: tickLineColor.value,
     lineWidth: 2,
     lastValueVisible: true,
     priceLineVisible: true,
@@ -247,10 +365,19 @@ function updateChartOptions(): void {
   chart.value.applyOptions(
     createChartOptions(chartEl.value?.clientWidth ?? 1, chartEl.value?.clientHeight ?? 1),
   );
+  updateSeriesOptions();
+}
+
+function updateSeriesOptions(): void {
+  series.value?.applyOptions({
+    color: tickLineColor.value,
+    priceLineColor: tickLineColor.value,
+  });
 }
 
 function renderChart(): void {
   if (!chart.value || !series.value) return;
+  updateSeriesOptions();
   series.value.setData(buildLineData());
   applyDisplayRange();
   updateReferenceLines();
@@ -288,10 +415,11 @@ function updateReferenceLines(): void {
     const left = time ? chart.value?.timeScale().timeToCoordinate(time) : null;
     if (left === null || left === undefined || !Number.isFinite(left)) return [];
     if (left < 0 || left > width) return [];
+    const label = findReferencePrice(item.time);
     return [
       {
         key: item.key,
-        label: item.label,
+        label,
         left,
         time: formatDateTime(item.time ?? ''),
       },
@@ -321,6 +449,9 @@ function handleCrosshairMove(params: MouseEventParams<Time>): void {
 }
 
 onMounted(() => {
+  countdownTimer = setInterval(() => {
+    nowMs.value = Date.now();
+  }, 1000);
   initChart();
   if (chartEl.value) {
     resizeObserver = new ResizeObserver(() => {
@@ -332,6 +463,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
   resizeObserver?.disconnect();
   chart.value?.timeScale().unsubscribeVisibleTimeRangeChange(updateReferenceLines);
   chart.value?.remove();
@@ -340,7 +472,7 @@ onUnmounted(() => {
 });
 
 watch(
-  [sortedTicks, currentLocale, referenceTimes, displayRange],
+  [sortedTicks, currentLocale, referenceTimes, displayRange, tickLineColor],
   async () => {
     await nextTick();
     initChart();
@@ -363,12 +495,16 @@ watch(
       </div>
       <div class="flex min-w-0 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span class="text-muted-light">
-          {{ t('tradingWindow.cryptoTickLatest') }}
-          <span class="text-primary-light font-semibold tabular-nums">{{ latestPrice }}</span>
+          {{ t('tradingWindow.cryptoTickMove') }}
+          <span class="font-semibold tabular-nums" :class="priceMoveClass">
+            {{ priceMoveLabel }}
+          </span>
         </span>
         <span class="text-muted-light">
-          {{ t('tradingWindow.cryptoTickTime') }}
-          <span class="text-text tabular-nums">{{ latestTime }}</span>
+          {{ phaseLabel }}
+          <span class="font-semibold tabular-nums" :class="phaseValueClass">
+            {{ phaseValueLabel }}
+          </span>
         </span>
         <LoadingSpinner v-if="loading" :title="t('tradingWindow.cryptoTickLoading')" />
       </div>
@@ -384,6 +520,7 @@ watch(
         :style="{ left: `${line.left}px` }"
       >
         <div
+          v-if="line.label"
           class="absolute top-2 whitespace-nowrap border px-2 py-1 text-[11px] leading-none shadow-lg"
           :class="
             line.key === 'start'

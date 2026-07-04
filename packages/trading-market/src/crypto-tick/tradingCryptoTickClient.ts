@@ -13,6 +13,8 @@ const DEFAULT_HISTORY_LIMIT = 10_000;
 const DEFAULT_HEARTBEAT_MS = 10_000;
 const DEFAULT_RECONNECT_DELAY_MS = 2_000;
 const MAX_TICKS = 10_000;
+const DISPLAY_WINDOW_RETRY_DELAY_MS = 2_000;
+const DISPLAY_WINDOW_RETRY_GRACE_MS = 15_000;
 
 interface TickApiItem {
   source?: string;
@@ -59,6 +61,7 @@ class TradingCryptoTickClientImpl
   private _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private _displayEndTimer: ReturnType<typeof setTimeout> | null = null;
+  private _displayWindowRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private _connectionId = 0;
   private _disposed = false;
   private _closedMode = false;
@@ -86,6 +89,7 @@ class TradingCryptoTickClientImpl
     this._input = nextInput;
     this._connectionId += 1;
     this._clearDisplayEndTimer();
+    this._clearDisplayWindowRetryTimer();
     this._disconnect();
     this._setState(this._createState(symbol, 'loading', []));
 
@@ -108,6 +112,7 @@ class TradingCryptoTickClientImpl
     this._disposed = true;
     this._connectionId += 1;
     this._clearDisplayEndTimer();
+    this._clearDisplayWindowRetryTimer();
     this._disconnect();
     this.removeAllListeners();
   }
@@ -212,6 +217,9 @@ class TradingCryptoTickClientImpl
       const ticks = await this._fetchRange(input.symbol, start, end);
       if (!this._isCurrent(connectionId)) return;
       this._applyTicks(ticks, 'closed');
+      if (!this._hasDisplayEndTick(input)) {
+        this._scheduleDisplayWindowRetry(input, connectionId);
+      }
     } catch (error) {
       if (!this._isCurrent(connectionId)) return;
       this._applyTicks([], 'error', this._errorMessage(error));
@@ -274,12 +282,6 @@ class TradingCryptoTickClientImpl
     if (type === 'tick') {
       const message = parsed as TickMessage;
       const tick = message.tick ? this._normalizeTick(message.tick, input.symbol) : null;
-      if (tick && this._isAfterDisplayEnd(tick)) {
-        this._applyTicks([], 'closed');
-        this._closedMode = true;
-        this._disconnect();
-        return;
-      }
       if (tick) this._applyTicks([tick], 'live');
     }
   }
@@ -395,6 +397,7 @@ class TradingCryptoTickClientImpl
     if (delayMs <= 0) {
       this._applyTicks([], 'closed');
       this._closedMode = true;
+      void this._loadClosedRange(input, connectionId);
       return;
     }
     this._displayEndTimer = setTimeout(() => {
@@ -403,7 +406,38 @@ class TradingCryptoTickClientImpl
       this._applyTicks([], 'closed');
       this._closedMode = true;
       this._disconnect();
+      void this._loadClosedRange(input, connectionId);
     }, delayMs);
+  }
+
+  private _scheduleDisplayWindowRetry(
+    input: TradingCryptoTickStartInput,
+    connectionId: number,
+  ): void {
+    if (this._displayWindowRetryTimer) return;
+    if (!this._shouldRetryDisplayWindow(input)) return;
+    this._displayWindowRetryTimer = setTimeout(() => {
+      this._displayWindowRetryTimer = null;
+      if (!this._isCurrent(connectionId) || this._hasDisplayEndTick(input)) return;
+      void this._loadClosedRange(input, connectionId);
+    }, DISPLAY_WINDOW_RETRY_DELAY_MS);
+  }
+
+  private _shouldRetryDisplayWindow(input: TradingCryptoTickStartInput): boolean {
+    const displayEndMs = this._parseTime(input.window.displayEndTime);
+    if (!displayEndMs) return false;
+    return Date.now() <= displayEndMs + DISPLAY_WINDOW_RETRY_GRACE_MS;
+  }
+
+  private _hasDisplayEndTick(input: TradingCryptoTickStartInput): boolean {
+    const displayEndMs = this._parseTime(input.window.displayEndTime);
+    if (!displayEndMs) return false;
+    return Boolean(
+      this._state?.ticks.some((tick) => {
+        const tickMs = Date.parse(tick.eventTime);
+        return Number.isFinite(tickMs) && tickMs >= displayEndMs;
+      }),
+    );
   }
 
   private _disconnect(): void {
@@ -420,6 +454,12 @@ class TradingCryptoTickClientImpl
     if (!this._displayEndTimer) return;
     clearTimeout(this._displayEndTimer);
     this._displayEndTimer = null;
+  }
+
+  private _clearDisplayWindowRetryTimer(): void {
+    if (!this._displayWindowRetryTimer) return;
+    clearTimeout(this._displayWindowRetryTimer);
+    this._displayWindowRetryTimer = null;
   }
 
   private _stopHeartbeat(): void {
@@ -454,12 +494,6 @@ class TradingCryptoTickClientImpl
       const time = Date.parse(tick.eventTime);
       return Number.isFinite(time) && time >= displayStartMs && time <= displayEndMs;
     });
-  }
-
-  private _isAfterDisplayEnd(tick: CryptoTick): boolean {
-    const displayEndMs = this._parseTime(this._input?.window.displayEndTime);
-    const tickMs = Date.parse(tick.eventTime);
-    return Boolean(displayEndMs && Number.isFinite(tickMs) && tickMs > displayEndMs);
   }
 
   private _isDisplayWindowFinished(input: TradingCryptoTickStartInput): boolean {

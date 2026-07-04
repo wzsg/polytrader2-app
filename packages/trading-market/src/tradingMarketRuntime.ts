@@ -37,7 +37,9 @@ import type {
 import type { TradingMarketPriceHistoryRepositoryFactory } from './price-history/index.js';
 
 const MARKET_DETAIL_REFRESH_MS = 30_000;
+const ORDER_BOOK_EVENT_THROTTLE_MS = 200;
 type SessionStatus = Record<TradingRuntimeLoadScope, TradingRuntimeConnectionStatus>;
+type OrderBookEventPayload = TradingMarketEventMap['order-book'];
 
 interface TradingMarketRuntimeOptions extends TradingMarketServiceOptions {
   marketId: string;
@@ -69,6 +71,9 @@ class TradingMarketRuntimeImpl
   private _cryptoTickKey = '';
   private _detailRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private _detailRefreshInFlight = false;
+  private _orderBookEventTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pendingOrderBookEvent: OrderBookEventPayload | null = null;
+  private _lastOrderBookEventAt = 0;
 
   public constructor(options: TradingMarketRuntimeOptions) {
     super();
@@ -195,6 +200,8 @@ class TradingMarketRuntimeImpl
   public dispose(): void {
     if (this._detailRefreshTimer) clearInterval(this._detailRefreshTimer);
     this._detailRefreshTimer = null;
+    this._clearOrderBookEventTimer();
+    this._pendingOrderBookEvent = null;
     this._priceHistoryService.stopPriceHistoryRefresh();
     this._priceHistoryService.removeAllListeners();
     this.removeAllListeners();
@@ -385,7 +392,7 @@ class TradingMarketRuntimeImpl
               ? 'error'
               : 'loading';
         this._updatedAt = this._now();
-        this._emitEvent('order-book', { marketId: this._marketId, ...snapshot });
+        this._emitOrderBookEvent({ marketId: this._marketId, ...snapshot });
       });
     }
     this._status.orderBook = 'loading';
@@ -546,6 +553,35 @@ class TradingMarketRuntimeImpl
 
   private _emitSnapshot(): void {
     this._emitEvent('runtime-snapshot', { marketId: this._marketId, snapshot: this.snapshot() });
+  }
+
+  private _emitOrderBookEvent(event: OrderBookEventPayload): void {
+    const now = Date.now();
+    const elapsed = now - this._lastOrderBookEventAt;
+    if (elapsed >= ORDER_BOOK_EVENT_THROTTLE_MS && !this._orderBookEventTimer) {
+      this._lastOrderBookEventAt = now;
+      this._emitEvent('order-book', event);
+      return;
+    }
+
+    this._pendingOrderBookEvent = event;
+    if (this._orderBookEventTimer) return;
+
+    const delay = Math.max(0, ORDER_BOOK_EVENT_THROTTLE_MS - elapsed);
+    this._orderBookEventTimer = setTimeout(() => {
+      this._orderBookEventTimer = null;
+      const pending = this._pendingOrderBookEvent;
+      this._pendingOrderBookEvent = null;
+      if (!pending) return;
+      this._lastOrderBookEventAt = Date.now();
+      this._emitEvent('order-book', pending);
+    }, delay);
+  }
+
+  private _clearOrderBookEventTimer(): void {
+    if (!this._orderBookEventTimer) return;
+    clearTimeout(this._orderBookEventTimer);
+    this._orderBookEventTimer = null;
   }
 
   private _emitEvent<EventName extends TradingMarketEventName>(

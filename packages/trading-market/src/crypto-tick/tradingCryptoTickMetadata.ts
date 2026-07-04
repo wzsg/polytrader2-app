@@ -10,6 +10,7 @@ const CRYPTO_TICK_SYMBOL_BY_COIN: Record<string, string> = {
   hyperliquid: 'hypeusd',
   xrp: 'xrpusd',
 };
+const CHAINLINK_TICK_TIMEFRAMES = new Set(['5m', '15m']);
 const DISPLAY_PADDING_MS = 30_000;
 
 interface CryptoTradingMetadata {
@@ -31,7 +32,8 @@ function resolveCryptoTickStartInput(input: {
   const metadata = normalizeMetadata(input.metadata);
   if (!metadata) return null;
   if (metadata.source !== 'crypto') return null;
-  if (metadata.crypto.mode !== 'up-down' || metadata.crypto.timeframe !== '5m') return null;
+  if (metadata.crypto.mode !== 'up-down') return null;
+  if (!CHAINLINK_TICK_TIMEFRAMES.has(metadata.crypto.timeframe)) return null;
 
   const symbol = CRYPTO_TICK_SYMBOL_BY_COIN[metadata.crypto.coin];
   if (!symbol) return null;
@@ -81,7 +83,7 @@ function resolveWindow(
     endTime,
     displayStartTime,
     displayEndTime,
-    closed: Boolean(event?.closed || market?.closed || isClosedByEndTime(endTime, nowMs)),
+    closed: isClosedByDisplayEndTime(displayEndTime, nowMs),
   };
 }
 
@@ -115,9 +117,9 @@ function inferDisplayEndTime(endTime: string | null): string | null {
   return endMs ? new Date(endMs + DISPLAY_PADDING_MS).toISOString() : null;
 }
 
-function isClosedByEndTime(endTime: string | null, nowMs: number): boolean {
-  const endMs = parseTime(endTime);
-  return Boolean(endMs && endMs <= nowMs);
+function isClosedByDisplayEndTime(displayEndTime: string | null, nowMs: number): boolean {
+  const displayEndMs = parseTime(displayEndTime);
+  return Boolean(displayEndMs && displayEndMs <= nowMs);
 }
 
 function parseTime(value: string | null): number | null {
