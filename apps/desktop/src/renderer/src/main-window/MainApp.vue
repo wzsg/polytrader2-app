@@ -31,6 +31,7 @@ const hiddenTradingManagementNavs = new Set(['bots', 'strategies']);
 const tradingManagementEnabled = __TRADING_MANAGEMENT_ENABLED__;
 const activeNav = ref('events');
 const selectedEvent = ref<EventListItem | null>(null);
+const selectedEventMetadata = ref<unknown>();
 const eventsListRef = ref<ReloadableListView | null>(null);
 const watchlistRef = ref<ReloadableListView | null>(null);
 const cryptoEventsRef = ref<ReloadableListView | null>(null);
@@ -98,6 +99,7 @@ function handleNavChange(nav: string): void {
   if (!isNavAllowed(nav)) return;
   activeNav.value = nav;
   selectedEvent.value = null;
+  selectedEventMetadata.value = undefined;
 }
 
 function handleDeveloperModeChange(enabled: boolean): void {
@@ -112,6 +114,7 @@ function openTradingWindowForMarket(
   eventId: string,
   tokenId?: string | null,
   outcome?: string | null,
+  metadata?: unknown,
 ): void {
   const fallbackOutcome = getMarketOutcomes(market)[0];
   window.api.openTradingWindow({
@@ -119,29 +122,33 @@ function openTradingWindowForMarket(
     eventId,
     tokenId: tokenId || fallbackOutcome?.tokenId || null,
     outcome: outcome ?? fallbackOutcome?.label ?? null,
+    metadata,
   });
 }
 
-async function openEventDetail(event: EventListItem): Promise<void> {
+async function openEventDetail(event: EventListItem, metadata?: unknown): Promise<void> {
   const single = getSingleOpenMarket(event);
   if (single) {
     try {
       const childEvents = await window.api.listChildEvents(event.id);
       if (!childEvents.length) {
-        openTradingWindowForMarket(single, event.id);
+        openTradingWindowForMarket(single, event.id, null, null, metadata);
         return;
       }
     } catch {
       selectedEvent.value = event;
+      selectedEventMetadata.value = metadata;
       return;
     }
   }
 
   selectedEvent.value = event;
+  selectedEventMetadata.value = metadata;
 }
 
 function closeEventDetail(): void {
   selectedEvent.value = null;
+  selectedEventMetadata.value = undefined;
 }
 
 function openEventMarket(
@@ -152,7 +159,7 @@ function openEventMarket(
 ): void {
   const eventId = eventIdOverride || selectedEvent.value?.id;
   if (!eventId) return;
-  openTradingWindowForMarket(market, eventId, tokenId, outcome);
+  openTradingWindowForMarket(market, eventId, tokenId, outcome, selectedEventMetadata.value);
 }
 
 function requestCloseConfirm(): void {

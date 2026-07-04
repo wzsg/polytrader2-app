@@ -800,6 +800,7 @@ export interface TradingWindowInput {
   marketId: string;
   tokenId?: string | null;
   outcome?: string | null;
+  metadata?: unknown;
 }
 
 export interface TradingMarketSubscribeOptions {
@@ -904,6 +905,7 @@ export interface TradingMarketSnapshot {
   eventId: string;
   selectedTokenId: string;
   selectedOutcome: string | null;
+  metadata?: unknown;
   status: Record<TradingRuntimeLoadScope, TradingRuntimeConnectionStatus>;
   errors: Partial<Record<TradingRuntimeLoadScope, string>>;
   event: GammaEventRaw | null;

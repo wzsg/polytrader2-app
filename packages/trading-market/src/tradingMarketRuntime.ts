@@ -51,6 +51,7 @@ class TradingMarketRuntimeImpl
   private _eventId = '';
   private _selectedTokenId = '';
   private _selectedOutcome: string | null = null;
+  private _metadata: unknown;
   private _event: GammaEventRaw | null = null;
   private _marketDetail: MarketDetailData | null = null;
   private _priceHistory: TradingMarketSnapshot['priceHistory'] = {};
@@ -90,6 +91,7 @@ class TradingMarketRuntimeImpl
     options: TradingMarketSubscribeOptions,
   ): Promise<TradingMarketSnapshot> {
     this._eventId = input.eventId || this._eventId;
+    this._metadata = input.metadata;
     this.selectToken(
       input.tokenId || this._selectedTokenId,
       input.outcome ?? this._selectedOutcome,
@@ -149,6 +151,7 @@ class TradingMarketRuntimeImpl
       eventId: this._eventId,
       selectedTokenId: this._selectedTokenId,
       selectedOutcome: this._selectedOutcome,
+      metadata: this._metadata,
       status: { ...this._status },
       errors: { ...this._errors },
       event: this._event,

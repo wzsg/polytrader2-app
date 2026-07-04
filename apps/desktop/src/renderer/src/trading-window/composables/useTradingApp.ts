@@ -69,6 +69,7 @@ export function useTradingApp() {
 
   const marketId = computed(() => params.value.marketId || '');
   const eventId = computed(() => params.value.eventId || '');
+  const metadata = computed(() => params.value.metadata);
   const startupError = computed(() => {
     if (!eventId.value.trim()) return translateUiKey('tradingWindow.missingEventId');
     if (!marketId.value.trim()) return translateUiKey('tradingWindow.missingMarketId');
@@ -212,7 +213,26 @@ export function useTradingApp() {
       eventId: search.get('eventId') || '',
       tokenId: search.get('tokenId'),
       outcome: search.get('outcome'),
+      metadata: parseTradingMetadata(search.get('metadata')),
     };
+  }
+
+  function parseTradingMetadata(raw: string | null): unknown {
+    if (!raw) return undefined;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+
+  function stringifyTradingMetadata(metadata: unknown): string {
+    if (metadata === undefined) return '';
+    try {
+      return JSON.stringify(metadata);
+    } catch {
+      return '';
+    }
   }
 
   function writeParamsToUrl(input: TradingWindowInput): void {
@@ -221,6 +241,8 @@ export function useTradingApp() {
     search.set('eventId', input.eventId);
     if (input.tokenId) search.set('tokenId', input.tokenId);
     if (input.outcome) search.set('outcome', input.outcome);
+    const metadata = stringifyTradingMetadata(input.metadata);
+    if (metadata) search.set('metadata', metadata);
     const nextUrl = `${window.location.pathname}?${search.toString()}`;
     window.history.replaceState(null, '', nextUrl);
   }
@@ -231,6 +253,7 @@ export function useTradingApp() {
       eventId: String(input.eventId || ''),
       tokenId: input.tokenId ? String(input.tokenId) : null,
       outcome: input.outcome ? String(input.outcome) : null,
+      metadata: input.metadata,
     };
   }
 
@@ -268,6 +291,7 @@ export function useTradingApp() {
       marketId: nextMarketId,
       tokenId: nextTokenId,
       outcome: nextOutcome,
+      metadata: params.value.metadata,
     });
     params.value = nextInput;
     selectedTokenId.value = nextInput.tokenId ?? '';
@@ -919,6 +943,7 @@ export function useTradingApp() {
     marketDetailReady,
     marketIcon,
     marketId,
+    metadata,
     marketNegRisk,
     marketTradesTotal,
     orderBookDepth,

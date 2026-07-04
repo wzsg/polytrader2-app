@@ -10,7 +10,6 @@ import {
   getMarketIcon,
   getMarketTitle,
   getStatusInfo,
-  isDisplayableMarket,
 } from '@/shared/utils/markets';
 import { findTeamForMarket, parseEventTeams } from '@/shared/utils/teams';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';

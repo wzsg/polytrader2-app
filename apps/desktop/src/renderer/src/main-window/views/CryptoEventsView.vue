@@ -13,7 +13,7 @@ import { useCryptoEvents } from '../../shared/composables/useCryptoEvents';
 import type { EventListItem } from '@polytrader/shared';
 
 const emit = defineEmits<{
-  'open-detail': [event: EventListItem];
+  'open-detail': [event: EventListItem, metadata?: unknown];
 }>();
 
 defineProps<{
@@ -27,6 +27,15 @@ const { t } = useI18n();
 const filterPanelOpen = ref(false);
 
 const CRYPTO_FILTER_STATE_KEYS = ['status', 'endDateMin', 'endDateMax'] as const;
+
+interface CryptoTradingWindowMetadata {
+  source: 'crypto';
+  crypto: {
+    coin: string;
+    mode: string;
+    timeframe: string;
+  };
+}
 
 const canPrev = computed(() => crypto.currentPage.value > 1);
 const canNext = computed(() => crypto.currentPage.value < crypto.totalPages.value);
@@ -47,6 +56,21 @@ function toggleFilterPanel(): void {
 function reload(): Promise<void> {
   crypto.currentPage.value = 1;
   return crypto.loadEvents();
+}
+
+function createTradingMetadata(): CryptoTradingWindowMetadata {
+  return {
+    source: 'crypto',
+    crypto: {
+      coin: crypto.filters.cryptoCoin || '',
+      mode: crypto.filters.cryptoMarketMode || '',
+      timeframe: crypto.filters.cryptoTimeframe || '',
+    },
+  };
+}
+
+function openDetail(event: EventListItem): void {
+  emit('open-detail', event, createTradingMetadata());
 }
 
 defineExpose({ reload });
@@ -122,7 +146,7 @@ defineExpose({ reload });
     :is-in-watchlist="crypto.isInWatchlist"
     @sort="crypto.setSortField"
     @toggle-watchlist="crypto.toggleWatchlist"
-    @open-detail="emit('open-detail', $event)"
+    @open-detail="openDetail"
   />
 
   <Pagination

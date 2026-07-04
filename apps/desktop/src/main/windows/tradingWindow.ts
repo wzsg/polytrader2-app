@@ -32,7 +32,27 @@ function buildTradingSearchParams(input: TradingWindowInput): URLSearchParams {
   params.set('eventId', input.eventId);
   if (input.tokenId) params.set('tokenId', input.tokenId);
   if (input.outcome) params.set('outcome', input.outcome);
+  const metadata = serializeTradingMetadata(input.metadata);
+  if (metadata) params.set('metadata', metadata);
   return params;
+}
+
+function serializeTradingMetadata(metadata: unknown): string {
+  if (metadata === undefined) return '';
+  try {
+    return JSON.stringify(metadata);
+  } catch {
+    return '';
+  }
+}
+
+function normalizeTradingMetadata(metadata: unknown): unknown {
+  if (metadata === undefined) return undefined;
+  try {
+    return JSON.parse(JSON.stringify(metadata));
+  } catch {
+    return undefined;
+  }
 }
 
 function buildTradingDevUrl(input: TradingWindowInput): string | null {
@@ -77,6 +97,7 @@ function normalizeTradingWindowInput(input: TradingWindowInput): TradingWindowIn
     ...input,
     marketId,
     eventId,
+    metadata: normalizeTradingMetadata(input.metadata),
   };
 }
 
