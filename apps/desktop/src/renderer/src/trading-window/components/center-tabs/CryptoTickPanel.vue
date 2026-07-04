@@ -118,6 +118,7 @@ const displayRange = computed(() => {
 const referenceStartPrice = computed(() =>
   findReferenceTickPrice(props.cryptoTick.referenceStartTime),
 );
+const referenceEndPrice = computed(() => findReferenceTickPrice(props.cryptoTick.referenceEndTime));
 const latestTickPrice = computed(() => latestTick.value?.price ?? null);
 const marketPhase = computed<'not-started' | 'live' | 'settling' | 'ended' | 'unknown'>(() => {
   const startMs = parseDateMs(props.cryptoTick.referenceStartTime);
@@ -127,17 +128,14 @@ const marketPhase = computed<'not-started' | 'live' | 'settling' | 'ended' | 'un
   if (!startMs || !endMs || !displayEndMs) return 'unknown';
   if (nowMs.value < startMs) return 'not-started';
   if (nowMs.value < endMs) return 'live';
+  if (referenceEndPrice.value !== null) return 'ended';
   if (nowMs.value < displayEndMs) return 'settling';
   return 'ended';
 });
 const comparisonPrice = computed(() => {
-  if (
-    marketPhase.value === 'live' ||
-    marketPhase.value === 'settling' ||
-    marketPhase.value === 'ended'
-  ) {
+  if (marketPhase.value === 'ended') return referenceEndPrice.value;
+  if (marketPhase.value === 'live' || marketPhase.value === 'settling')
     return latestTickPrice.value;
-  }
   return null;
 });
 const priceMove = computed(() => {
