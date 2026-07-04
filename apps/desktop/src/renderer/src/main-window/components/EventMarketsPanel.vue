@@ -14,6 +14,7 @@ import {
 import { findTeamForMarket, parseEventTeams } from '@/shared/utils/teams';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import { useEventDetail } from '@/shared/composables/useEventDetail';
+import EventRulesDialog from './EventRulesDialog.vue';
 import EventTeamTitle from './EventTeamTitle.vue';
 
 const props = defineProps<{
@@ -60,7 +61,6 @@ let resizeStartWidth = 0;
 
 const displayEvent = computed(() => detailEvent.value ?? props.event);
 const displayTeams = computed(() => parseEventTeams(displayEvent.value?.teams));
-const eventRules = computed(() => detailEvent.value?.description?.trim() || '');
 const status = computed(() => (displayEvent.value ? getStatusInfo(displayEvent.value) : null));
 const loadingAny = computed(() => loading.value || childEventsLoading.value);
 const errorAny = computed(() => error.value || childEventsError.value);
@@ -463,40 +463,6 @@ function marketIcon(
       </button>
     </div>
 
-    <Teleport to="body">
-      <div
-        v-if="rulesDialogOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-6"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="event-rules-title"
-        @click.self="rulesDialogOpen = false"
-      >
-        <div
-          class="border-border bg-surface flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg border shadow-2xl shadow-black/40"
-        >
-          <header
-            class="border-border flex shrink-0 items-center justify-between border-b px-5 py-4"
-          >
-            <h2 id="event-rules-title" class="text-base font-semibold text-white">
-              {{ t('market.rules') }}
-            </h2>
-            <button
-              type="button"
-              class="hover:bg-btn-secondary text-muted-light inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:text-white"
-              :title="t('market.closeRules')"
-              :aria-label="t('market.closeRules')"
-              @click="rulesDialogOpen = false"
-            >
-              <X :size="16" />
-            </button>
-          </header>
-          <div class="text-muted-light min-h-0 overflow-auto px-5 py-4 text-sm leading-relaxed">
-            <p v-if="eventRules" class="whitespace-pre-wrap">{{ eventRules }}</p>
-            <p v-else class="text-muted">{{ t('market.noRules') }}</p>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <EventRulesDialog v-model:open="rulesDialogOpen" :event-id="displayEvent?.id" />
   </aside>
 </template>

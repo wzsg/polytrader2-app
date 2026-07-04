@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ArrowLeftToLine, ScrollText, X } from '@lucide/vue';
+import { ArrowLeftToLine, ScrollText } from '@lucide/vue';
 import type { ApiEvent, DbMarket, Market } from '@polytrader/shared';
 import { getMarketOutcomes } from '@/shared/utils/apiEvent';
 import { formatDate, formatNum, formatOutcomePrice } from '@/shared/utils/format';
@@ -13,6 +13,7 @@ import {
 } from '@/shared/utils/markets';
 import { deriveChildEventShortTitle } from '@/shared/utils/teams';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
+import EventRulesDialog from './EventRulesDialog.vue';
 import EventTeamTitle from './EventTeamTitle.vue';
 
 const props = defineProps<{
@@ -36,7 +37,6 @@ const rulesDialogOpen = ref(false);
 
 const markets = computed(() => (props.event ? displayMarkets(props.event.markets) : []));
 const status = computed(() => (props.event ? getStatusInfo(props.event) : null));
-const eventRules = computed(() => props.event?.description?.trim() || '');
 const childEventShortTitle = computed(() =>
   props.event ? deriveChildEventShortTitle(props.event) : '',
 );
@@ -261,40 +261,6 @@ function selectMarketOutcome(
       </button>
     </div>
 
-    <Teleport to="body">
-      <div
-        v-if="rulesDialogOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-6"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="event-sidebar-rules-title"
-        @click.self="rulesDialogOpen = false"
-      >
-        <div
-          class="border-border bg-surface flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg border shadow-2xl shadow-black/40"
-        >
-          <header
-            class="border-border flex shrink-0 items-center justify-between border-b px-5 py-4"
-          >
-            <h2 id="event-sidebar-rules-title" class="text-base font-semibold text-white">
-              {{ t('market.rules') }}
-            </h2>
-            <button
-              type="button"
-              class="hover:bg-btn-secondary text-muted-light inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:text-white"
-              :title="t('market.closeRules')"
-              :aria-label="t('market.closeRules')"
-              @click="rulesDialogOpen = false"
-            >
-              <X :size="16" />
-            </button>
-          </header>
-          <div class="text-muted-light min-h-0 overflow-auto px-5 py-4 text-sm leading-relaxed">
-            <p v-if="eventRules" class="whitespace-pre-wrap">{{ eventRules }}</p>
-            <p v-else class="text-muted">{{ t('market.noRules') }}</p>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <EventRulesDialog v-model:open="rulesDialogOpen" :event-id="event?.id" />
   </aside>
 </template>

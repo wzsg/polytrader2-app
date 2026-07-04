@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Copy, ExternalLink, Star } from '@lucide/vue';
+import { Copy, ExternalLink, ScrollText, Star } from '@lucide/vue';
 import type { EventListItem } from '@polytrader/shared';
 import ContextMenu, { type ContextMenuItem } from '@/shared/components/ContextMenu.vue';
 import { writeClipboardText } from '@/shared/utils/clipboard';
+import EventRulesDialog from './EventRulesDialog.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -22,6 +23,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const rulesDialogOpen = ref(false);
+const rulesEventId = ref<string | null>(null);
 
 const menuItems = computed<ContextMenuItem[]>(() => {
   const event = props.event;
@@ -33,6 +36,11 @@ const menuItems = computed<ContextMenuItem[]>(() => {
       label: t('market.openDetail'),
       icon: ExternalLink,
       onSelect: () => emit('open-detail', event),
+    },
+    {
+      label: t('market.viewRules'),
+      icon: ScrollText,
+      onSelect: () => openEventRules(event),
     },
     {
       label: t(listed ? 'market.removeFromWatchlist' : 'market.addToWatchlist'),
@@ -76,6 +84,11 @@ async function copyText(value: string): Promise<void> {
   if (!text) return;
   await writeClipboardText(text);
 }
+
+function openEventRules(event: EventListItem): void {
+  rulesEventId.value = event.id;
+  rulesDialogOpen.value = true;
+}
 </script>
 
 <template>
@@ -87,4 +100,5 @@ async function copyText(value: string): Promise<void> {
     @update:open="emit('update:open', $event)"
     @close="emit('close')"
   />
+  <EventRulesDialog v-model:open="rulesDialogOpen" :event-id="rulesEventId" />
 </template>
