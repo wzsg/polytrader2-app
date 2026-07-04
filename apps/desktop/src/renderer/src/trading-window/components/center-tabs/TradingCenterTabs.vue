@@ -111,14 +111,23 @@ function centerTabCount(tab: CenterTab): string | number | null {
 
       <div class="hidden shrink-0 items-center gap-2 text-xs sm:flex">
         <span
-          class="inline-flex items-center gap-1.5"
-          :class="wsStatus === 'live' ? 'text-green-400' : 'text-muted-light'"
+          class="inline-flex h-5 w-5 items-center justify-center"
+          :title="wsStatusLabel"
+          :aria-label="wsStatusLabel"
+          role="status"
         >
           <span
-            class="inline-block h-1.5 w-1.5 rounded-full"
-            :class="wsStatus === 'live' ? 'bg-green-400' : 'bg-muted'"
+            class="inline-block h-2 w-2 rounded-full"
+            :class="
+              wsStatus === 'live'
+                ? 'bg-green-400 shadow-[0_0_0_3px_rgba(34,197,94,0.16)]'
+                : wsStatus === 'error'
+                  ? 'bg-red-400 shadow-[0_0_0_3px_rgba(248,113,113,0.16)]'
+                  : wsStatus === 'connecting'
+                    ? 'animate-pulse bg-sky-300'
+                    : 'bg-muted'
+            "
           />
-          {{ wsStatusLabel }}
         </span>
       </div>
     </div>

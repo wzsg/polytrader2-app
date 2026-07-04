@@ -29,6 +29,7 @@ type TickSeries = ISeriesApi<'Line'>;
 const TICK_LINE_UP_COLOR = '#22c55e';
 const TICK_LINE_DOWN_COLOR = '#ef4444';
 const TICK_LINE_NEUTRAL_COLOR = '#8b8ba7';
+const TICK_LINE_OUTSIDE_COLOR = '#64748b';
 
 const chartEl = ref<HTMLDivElement | null>(null);
 const chart = shallowRef<IChartApi | null>(null);
@@ -80,14 +81,13 @@ const statusLabel = computed(() => {
       return t('tradingWindow.cryptoTickIdle');
   }
 });
-const statusClass = computed(() => {
-  if (props.cryptoTick.status === 'live') return 'text-green-400';
-  if (props.cryptoTick.status === 'error') return 'text-red-400';
-  return 'text-muted-light';
-});
 const statusDotClass = computed(() => {
-  if (props.cryptoTick.status === 'live') return 'bg-green-400';
-  if (props.cryptoTick.status === 'error') return 'bg-red-400';
+  if (props.cryptoTick.status === 'live')
+    return 'bg-green-400 shadow-[0_0_0_3px_rgba(34,197,94,0.16)]';
+  if (props.cryptoTick.status === 'loading') return 'animate-pulse bg-sky-300';
+  if (props.cryptoTick.status === 'error')
+    return 'bg-red-400 shadow-[0_0_0_3px_rgba(248,113,113,0.16)]';
+  if (props.cryptoTick.status === 'closed') return 'bg-muted-light';
   return 'bg-muted';
 });
 const title = computed(() =>
@@ -152,6 +152,11 @@ const priceMoveClass = computed(() => {
 const tickLineColor = computed(() => {
   if (priceMove.value === null || priceMove.value === 0) return TICK_LINE_NEUTRAL_COLOR;
   return priceMove.value > 0 ? TICK_LINE_UP_COLOR : TICK_LINE_DOWN_COLOR;
+});
+const latestTickLineColor = computed(() => {
+  const latestTime = latestTick.value ? Date.parse(latestTick.value.eventTime) : null;
+  if (!latestTime || !Number.isFinite(latestTime)) return tickLineColor.value;
+  return tickPointColor(latestTime);
 });
 const phaseValueLabel = computed(() => {
   if (marketPhase.value === 'not-started') return t('tradingWindow.cryptoTickNotStarted');
@@ -278,6 +283,13 @@ function findReferencePrice(referenceTime: string | null): string {
   return price === null ? '' : formatTickPrice(price);
 }
 
+function tickPointColor(tickMs: number): string {
+  const startMs = parseDateMs(props.cryptoTick.referenceStartTime);
+  const endMs = parseDateMs(props.cryptoTick.referenceEndTime);
+  if ((startMs && tickMs < startMs) || (endMs && tickMs > endMs)) return TICK_LINE_OUTSIDE_COLOR;
+  return tickLineColor.value;
+}
+
 function createChartOptions(width: number, height: number) {
   return {
     width,
@@ -328,7 +340,11 @@ function buildLineData(): Array<LineData<Time> | WhitespaceData<Time>> {
     byTime.set(toUtcTimestamp(tick.eventTime), tick.price);
   }
   const data: Array<LineData<Time> | WhitespaceData<Time>> = [...byTime.entries()].map(
-    ([time, value]) => ({ time: time as UTCTimestamp, value }),
+    ([time, value]) => ({
+      time: time as UTCTimestamp,
+      value,
+      color: tickPointColor(time * 1000),
+    }),
   );
   const range = displayRange.value;
   if (range) {
@@ -346,7 +362,7 @@ function initChart(): void {
     createChartOptions(Math.max(1, clientWidth), Math.max(1, clientHeight)),
   );
   series.value = chart.value.addSeries(LineSeries, {
-    color: tickLineColor.value,
+    color: latestTickLineColor.value,
     lineWidth: 2,
     lastValueVisible: true,
     priceLineVisible: true,
@@ -368,8 +384,8 @@ function updateChartOptions(): void {
 
 function updateSeriesOptions(): void {
   series.value?.applyOptions({
-    color: tickLineColor.value,
-    priceLineColor: tickLineColor.value,
+    color: latestTickLineColor.value,
+    priceLineColor: latestTickLineColor.value,
   });
 }
 
@@ -470,7 +486,7 @@ onUnmounted(() => {
 });
 
 watch(
-  [sortedTicks, currentLocale, referenceTimes, displayRange, tickLineColor],
+  [sortedTicks, currentLocale, referenceTimes, displayRange, tickLineColor, latestTickLineColor],
   async () => {
     await nextTick();
     initChart();
@@ -484,12 +500,16 @@ watch(
 <template>
   <section class="border-border bg-detail-bg flex h-full min-h-0 flex-col overflow-hidden border">
     <div class="border-border flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
-      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2">
-        <h2 class="shrink-0 text-sm font-semibold text-white">{{ title }}</h2>
-        <span class="inline-flex items-center gap-1.5 text-xs" :class="statusClass">
-          <span class="inline-block h-1.5 w-1.5 rounded-full" :class="statusDotClass" />
-          {{ statusLabel }}
+      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-2">
+        <span
+          class="inline-flex h-5 w-5 items-center justify-center"
+          :title="statusLabel"
+          :aria-label="statusLabel"
+          role="status"
+        >
+          <span class="inline-block h-2 w-2 rounded-full" :class="statusDotClass" />
         </span>
+        <h2 class="shrink-0 text-sm font-semibold text-white">{{ title }}</h2>
       </div>
       <div class="flex min-w-0 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span class="text-muted-light">
@@ -519,7 +539,7 @@ watch(
       >
         <div
           v-if="line.label"
-          class="absolute top-2 whitespace-nowrap border px-2 py-1 text-[11px] leading-none shadow-lg"
+          class="absolute top-2 border px-2 py-1 text-[11px] leading-none whitespace-nowrap shadow-lg"
           :class="
             line.key === 'start'
               ? 'left-2 border-sky-400/40 bg-sky-950/90 text-sky-100'
