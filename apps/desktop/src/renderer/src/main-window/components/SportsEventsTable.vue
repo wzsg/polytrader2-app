@@ -23,7 +23,6 @@ const { t } = useI18n();
 const columns: Array<{ field: string; labelKey: string; align: string }> = [
   { field: 'title', labelKey: 'common.title', align: 'left' },
   { field: 'active', labelKey: 'common.status', align: 'left' },
-  { field: 'start_date', labelKey: 'common.startedAt', align: 'right' },
   { field: 'end_date', labelKey: 'common.endedAt', align: 'right' },
   { field: 'volume24hr', labelKey: 'common.volume24h', align: 'right' },
   { field: 'volume', labelKey: 'common.volume', align: 'right' },

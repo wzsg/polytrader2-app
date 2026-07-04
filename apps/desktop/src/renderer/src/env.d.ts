@@ -24,7 +24,7 @@ interface TurnstileApi {
 
 declare global {
   const __APP_VERSION__: string;
-  const __TRADING_MANAGEMENT_ENABLED__: boolean;
+  const __STRATEGY_AUTOMATION_ENABLED__: boolean;
   const __TURNSTILE_ENABLED__: boolean;
 
   interface ImportMetaEnv {

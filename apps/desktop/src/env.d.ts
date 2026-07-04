@@ -1,3 +1,3 @@
 /// <reference types="electron-vite/node" />
 
-declare const __TRADING_MANAGEMENT_ENABLED__: boolean;
+declare const __STRATEGY_AUTOMATION_ENABLED__: boolean;

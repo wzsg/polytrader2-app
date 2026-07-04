@@ -74,11 +74,6 @@ function onContextMenu(event: MouseEvent): void {
     <td
       class="border-border-light text-muted-light border-b px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums"
     >
-      {{ formatDateTimeShort(event.start_date) }}
-    </td>
-    <td
-      class="border-border-light text-muted-light border-b px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums"
-    >
       {{ formatDateTimeShort(event.end_date) }}
     </td>
     <td class="border-border-light border-b px-4 py-2.5 text-right text-sm tabular-nums">

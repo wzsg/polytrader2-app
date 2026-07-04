@@ -10,19 +10,21 @@ const packageJson = JSON.parse(readFileSync(resolve('package.json'), 'utf-8')) a
   version: string;
 };
 
-const tradingManagementEnabled =
-  process.env.P2_ENABLE_TRADING_MANAGEMENT === '1' ||
-  (process.env.P2_ENABLE_TRADING_MANAGEMENT !== '0' && process.env.npm_lifecycle_event === 'dev');
 const viteEnv = loadEnv(
   process.env.NODE_ENV === 'production' ? 'production' : 'development',
   process.cwd(),
   '',
 );
+const strategyAutomationFlag =
+  process.env.P2_ENABLE_STRATEGY_AUTOMATION ?? viteEnv.P2_ENABLE_STRATEGY_AUTOMATION;
+const strategyAutomationEnabled =
+  strategyAutomationFlag === '1' ||
+  (strategyAutomationFlag !== '0' && process.env.npm_lifecycle_event === 'dev');
 const turnstileEnabled =
   process.env.P2_ENABLE_TURNSTILE === '1' || viteEnv.P2_ENABLE_TURNSTILE === '1';
 
 const featureDefines = {
-  __TRADING_MANAGEMENT_ENABLED__: JSON.stringify(tradingManagementEnabled),
+  __STRATEGY_AUTOMATION_ENABLED__: JSON.stringify(strategyAutomationEnabled),
   __TURNSTILE_ENABLED__: JSON.stringify(turnstileEnabled),
 };
 

@@ -38,7 +38,7 @@ const browseItems = [
 ];
 
 const accountItems = [{ nav: 'accounts', labelKey: 'nav.accountManagement', icon: Wallet }];
-const tradingManagementEnabled = __TRADING_MANAGEMENT_ENABLED__;
+const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
 
 const tradingItems = [
   { nav: 'bots', labelKey: 'nav.botManagement', icon: Bot },
@@ -85,7 +85,7 @@ function authHint(): string {
         {{ t(item.labelKey) }}
       </button>
 
-      <template v-if="tradingManagementEnabled">
+      <template v-if="strategyAutomationEnabled">
         <div
           class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"
         >

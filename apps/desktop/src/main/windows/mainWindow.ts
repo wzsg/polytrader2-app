@@ -41,7 +41,7 @@ function confirmMainWindowClose(): void {
 }
 
 function openBotManagement(): void {
-  if (!__TRADING_MANAGEMENT_ENABLED__) return;
+  if (!__STRATEGY_AUTOMATION_ENABLED__) return;
   if (!mainWindow || mainWindow.isDestroyed()) return;
   focusMainWindow();
   mainWindow.webContents.send('main-window:navigate', 'bots');

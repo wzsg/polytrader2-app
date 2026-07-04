@@ -56,6 +56,11 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
+
+const effectiveActiveTradeTab = computed(() =>
+  strategyAutomationEnabled ? props.activeTradeTab : 'manual',
+);
 
 const selectedPanelWalletIdModel = computed({
   get: () => props.selectedPanelWalletId,
@@ -162,7 +167,7 @@ function startRightPanelResize(event: MouseEvent): void {
         </div>
       </section>
 
-      <div class="border-border flex border-b p-1">
+      <div v-if="strategyAutomationEnabled" class="border-border flex border-b p-1">
         <button
           type="button"
           class="flex-1 px-3 py-2 text-sm font-medium transition-colors"
@@ -189,7 +194,7 @@ function startRightPanelResize(event: MouseEvent): void {
         </button>
       </div>
 
-      <div v-if="activeTradeTab === 'manual'" class="flex min-h-0 flex-1 flex-col">
+      <div v-if="effectiveActiveTradeTab === 'manual'" class="flex min-h-0 flex-1 flex-col">
         <div v-if="panelError" class="border-border border-b p-3 text-sm text-red-400">
           {{ panelError }}
         </div>

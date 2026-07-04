@@ -70,15 +70,20 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
+const strategyAutomationTabs = new Set<ActivityTab>(['bots', 'strategyLogs', 'strategyHistory']);
 
-const tabs = computed<Array<{ id: ActivityTab; label: string; icon: typeof ClipboardList }>>(() => [
-  { id: 'positions', label: t('tradingWindow.positionsTab'), icon: Briefcase },
-  { id: 'orders', label: t('tradingWindow.ordersTab'), icon: ClipboardList },
-  { id: 'walletTrades', label: t('tradingWindow.tradesTab'), icon: ReceiptText },
-  { id: 'bots', label: t('tradingWindow.botsTab'), icon: Bot },
-  { id: 'strategyLogs', label: t('tradingWindow.strategyLogsTab'), icon: ScrollText },
-  { id: 'strategyHistory', label: t('tradingWindow.strategyHistoryTab'), icon: History },
-]);
+const tabs = computed<Array<{ id: ActivityTab; label: string; icon: typeof ClipboardList }>>(() => {
+  const baseTabs: Array<{ id: ActivityTab; label: string; icon: typeof ClipboardList }> = [
+    { id: 'positions', label: t('tradingWindow.positionsTab'), icon: Briefcase },
+    { id: 'orders', label: t('tradingWindow.ordersTab'), icon: ClipboardList },
+    { id: 'walletTrades', label: t('tradingWindow.tradesTab'), icon: ReceiptText },
+    { id: 'bots', label: t('tradingWindow.botsTab'), icon: Bot },
+    { id: 'strategyLogs', label: t('tradingWindow.strategyLogsTab'), icon: ScrollText },
+    { id: 'strategyHistory', label: t('tradingWindow.strategyHistoryTab'), icon: History },
+  ];
+  return baseTabs.filter((tab) => strategyAutomationEnabled || !strategyAutomationTabs.has(tab.id));
+});
 
 const MIN_PANEL_HEIGHT = 140;
 const MAX_PANEL_HEIGHT = 520;
@@ -179,6 +184,10 @@ function tabCount(tab: ActivityTab): number {
 }
 
 async function refreshBots(): Promise<void> {
+  if (!strategyAutomationEnabled) {
+    bots.value = [];
+    return;
+  }
   if (!props.marketId) {
     bots.value = [];
     return;
@@ -241,6 +250,16 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => props.activeTab,
+  (tab) => {
+    if (!strategyAutomationEnabled && strategyAutomationTabs.has(tab)) {
+      emit('update:activeTab', 'positions');
+    }
+  },
+  { immediate: true },
+);
+
 watch(collapsed, (next) => {
   if (syncingPanelPreferences) return;
   writePanelCollapsed(props.eventId, next);
@@ -252,6 +271,7 @@ watch(panelHeight, (next) => {
 });
 
 onMounted(() => {
+  if (!strategyAutomationEnabled) return;
   unsubscribeBotRuntime = window.api.onBotRuntimeEvent((event) => {
     if ('marketId' in event && event.marketId === props.marketId) {
       void refreshBots();

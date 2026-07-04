@@ -14,7 +14,6 @@ const ESPORTS_SORT_FIELDS = new Set([
   'volume',
   'liquidity',
   'title',
-  'start_date',
   'end_date',
   'active',
   'closed',

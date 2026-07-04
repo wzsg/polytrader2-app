@@ -134,7 +134,7 @@ export default tseslint.config(
         ...globals.browser,
         ...globals.es2021,
         __APP_VERSION__: 'readonly',
-        __TRADING_MANAGEMENT_ENABLED__: 'readonly',
+        __STRATEGY_AUTOMATION_ENABLED__: 'readonly',
         __TURNSTILE_ENABLED__: 'readonly',
       },
     },

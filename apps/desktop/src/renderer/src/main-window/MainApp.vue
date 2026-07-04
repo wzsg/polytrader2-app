@@ -27,8 +27,8 @@ interface ReloadableListView {
   reload: () => Promise<void>;
 }
 
-const hiddenTradingManagementNavs = new Set(['bots', 'strategies']);
-const tradingManagementEnabled = __TRADING_MANAGEMENT_ENABLED__;
+const hiddenStrategyAutomationNavs = new Set(['bots', 'strategies']);
+const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
 const activeNav = ref('events');
 const selectedEvent = ref<EventListItem | null>(null);
 const selectedEventMetadata = ref<unknown>();
@@ -90,7 +90,7 @@ const authStatusText = computed(() => {
 });
 
 function isNavAllowed(nav: string): boolean {
-  if (!tradingManagementEnabled && hiddenTradingManagementNavs.has(nav)) return false;
+  if (!strategyAutomationEnabled && hiddenStrategyAutomationNavs.has(nav)) return false;
   if (nav === 'developer' && !developerModeEnabled.value) return false;
   return true;
 }
