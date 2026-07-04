@@ -196,7 +196,7 @@ const exactTerms: Record<string, TranslationTerm> = {
   'strategy.noOrderId': { zh: '无订单ID', en: 'No Order ID' },
   'strategy.stopFailed': { zh: '停止策略失败', en: 'Failed to stop strategy' },
   'empty.eventRules': { zh: '暂无事件规则', en: 'No event rules' },
-  'empty.activeMarkets': { zh: '暂无进行中的市场', en: 'No active markets' },
+  'empty.activeMarkets': { zh: '暂无活跃的市场', en: 'No active markets' },
   'empty.availableWallets': { zh: '暂无可用钱包', en: 'No available wallets' },
   'empty.orderBook': { zh: '暂无订单簿', en: 'No order book' },
   'empty.bids': { zh: '暂无买盘', en: 'No bids' },

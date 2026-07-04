@@ -144,6 +144,9 @@ function hideBrokenIcon(event: Event): void {
             <span class="font-medium">{{ coin.symbol || coinName(coin) }}</span>
           </button>
         </div>
+        <div v-if="$slots.actions" class="ml-auto flex shrink-0 items-center">
+          <slot name="actions" />
+        </div>
       </div>
 
       <div class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">

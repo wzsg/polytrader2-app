@@ -33,16 +33,17 @@ class CryptoEventsService {
     }
 
     const localParams = this.buildLocalParams(params, tagIds);
-    const [events, total] = await Promise.all([
+    const [events, total, active] = await Promise.all([
       this._repository.listEvents(localParams),
       this._repository.countEvents(localParams),
+      this._repository.countEvents({ ...localParams, status: 'active' }),
     ]);
 
     return {
       events,
       filteredCount: total,
       totalCount: total,
-      activeCount: total,
+      activeCount: active,
     };
   }
 
@@ -65,8 +66,10 @@ class CryptoEventsService {
 
     return {
       tagIds,
-      status: 'active',
-      endDateAfter: this.resolveEndDateAfter(Number(params.startTimeMinutes) || 0),
+      status: params.status ?? 'active',
+      endDateMin: params.endDateMin,
+      endDateMax: params.endDateMax,
+      activeEndDateAfter: this.resolveEndDateAfter(Number(params.startTimeMinutes) || 0),
       sortField,
       sortOrder: params.sortOrder === 'desc' ? 'desc' : 'asc',
       limit,

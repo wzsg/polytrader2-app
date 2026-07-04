@@ -19,6 +19,7 @@ import type {
   DeveloperOrderRecord,
   EventCategoryConfig,
   EventListItem,
+  EventStatusFilter,
   Filters,
   GammaEventRaw,
   ListEventsParams,
@@ -196,6 +197,9 @@ export type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
 export interface ListCryptoEventsParams {
   tagIds: string[];
   startTimeMinutes?: number;
+  status?: EventStatusFilter;
+  endDateMin?: string;
+  endDateMax?: string;
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
   limit?: number;

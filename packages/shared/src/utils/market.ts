@@ -57,7 +57,7 @@ export function normalizeMarket(raw: GammaMarketRaw): Market {
 }
 
 export function isDisplayableMarket(m: { active?: boolean; closed?: boolean }): boolean {
-  return m.active === true && m.closed === false;
+  return m.active === true;
 }
 
 export function countOpenMarkets(

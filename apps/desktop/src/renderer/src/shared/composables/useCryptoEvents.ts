@@ -1,5 +1,5 @@
 import { reactive, ref, computed, watch } from 'vue';
-import type { Filters, SortOrder } from '@polytrader/shared';
+import type { EventStatusFilter, Filters, SortOrder } from '@polytrader/shared';
 import type { EventListItem } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
 import {
@@ -26,14 +26,26 @@ const CRYPTO_SORT_FIELDS = new Set([
 
 const DEFAULT_CRYPTO_FILTERS: Pick<
   Filters,
-  'cryptoCoin' | 'cryptoMarketMode' | 'cryptoTimeframe' | 'sortField' | 'sortOrder'
+  | 'cryptoCoin'
+  | 'cryptoMarketMode'
+  | 'cryptoTimeframe'
+  | 'status'
+  | 'endDateMin'
+  | 'endDateMax'
+  | 'sortField'
+  | 'sortOrder'
 > = {
   cryptoCoin: '',
   cryptoMarketMode: '',
   cryptoTimeframe: '',
+  status: 'active',
+  endDateMin: '',
+  endDateMax: '',
   sortField: 'end_date',
   sortOrder: 'asc',
 };
+
+const CRYPTO_STATUS_FILTERS = new Set<EventStatusFilter>(['all', 'active', 'closed']);
 
 export function useCryptoEvents() {
   const cryptoCategory = useCryptoCategory();
@@ -62,6 +74,11 @@ export function useCryptoEvents() {
         cryptoCoin: saved.cryptoCoin ?? '',
         cryptoMarketMode: saved.cryptoMarketMode ?? '',
         cryptoTimeframe: saved.cryptoTimeframe ?? '',
+        status: CRYPTO_STATUS_FILTERS.has(saved.cryptoStatus as EventStatusFilter)
+          ? saved.cryptoStatus
+          : DEFAULT_CRYPTO_FILTERS.status,
+        endDateMin: saved.cryptoEndDateMin ?? '',
+        endDateMax: saved.cryptoEndDateMax ?? '',
         sortField: CRYPTO_SORT_FIELDS.has(saved.cryptoSortField || '')
           ? saved.cryptoSortField
           : DEFAULT_CRYPTO_FILTERS.sortField,
@@ -118,6 +135,9 @@ export function useCryptoEvents() {
       const result = await window.api.listCryptoEvents({
         tagIds,
         startTimeMinutes: getStartTimeMinutes(),
+        status: filters.status,
+        endDateMin: filters.endDateMin,
+        endDateMax: filters.endDateMax,
         sortField: filters.sortField,
         sortOrder: filters.sortOrder,
         limit: PAGE_SIZE,
@@ -137,6 +157,12 @@ export function useCryptoEvents() {
   function onFiltersChanged(): void {
     currentPage.value = 1;
     void loadEvents();
+  }
+
+  function resetFilters(): void {
+    filters.status = DEFAULT_CRYPTO_FILTERS.status;
+    filters.endDateMin = DEFAULT_CRYPTO_FILTERS.endDateMin;
+    filters.endDateMax = DEFAULT_CRYPTO_FILTERS.endDateMax;
   }
 
   function setSortField(field: string): void {
@@ -170,6 +196,9 @@ export function useCryptoEvents() {
       cryptoCoin: filters.cryptoCoin,
       cryptoMarketMode: filters.cryptoMarketMode,
       cryptoTimeframe: filters.cryptoTimeframe,
+      status: filters.status,
+      endDateMin: filters.endDateMin,
+      endDateMax: filters.endDateMax,
     }),
     () => {
       if (!ready) return;
@@ -185,6 +214,9 @@ export function useCryptoEvents() {
         cryptoCoin: filters.cryptoCoin,
         cryptoMarketMode: filters.cryptoMarketMode,
         cryptoTimeframe: filters.cryptoTimeframe,
+        cryptoStatus: filters.status,
+        cryptoEndDateMin: filters.endDateMin,
+        cryptoEndDateMax: filters.endDateMax,
         cryptoSortField: filters.sortField,
         cryptoSortOrder: filters.sortOrder,
       });
@@ -215,6 +247,8 @@ export function useCryptoEvents() {
     pageInfo,
     init,
     loadEvents,
+    defaultFilters: DEFAULT_CRYPTO_FILTERS,
+    resetFilters,
     setSortField,
     goPrevPage,
     goNextPage,

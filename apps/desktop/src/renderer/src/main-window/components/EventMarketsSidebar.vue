@@ -84,12 +84,11 @@ function outcomePriceLabel(price: unknown): string {
 }
 
 function marketStatusClass(market: DbMarket | Market): string {
-  return isDisplayableMarket(market) ? 'bg-[#22c55e]' : 'bg-[#ef4444]';
+  return market.closed ? 'bg-[#ef4444]' : 'bg-[#22c55e]';
 }
 
 function marketStatusTitle(market: DbMarket | Market): string {
-  if (isDisplayableMarket(market)) return t('status.active');
-  return market.closed ? t('status.closed') : t('status.inactive');
+  return market.closed ? t('status.closed') : t('status.active');
 }
 
 function selectMarketOutcome(

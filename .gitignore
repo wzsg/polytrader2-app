@@ -9,3 +9,4 @@ cache/
 !.env*.example
 *.tsbuildinfo
 *.log
+docs/

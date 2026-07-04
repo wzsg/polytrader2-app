@@ -857,7 +857,7 @@ export const messages = {
       closeRules: '关闭事件规则',
       noRules: '暂无事件规则',
       eventMarkets: '事件市场',
-      noActiveMarkets: '暂无进行中的市场',
+      noActiveMarkets: '暂无活跃的市场',
       openTradingWindow: '打开交易窗口',
       addToWatchlist: '加入自选',
       removeFromWatchlist: '移出自选',

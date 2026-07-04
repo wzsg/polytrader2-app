@@ -162,6 +162,9 @@ export interface Filters {
   cryptoCoin?: string;
   cryptoMarketMode?: string;
   cryptoTimeframe?: string;
+  cryptoStatus?: EventStatusFilter;
+  cryptoEndDateMin?: string;
+  cryptoEndDateMax?: string;
   sportsSport?: string;
   sportsSortField?: string;
   sportsSortOrder?: SortOrder;
@@ -183,6 +186,7 @@ export interface ListEventsParams {
   endDateMin?: string;
   endDateMax?: string;
   endDateAfter?: string;
+  activeEndDateAfter?: string;
   status?: EventStatusFilter;
   tagIds?: string[];
   excludeTagIds?: string[];
