@@ -15,15 +15,19 @@ import type {
   TradingRuntimeConnectionStatus,
   TradingMarketSnapshot,
   TradingWindowInput,
+  TradingRuntimeCryptoTickState,
 } from '@polytrader/shared';
 import { EventEmitter } from 'events';
 import { createOrderBookWebSocketClient } from './order-book/index.js';
 import { TradingMarketTradeService } from './trade/tradingMarketTradeService.js';
 import { TradingMarketPriceHistoryService } from './price-history/index.js';
+import { createTradingCryptoTickClient } from './crypto-tick/index.js';
+import { resolveCryptoTickStartInput } from './crypto-tick/tradingCryptoTickMetadata.js';
 import { TRADING_MARKET_RUNTIME_EVENT_NAMES } from './tradingMarketRuntimeEvents.js';
 import type { TradingMarketRuntime, TradingMarketServiceOptions } from './types.js';
 import type { TradingMarketRuntimeEventMap } from './tradingMarketRuntimeEvents.js';
 import type { OrderBookWebSocketClient } from './order-book/index.js';
+import type { TradingCryptoTickClient } from './crypto-tick/index.js';
 import type { TradingMarketPriceHistoryUpdatedEvent } from './price-history/index.js';
 import type {
   TradingMarketTradeStateResult,
@@ -55,11 +59,14 @@ class TradingMarketRuntimeImpl
   private _event: GammaEventRaw | null = null;
   private _marketDetail: MarketDetailData | null = null;
   private _priceHistory: TradingMarketSnapshot['priceHistory'] = {};
+  private _cryptoTick: TradingRuntimeCryptoTickState | null = null;
   private _marketTrades: TradingRuntimeMarketTradeState;
   private _status: SessionStatus;
   private _errors: TradingMarketSnapshot['errors'] = {};
   private _updatedAt: string | null = null;
   private _orderbook: OrderBookWebSocketClient | null = null;
+  private _cryptoTickService: TradingCryptoTickClient | null = null;
+  private _cryptoTickKey = '';
   private _detailRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private _detailRefreshInFlight = false;
 
@@ -101,6 +108,7 @@ class TradingMarketRuntimeImpl
       this._refreshEvent(),
       this._refreshMarketDetail({ startOrderBook: options.startOrderBook !== false }),
     ]);
+    this._syncCryptoTickService();
 
     const tasks: Array<Promise<void>> = [];
     if (options.loadPriceHistory !== false) {
@@ -160,6 +168,7 @@ class TradingMarketRuntimeImpl
       recentLiveTrades: orderbookSnapshot.recentLiveTrades,
       wsStatus: orderbookSnapshot.wsStatus,
       priceHistory: { ...this._priceHistory },
+      cryptoTick: this._cloneCryptoTickState(this._cryptoTick),
       marketTrades: {
         ...this._marketTrades,
         recent: this._marketTrades.recent
@@ -191,6 +200,9 @@ class TradingMarketRuntimeImpl
     this.removeAllListeners();
     this._orderbook?.dispose();
     this._orderbook = null;
+    this._cryptoTickService?.dispose();
+    this._cryptoTickService = null;
+    this._cryptoTick = null;
   }
 
   public async loadPriceHistory(
@@ -334,6 +346,7 @@ class TradingMarketRuntimeImpl
       this._setStatus('marketDetail', 'ready');
       this._emitEvent('market-detail', { marketId: this._marketId, data: detail });
       if (options.startOrderBook) this._startOrderBook();
+      this._syncCryptoTickService();
       this._ensureMarketDetailRefreshTimer();
     } catch (error) {
       if (!this._isCurrent('marketDetail', seq)) return;
@@ -377,6 +390,62 @@ class TradingMarketRuntimeImpl
     }
     this._status.orderBook = 'loading';
     this._orderbook.setOutcomes(this._marketDetail.outcomes);
+  }
+
+  private _syncCryptoTickService(): void {
+    const input = resolveCryptoTickStartInput({
+      marketId: this._marketId,
+      metadata: this._metadata,
+      event: this._event,
+      marketDetail: this._marketDetail,
+    });
+    if (!input) {
+      this._disposeCryptoTickService();
+      return;
+    }
+
+    const key = [
+      input.marketId,
+      input.symbol,
+      input.window.closed ? 'closed' : 'live',
+      input.window.endTime ?? '',
+    ].join('|');
+    if (!this._cryptoTickService) {
+      this._cryptoTickService =
+        this._options.cryptoTickFactory?.() ?? createTradingCryptoTickClient();
+      this._cryptoTickService.on('crypto-tick-changed', (state) => {
+        this._cryptoTick = this._cloneCryptoTickState(state);
+        this._updatedAt = this._now();
+        this._emitEvent('crypto-tick', {
+          marketId: this._marketId,
+          cryptoTick: this._cloneCryptoTickState(state),
+        });
+      });
+    }
+    if (this._cryptoTickKey === key) return;
+    this._cryptoTickKey = key;
+    this._cryptoTickService.start(input);
+    this._cryptoTick = this._cloneCryptoTickState(this._cryptoTickService.snapshot());
+  }
+
+  private _disposeCryptoTickService(): void {
+    if (!this._cryptoTickService && !this._cryptoTick) return;
+    this._cryptoTickService?.dispose();
+    this._cryptoTickService = null;
+    this._cryptoTickKey = '';
+    this._cryptoTick = null;
+    this._emitEvent('crypto-tick', { marketId: this._marketId, cryptoTick: null });
+  }
+
+  private _cloneCryptoTickState(
+    state: TradingRuntimeCryptoTickState | null,
+  ): TradingRuntimeCryptoTickState | null {
+    if (!state) return null;
+    return {
+      ...state,
+      ticks: state.ticks.map((tick) => ({ ...tick })),
+      latestTick: state.latestTick ? { ...state.latestTick } : null,
+    };
   }
 
   private async _refreshPriceHistory(interval?: string, fidelity?: number): Promise<void> {

@@ -12,6 +12,7 @@ const props = defineProps<{
     'sortField' | 'sortOrder' | 'cryptoCoin' | 'cryptoMarketMode' | 'cryptoTimeframe'
   >;
   selectedEventId?: string | null;
+  statusNowMs: number;
   isInWatchlist: (eventId: string) => boolean;
 }>();
 
@@ -99,6 +100,7 @@ function handleOpenDetail(event: EventListItem): void {
           <CryptoEventRow
             :event="event"
             :selected="isSelected(event)"
+            :status-now-ms="statusNowMs"
             :is-in-watchlist="isInWatchlist(event.id)"
             @toggle-watchlist="emit('toggle-watchlist', $event)"
             @open-detail="handleOpenDetail"

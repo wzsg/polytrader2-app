@@ -20,6 +20,7 @@ const TRADING_MARKET_RUNTIME_EVENT_NAMES = [
   'price-history-loaded',
   'price-history-updated',
   'market-trades-state',
+  'crypto-tick',
 ] as const satisfies readonly TradingMarketRuntimeEventName[];
 
 export { TRADING_MARKET_RUNTIME_EVENT_NAMES };

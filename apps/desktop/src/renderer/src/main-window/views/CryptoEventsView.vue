@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ChevronDown, ListFilter, RotateCcw } from '@lucide/vue';
 import CryptoFilterBar from '../components/CryptoFilterBar.vue';
 import CryptoAdvancedFilterBar from '../components/CryptoAdvancedFilterBar.vue';
-import StatsBar from '../components/StatsBar.vue';
 import CryptoEventsTable from '../components/CryptoEventsTable.vue';
-import EventSyncStatusIndicator from '../components/EventSyncStatusIndicator.vue';
 import Pagination from '../../shared/components/Pagination.vue';
 import { useCryptoEvents } from '../../shared/composables/useCryptoEvents';
 
@@ -25,6 +23,8 @@ defineProps<{
 const crypto = useCryptoEvents();
 const { t } = useI18n();
 const filterPanelOpen = ref(false);
+const statusNowMs = ref(Date.now());
+let statusTimerId: number | undefined;
 
 const CRYPTO_FILTER_STATE_KEYS = ['status', 'endDateMin', 'endDateMax'] as const;
 
@@ -47,7 +47,18 @@ const filterButtonTitle = computed(() => {
   return hasActiveFilters.value ? t('filter.expandActive') : t('filter.expand');
 });
 
-onMounted(() => crypto.init());
+onMounted(() => {
+  void crypto.init();
+  statusNowMs.value = Date.now();
+  statusTimerId = window.setInterval(() => {
+    statusNowMs.value = Date.now();
+  }, 3_000);
+});
+
+onUnmounted(() => {
+  if (statusTimerId === undefined) return;
+  window.clearInterval(statusTimerId);
+});
 
 function toggleFilterPanel(): void {
   filterPanelOpen.value = !filterPanelOpen.value;
@@ -128,21 +139,11 @@ defineExpose({ reload });
     </template>
   </CryptoAdvancedFilterBar>
 
-  <StatsBar
-    variant="events"
-    :total-count="crypto.totalCount.value"
-    :filtered-count="crypto.filteredCount.value"
-    :active-count="crypto.activeCount.value"
-  >
-    <template #actions>
-      <EventSyncStatusIndicator :sync-state="syncState" :sync-status="syncStatus" />
-    </template>
-  </StatsBar>
-
   <CryptoEventsTable
     :events="crypto.pageEvents.value"
     :filters="crypto.filters"
     :selected-event-id="selectedEventId"
+    :status-now-ms="statusNowMs"
     :is-in-watchlist="crypto.isInWatchlist"
     @sort="crypto.setSortField"
     @toggle-watchlist="crypto.toggleWatchlist"

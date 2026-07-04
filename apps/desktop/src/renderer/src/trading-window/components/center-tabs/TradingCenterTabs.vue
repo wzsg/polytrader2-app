@@ -8,6 +8,7 @@ import type {
   MarketTradeSyncStatus,
   OrderBook,
   PriceHistoryPoint,
+  TradingMarketSnapshot,
 } from '@polytrader/shared';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import { useI18n } from 'vue-i18n';
@@ -34,6 +35,7 @@ defineProps<{
   error?: string;
   tokenOutcomes: MarketOutcome[];
   holders: HolderGroup[];
+  cryptoTick: TradingMarketSnapshot['cryptoTick'];
   priceHistory: Record<string, PriceHistoryPoint[]>;
   priceHistoryLoading: boolean;
   priceHistoryRange: PriceHistoryRange;
@@ -128,6 +130,7 @@ function centerTabCount(tab: CenterTab): string | number | null {
             <MarketPanel
               :market-id="marketId"
               :token-outcomes="tokenOutcomes"
+              :crypto-tick="cryptoTick"
               :price-history="priceHistory"
               :price-history-loading="priceHistoryLoading"
               :price-history-range="priceHistoryRange"

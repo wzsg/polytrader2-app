@@ -22,6 +22,7 @@ const {
   cancelOrders,
   cancelingOrderIds,
   conditionId,
+  cryptoTick,
   defaultMarketTrades,
   defaultMarketTradesSyncStatus,
   deleteFailedOrder,
@@ -237,6 +238,7 @@ const {
             :error="error"
             :token-outcomes="tokenOutcomes"
             :holders="holders"
+            :crypto-tick="cryptoTick"
             :price-history="priceHistory"
             :price-history-loading="priceHistoryLoading"
             :default-market-trades="defaultMarketTrades"

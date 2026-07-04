@@ -91,11 +91,20 @@ function getOutcomeButtons(
   }
 }
 
-function getStatusInfo(event: { closed?: boolean; active?: boolean }): {
+function isClosedByEndDate(endDate: string | null | undefined, nowMs: number | undefined): boolean {
+  if (nowMs === undefined || !endDate) return false;
+  const endTimeMs = Date.parse(endDate);
+  return Number.isFinite(endTimeMs) && endTimeMs <= nowMs;
+}
+
+function getStatusInfo(
+  event: { closed?: boolean; active?: boolean; end_date?: string | null },
+  nowMs?: number,
+): {
   label: string;
   class: string;
 } {
-  if (event.closed) {
+  if (event.closed || isClosedByEndDate(event.end_date, nowMs)) {
     return { label: translateUiKey('status.closed'), class: 'bg-danger/20 text-[#f08090]' };
   }
   if (event.active) {

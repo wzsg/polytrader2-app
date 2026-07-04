@@ -137,6 +137,7 @@ export function useTradingApp() {
   const defaultMarketTradesSyncStatus = computed(
     () => runtimeSnapshot.value?.marketTrades.syncStatus ?? null,
   );
+  const cryptoTick = computed(() => runtimeSnapshot.value?.cryptoTick ?? null);
   const wsStatus = computed(() => runtimeSnapshot.value?.wsStatus ?? 'disconnected');
   const {
     orderBookDepth,
@@ -438,6 +439,9 @@ export function useTradingApp() {
         break;
       case 'market-trades-state':
         next.marketTrades = event.event.marketTrades;
+        break;
+      case 'crypto-tick':
+        next.cryptoTick = event.event.cryptoTick;
         break;
       default:
         break;
@@ -922,6 +926,7 @@ export function useTradingApp() {
     cancelingOrderIds,
     deleteFailedOrder,
     conditionId,
+    cryptoTick,
     defaultMarketTrades,
     defaultMarketTradesSyncStatus,
     displayBooks,

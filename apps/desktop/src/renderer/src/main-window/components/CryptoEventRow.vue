@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Star } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { EventListItem } from '@polytrader/shared';
@@ -8,6 +9,7 @@ import { getStatusInfo } from '@/shared/utils/markets';
 const props = defineProps<{
   event: EventListItem;
   selected?: boolean;
+  statusNowMs: number;
   isInWatchlist: boolean;
 }>();
 
@@ -19,7 +21,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const status = getStatusInfo(props.event);
+const status = computed(() => getStatusInfo(props.event, props.statusNowMs));
 
 function watchlistTitle(): string {
   return t(props.isInWatchlist ? 'market.removeFromWatchlist' : 'market.addToWatchlist');

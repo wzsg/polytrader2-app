@@ -900,6 +900,30 @@ export interface TradingRuntimeMarketTradeState {
   updatedAt: string | null;
 }
 
+export interface CryptoTick {
+  source: 'chainlink';
+  symbol: string;
+  rawSymbol: string;
+  price: number;
+  eventTime: string;
+  wsTime: string;
+  ingestedAt: string;
+  dedupKey: string;
+}
+
+export type TradingRuntimeCryptoTickStatus = 'idle' | 'loading' | 'live' | 'closed' | 'error';
+
+export interface TradingRuntimeCryptoTickState {
+  enabled: boolean;
+  source: 'chainlink';
+  symbol: string;
+  status: TradingRuntimeCryptoTickStatus;
+  ticks: CryptoTick[];
+  latestTick: CryptoTick | null;
+  error: string;
+  updatedAt: string | null;
+}
+
 export interface TradingMarketSnapshot {
   marketId: string;
   eventId: string;
@@ -914,6 +938,7 @@ export interface TradingMarketSnapshot {
   recentLiveTrades: MarketTradeTick[];
   wsStatus: TradingRuntimeWsStatus;
   priceHistory: Record<string, PriceHistoryPoint[]>;
+  cryptoTick: TradingRuntimeCryptoTickState | null;
   marketTrades: TradingRuntimeMarketTradeState;
   updatedAt: string | null;
 }
@@ -964,6 +989,11 @@ export interface TradingMarketTradesEvent {
   marketTrades: TradingRuntimeMarketTradeState;
 }
 
+export interface TradingMarketCryptoTickEvent {
+  marketId: string;
+  cryptoTick: TradingRuntimeCryptoTickState | null;
+}
+
 export interface TradingMarketEventMap {
   'runtime-snapshot': TradingMarketSnapshotEvent;
   'runtime-status': TradingMarketStatusEvent;
@@ -973,6 +1003,7 @@ export interface TradingMarketEventMap {
   'price-history-loaded': TradingMarketPriceHistoryEvent;
   'price-history-updated': TradingMarketPriceHistoryUpdatedEvent;
   'market-trades-state': TradingMarketTradesEvent;
+  'crypto-tick': TradingMarketCryptoTickEvent;
 }
 
 export type TradingMarketEventName = keyof TradingMarketEventMap & string;

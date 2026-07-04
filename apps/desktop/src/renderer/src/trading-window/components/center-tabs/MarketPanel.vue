@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import type { MarketOutcome, OrderBook, PriceHistoryPoint } from '@polytrader/shared';
+import type {
+  MarketOutcome,
+  OrderBook,
+  PriceHistoryPoint,
+  TradingMarketSnapshot,
+} from '@polytrader/shared';
 import type { PriceHistoryRange } from '../../composables/usePriceHistoryRange';
 import {
   ORDER_BOOK_DEPTH_OPTIONS,
@@ -9,10 +14,12 @@ import {
 } from '../../composables/useTradingOrderBookSummary';
 import OutcomePriceChart from './OutcomePriceChart.vue';
 import TradingOrderBookPanel from './TradingOrderBookPanel.vue';
+import CryptoTickPanel from './CryptoTickPanel.vue';
 
 defineProps<{
   marketId: string;
   tokenOutcomes: MarketOutcome[];
+  cryptoTick: TradingMarketSnapshot['cryptoTick'];
   priceHistory: Record<string, PriceHistoryPoint[]>;
   priceHistoryLoading: boolean;
   priceHistoryRange: PriceHistoryRange;
@@ -31,7 +38,11 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="h-[420px] shrink-0 overflow-hidden">
+    <div v-if="cryptoTick?.enabled" class="h-[420px] shrink-0 overflow-hidden">
+      <CryptoTickPanel :crypto-tick="cryptoTick" />
+    </div>
+
+    <div v-else class="h-[420px] shrink-0 overflow-hidden">
       <OutcomePriceChart
         :key="`chart-${marketId}`"
         :market-id="marketId"
