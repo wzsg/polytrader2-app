@@ -10,6 +10,7 @@ import type {
   TradingMarketRuntime,
   TradingMarketService,
   TradingMarketServiceOptions,
+  TradingMarketSubscribeHooks,
   TradingMarketSubscribeResult,
 } from './types.js';
 
@@ -39,6 +40,7 @@ class TradingMarketServiceImpl implements TradingMarketService {
   public async subscribe(
     input: TradingWindowInput,
     options: TradingMarketSubscribeOptions = {},
+    hooks: TradingMarketSubscribeHooks = {},
   ): Promise<TradingMarketSubscribeResult> {
     const marketId = input.marketId?.trim();
     if (!marketId) throw new Error('marketId is required');
@@ -46,10 +48,12 @@ class TradingMarketServiceImpl implements TradingMarketService {
     this._cancelCleanup(record);
     const subscription = this._createSubscription(record);
     record.subscriptions.set(subscription.id, subscription);
+    const unsubscribeHook = hooks.onEvent ? subscription.onEvent(hooks.onEvent) : null;
     try {
       const snapshot = await record.runtime.initialize({ ...input, marketId }, options);
       return { subscription, snapshot };
     } catch (error) {
+      unsubscribeHook?.();
       subscription.unsubscribe();
       throw error;
     }

@@ -66,6 +66,8 @@ export function useTradingApp() {
   let walletOrdersChangedTimer: ReturnType<typeof setTimeout> | null = null;
   let walletPositionsChangedTimer: ReturnType<typeof setTimeout> | null = null;
   let walletTradesChangedTimer: ReturnType<typeof setTimeout> | null = null;
+  let pendingRuntimeEvents: TradingMarketEvent[] = [];
+  let replayingPendingRuntimeEvents = false;
 
   const marketId = computed(() => params.value.marketId || '');
   const eventId = computed(() => params.value.eventId || '');
@@ -394,6 +396,7 @@ export function useTradingApp() {
     runtimeSnapshot.value = snapshot;
     if (snapshot.selectedTokenId) selectedTokenId.value = snapshot.selectedTokenId;
     if (snapshot.marketTrades.recent) marketTradesTotal.value = snapshot.marketTrades.recent.total;
+    replayPendingRuntimeEvents(snapshot.marketId);
   }
 
   function applyRuntimeEvent(event: TradingMarketEvent): void {
@@ -403,7 +406,10 @@ export function useTradingApp() {
       applySnapshot(event.event.snapshot);
       return;
     }
-    if (!current) return;
+    if (!current) {
+      pendingRuntimeEvents.push(event);
+      return;
+    }
     const next: TradingMarketSnapshot = {
       ...current,
       status: { ...current.status },
@@ -447,6 +453,23 @@ export function useTradingApp() {
         break;
     }
     applySnapshot(next);
+  }
+
+  function replayPendingRuntimeEvents(snapshotMarketId: string): void {
+    if (replayingPendingRuntimeEvents || !pendingRuntimeEvents.length) return;
+    const replayEvents = pendingRuntimeEvents.filter(
+      (event) => event.event.marketId === snapshotMarketId,
+    );
+    pendingRuntimeEvents = pendingRuntimeEvents.filter(
+      (event) => event.event.marketId !== snapshotMarketId,
+    );
+    if (!replayEvents.length) return;
+    replayingPendingRuntimeEvents = true;
+    try {
+      for (const event of replayEvents) applyRuntimeEvent(event);
+    } finally {
+      replayingPendingRuntimeEvents = false;
+    }
   }
 
   function mergePriceHistory(
@@ -534,6 +557,7 @@ export function useTradingApp() {
     const seq = ++runtimeRequestSeq;
     if (runtimeSnapshot.value?.marketId !== requestInput.marketId) {
       walletRequestSeq += 1;
+      pendingRuntimeEvents = [];
       walletState.value = null;
       walletError.value = '';
       walletLoading.value = false;

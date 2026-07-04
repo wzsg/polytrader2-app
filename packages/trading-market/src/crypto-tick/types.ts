@@ -3,6 +3,8 @@ import type { TradingRuntimeCryptoTickState } from '@polytrader/shared';
 interface CryptoTickMarketWindow {
   startTime: string | null;
   endTime: string | null;
+  displayStartTime: string | null;
+  displayEndTime: string | null;
   closed: boolean;
 }
 

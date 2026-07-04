@@ -408,21 +408,29 @@ class TradingMarketRuntimeImpl
       input.marketId,
       input.symbol,
       input.window.closed ? 'closed' : 'live',
+      input.window.startTime ?? '',
       input.window.endTime ?? '',
+      input.window.displayStartTime ?? '',
+      input.window.displayEndTime ?? '',
     ].join('|');
     if (!this._cryptoTickService) {
       this._cryptoTickService =
         this._options.cryptoTickFactory?.() ?? createTradingCryptoTickClient();
       this._cryptoTickService.on('crypto-tick-changed', (state) => {
+        const previousStatus = this._cryptoTick?.status ?? null;
         this._cryptoTick = this._cloneCryptoTickState(state);
         this._updatedAt = this._now();
         this._emitEvent('crypto-tick', {
           marketId: this._marketId,
           cryptoTick: this._cloneCryptoTickState(state),
         });
+        if (previousStatus === 'loading' && state.status !== 'loading') this._emitSnapshot();
       });
     }
-    if (this._cryptoTickKey === key) return;
+    if (this._cryptoTickKey === key) {
+      this._cryptoTick = this._cloneCryptoTickState(this._cryptoTickService.snapshot());
+      return;
+    }
     this._cryptoTickKey = key;
     this._cryptoTickService.start(input);
     this._cryptoTick = this._cloneCryptoTickState(this._cryptoTickService.snapshot());

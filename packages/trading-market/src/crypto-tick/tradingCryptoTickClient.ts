@@ -12,8 +12,6 @@ const DEFAULT_WS_URL = 'wss://tick.polytrader2.com/v1/ws';
 const DEFAULT_HISTORY_LIMIT = 10_000;
 const DEFAULT_HEARTBEAT_MS = 10_000;
 const DEFAULT_RECONNECT_DELAY_MS = 2_000;
-const CLOSED_WINDOW_BEFORE_MS = 5 * 60_000 + 30_000;
-const CLOSED_WINDOW_AFTER_MS = 30_000;
 const MAX_TICKS = 10_000;
 
 interface TickApiItem {
@@ -60,6 +58,7 @@ class TradingCryptoTickClientImpl
   private _ws: WebSocketLike | null = null;
   private _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private _displayEndTimer: ReturnType<typeof setTimeout> | null = null;
   private _connectionId = 0;
   private _disposed = false;
   private _closedMode = false;
@@ -86,6 +85,7 @@ class TradingCryptoTickClientImpl
 
     this._input = nextInput;
     this._connectionId += 1;
+    this._clearDisplayEndTimer();
     this._disconnect();
     this._setState(this._createState(symbol, 'loading', []));
 
@@ -107,6 +107,7 @@ class TradingCryptoTickClientImpl
   public dispose(): void {
     this._disposed = true;
     this._connectionId += 1;
+    this._clearDisplayEndTimer();
     this._disconnect();
     this.removeAllListeners();
   }
@@ -128,6 +129,8 @@ class TradingCryptoTickClientImpl
       input.symbol,
       input.window.closed ? 'closed' : 'live',
       input.window.endTime ?? '',
+      input.window.displayStartTime ?? '',
+      input.window.displayEndTime ?? '',
     ].join('|');
   }
 
@@ -143,6 +146,10 @@ class TradingCryptoTickClientImpl
       source: 'chainlink',
       symbol,
       status,
+      referenceStartTime: this._input?.window.startTime ?? null,
+      referenceEndTime: this._input?.window.endTime ?? null,
+      displayStartTime: this._input?.window.displayStartTime ?? null,
+      displayEndTime: this._input?.window.displayEndTime ?? null,
       ticks: normalizedTicks,
       latestTick: normalizedTicks.at(-1) ?? null,
       error,
@@ -167,6 +174,10 @@ class TradingCryptoTickClientImpl
       source: 'chainlink',
       symbol: current?.symbol ?? ticks[0]?.symbol ?? '',
       status,
+      referenceStartTime: current?.referenceStartTime ?? this._input?.window.startTime ?? null,
+      referenceEndTime: current?.referenceEndTime ?? this._input?.window.endTime ?? null,
+      displayStartTime: current?.displayStartTime ?? this._input?.window.displayStartTime ?? null,
+      displayEndTime: current?.displayEndTime ?? this._input?.window.displayEndTime ?? null,
       ticks: merged,
       latestTick: merged.at(-1) ?? null,
       error,
@@ -176,7 +187,7 @@ class TradingCryptoTickClientImpl
 
   private _mergeTicks(existing: CryptoTick[], incoming: CryptoTick[]): CryptoTick[] {
     const byKey = new Map<string, CryptoTick>();
-    for (const tick of [...existing, ...incoming]) {
+    for (const tick of this._filterDisplayTicks([...existing, ...incoming])) {
       byKey.set(this._tickKey(tick), tick);
     }
     return [...byKey.values()]
@@ -193,10 +204,11 @@ class TradingCryptoTickClientImpl
     connectionId: number,
   ): Promise<void> {
     try {
-      const endMs = this._parseTime(input.window.endTime);
-      if (!endMs) throw new Error('Crypto tick end time is required');
-      const start = Math.floor((endMs - CLOSED_WINDOW_BEFORE_MS) / 1000);
-      const end = Math.floor((endMs + CLOSED_WINDOW_AFTER_MS) / 1000);
+      const displayStartMs = this._parseTime(input.window.displayStartTime);
+      const displayEndMs = this._parseTime(input.window.displayEndTime);
+      if (!displayStartMs || !displayEndMs) throw new Error('Crypto tick display window is required');
+      const start = Math.floor(displayStartMs / 1000);
+      const end = Math.floor(displayEndMs / 1000);
       const ticks = await this._fetchRange(input.symbol, start, end);
       if (!this._isCurrent(connectionId)) return;
       this._applyTicks(ticks, 'closed');
@@ -208,7 +220,13 @@ class TradingCryptoTickClientImpl
 
   private _connect(input: TradingCryptoTickStartInput, connectionId: number): void {
     if (this._disposed || input.window.closed) return;
+    if (this._isDisplayWindowFinished(input)) {
+      this._applyTicks([], 'closed');
+      this._closedMode = true;
+      return;
+    }
     this._disconnect();
+    this._scheduleDisplayEndStop(input, connectionId);
 
     const ws = new WebSocket(this._wsUrl);
     this._ws = ws;
@@ -256,6 +274,12 @@ class TradingCryptoTickClientImpl
     if (type === 'tick') {
       const message = parsed as TickMessage;
       const tick = message.tick ? this._normalizeTick(message.tick, input.symbol) : null;
+      if (tick && this._isAfterDisplayEnd(tick)) {
+        this._applyTicks([], 'closed');
+        this._closedMode = true;
+        this._disconnect();
+        return;
+      }
       if (tick) this._applyTicks([tick], 'live');
     }
   }
@@ -290,12 +314,14 @@ class TradingCryptoTickClientImpl
       .map((tick) => Date.parse(tick.eventTime))
       .filter((time) => Number.isFinite(time))
       .sort((a, b) => b - a)[0];
-    return snapshotMs ?? this._parseTime(input.window.endTime) ?? Date.now();
+    const fallbackMs = this._parseTime(input.window.endTime) ?? Date.now();
+    const displayEndMs = this._parseTime(input.window.displayEndTime);
+    const endMs = snapshotMs ?? fallbackMs;
+    return displayEndMs ? Math.min(endMs, displayEndMs) : endMs;
   }
 
   private _liveHistoryStartMs(input: TradingCryptoTickStartInput, endMs: number): number {
-    const marketEndMs = this._parseTime(input.window.endTime);
-    return marketEndMs ? marketEndMs - CLOSED_WINDOW_BEFORE_MS : endMs - CLOSED_WINDOW_BEFORE_MS;
+    return this._parseTime(input.window.displayStartTime) ?? endMs;
   }
 
   private async _fetchRange(symbol: string, start: number, end: number): Promise<CryptoTick[]> {
@@ -349,12 +375,35 @@ class TradingCryptoTickClientImpl
   }
 
   private _scheduleReconnect(input: TradingCryptoTickStartInput, connectionId: number): void {
+    if (this._closedMode) return;
     if (this._reconnectTimer) return;
     this._reconnectTimer = setTimeout(() => {
       this._reconnectTimer = null;
       if (!this._isCurrent(connectionId)) return;
       this._connect(input, connectionId);
     }, this._reconnectDelayMs);
+  }
+
+  private _scheduleDisplayEndStop(
+    input: TradingCryptoTickStartInput,
+    connectionId: number,
+  ): void {
+    this._clearDisplayEndTimer();
+    const displayEndMs = this._parseTime(input.window.displayEndTime);
+    if (!displayEndMs) return;
+    const delayMs = displayEndMs - Date.now();
+    if (delayMs <= 0) {
+      this._applyTicks([], 'closed');
+      this._closedMode = true;
+      return;
+    }
+    this._displayEndTimer = setTimeout(() => {
+      this._displayEndTimer = null;
+      if (!this._isCurrent(connectionId)) return;
+      this._applyTicks([], 'closed');
+      this._closedMode = true;
+      this._disconnect();
+    }, delayMs);
   }
 
   private _disconnect(): void {
@@ -365,6 +414,12 @@ class TradingCryptoTickClientImpl
       this._ws.close();
       this._ws = null;
     }
+  }
+
+  private _clearDisplayEndTimer(): void {
+    if (!this._displayEndTimer) return;
+    clearTimeout(this._displayEndTimer);
+    this._displayEndTimer = null;
   }
 
   private _stopHeartbeat(): void {
@@ -389,6 +444,27 @@ class TradingCryptoTickClientImpl
     } catch {
       return null;
     }
+  }
+
+  private _filterDisplayTicks(ticks: CryptoTick[]): CryptoTick[] {
+    const displayStartMs = this._parseTime(this._input?.window.displayStartTime);
+    const displayEndMs = this._parseTime(this._input?.window.displayEndTime);
+    if (!displayStartMs || !displayEndMs) return ticks;
+    return ticks.filter((tick) => {
+      const time = Date.parse(tick.eventTime);
+      return Number.isFinite(time) && time >= displayStartMs && time <= displayEndMs;
+    });
+  }
+
+  private _isAfterDisplayEnd(tick: CryptoTick): boolean {
+    const displayEndMs = this._parseTime(this._input?.window.displayEndTime);
+    const tickMs = Date.parse(tick.eventTime);
+    return Boolean(displayEndMs && Number.isFinite(tickMs) && tickMs > displayEndMs);
+  }
+
+  private _isDisplayWindowFinished(input: TradingCryptoTickStartInput): boolean {
+    const displayEndMs = this._parseTime(input.window.displayEndTime);
+    return Boolean(displayEndMs && displayEndMs <= Date.now());
   }
 
   private _cloneState(state: TradingRuntimeCryptoTickState): TradingRuntimeCryptoTickState {

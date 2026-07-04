@@ -103,6 +103,44 @@ function ensureTradingMarketDestroyedListener(
   });
 }
 
+function sendRuntimeSnapshotEvent(
+  event: Electron.IpcMainInvokeEvent,
+  subscription: TradingMarketSubscription,
+): void {
+  sendTradingMarketEvent(event, {
+    eventName: 'runtime-snapshot',
+    event: {
+      marketId: subscription.marketId,
+      snapshot: subscription.market.snapshot(),
+    },
+  });
+}
+
+function sendRuntimeSnapshotWhenCryptoReady(
+  event: Electron.IpcMainInvokeEvent,
+  subscription: TradingMarketSubscription,
+): void {
+  const current = subscription.market.snapshot().cryptoTick;
+  if (!current || current.status !== 'loading') {
+    setTimeout(() => sendRuntimeSnapshotEvent(event, subscription), 0);
+    return;
+  }
+
+  let unsubscribe: (() => void) | null = null;
+  const timer = setTimeout(() => {
+    unsubscribe?.();
+    unsubscribe = null;
+  }, 10_000);
+  unsubscribe = subscription.onEvent((payload) => {
+    if (payload.eventName !== 'crypto-tick') return;
+    if (payload.event.cryptoTick?.status === 'loading') return;
+    clearTimeout(timer);
+    unsubscribe?.();
+    unsubscribe = null;
+    sendRuntimeSnapshotEvent(event, subscription);
+  });
+}
+
 function registerTradingMarketHandlers(ipcMain: IpcMain): void {
   ipcMain.handle(
     'trading-market:subscribe',
@@ -114,15 +152,17 @@ function registerTradingMarketHandlers(ipcMain: IpcMain): void {
       try {
         const subscriptionId = senderSubscriptionId(event);
         const previous = tradingMarketSubscriptions.get(subscriptionId);
-        const result = await tradingMarketService.subscribe(input, options);
-        result.subscription.onEvent((payload) => sendTradingMarketEvent(event, payload));
+        const result = await tradingMarketService.subscribe(input, options, {
+          onEvent: (payload) => sendTradingMarketEvent(event, payload),
+        });
         tradingMarketSubscriptions.set(subscriptionId, {
           marketId: result.subscription.marketId,
           subscription: result.subscription,
         });
         previous?.subscription.unsubscribe();
         ensureTradingMarketDestroyedListener(event, subscriptionId);
-        return ok(cloneablePayload(result.snapshot));
+        sendRuntimeSnapshotWhenCryptoReady(event, result.subscription);
+        return ok(cloneablePayload(result.subscription.market.snapshot()));
       } catch (error) {
         return fail(error);
       }

@@ -10,6 +10,7 @@ const CRYPTO_TICK_SYMBOL_BY_COIN: Record<string, string> = {
   hyperliquid: 'hypeusd',
   xrp: 'xrpusd',
 };
+const DISPLAY_PADDING_MS = 30_000;
 
 interface CryptoTradingMetadata {
   source?: unknown;
@@ -23,7 +24,7 @@ interface CryptoTradingMetadata {
 function resolveCryptoTickStartInput(input: {
   marketId: string;
   metadata: TradingWindowInput['metadata'];
-  event: { start_date?: string | null; end_date?: string | null; closed?: boolean } | null;
+  event: { endDate?: string | null; end_date?: string | null; closed?: boolean } | null;
   marketDetail: MarketDetailData | null;
   nowMs?: number;
 }): TradingCryptoTickStartInput | null {
@@ -38,7 +39,12 @@ function resolveCryptoTickStartInput(input: {
   return {
     marketId: input.marketId,
     symbol,
-    window: resolveWindow(input.event, input.marketDetail, input.nowMs ?? Date.now()),
+    window: resolveWindow(
+      input.event,
+      input.marketDetail,
+      metadata.crypto.timeframe,
+      input.nowMs ?? Date.now(),
+    ),
   };
 }
 
@@ -60,31 +66,64 @@ function normalizeMetadata(metadata: unknown): {
 }
 
 function resolveWindow(
-  event: { start_date?: string | null; end_date?: string | null; closed?: boolean } | null,
+  event: { endDate?: string | null; end_date?: string | null; closed?: boolean } | null,
   marketDetail: MarketDetailData | null,
+  timeframe: string,
   nowMs: number,
 ): CryptoTickMarketWindow {
   const market = marketDetail?.market ?? null;
-  const endTime = market?.endDate ?? event?.end_date ?? null;
-  const startTime = event?.start_date ?? inferStartTime(endTime);
+  const endTime = market?.endDate ?? event?.endDate ?? event?.end_date ?? null;
+  const startTime = inferStartTime(endTime, timeframe);
+  const displayStartTime = inferDisplayStartTime(startTime);
+  const displayEndTime = inferDisplayEndTime(endTime);
   return {
     startTime,
     endTime,
+    displayStartTime,
+    displayEndTime,
     closed: Boolean(event?.closed || market?.closed || isClosedByEndTime(endTime, nowMs)),
   };
 }
 
-function inferStartTime(endTime: string | null): string | null {
+function inferStartTime(endTime: string | null, timeframe: string): string | null {
   if (!endTime) return null;
   const endMs = Date.parse(endTime);
   if (!Number.isFinite(endMs)) return null;
-  return new Date(endMs - 5 * 60_000).toISOString();
+  const durationMs = timeframeToDurationMs(timeframe);
+  if (!durationMs) return null;
+  return new Date(endMs - durationMs).toISOString();
+}
+
+function timeframeToDurationMs(timeframe: string): number | null {
+  const match = /^(\d+)([mhd])$/.exec(timeframe.trim().toLowerCase());
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const unit = match[2];
+  if (unit === 'm') return amount * 60_000;
+  if (unit === 'h') return amount * 60 * 60_000;
+  return amount * 24 * 60 * 60_000;
+}
+
+function inferDisplayStartTime(startTime: string | null): string | null {
+  const startMs = parseTime(startTime);
+  return startMs ? new Date(startMs - DISPLAY_PADDING_MS).toISOString() : null;
+}
+
+function inferDisplayEndTime(endTime: string | null): string | null {
+  const endMs = parseTime(endTime);
+  return endMs ? new Date(endMs + DISPLAY_PADDING_MS).toISOString() : null;
 }
 
 function isClosedByEndTime(endTime: string | null, nowMs: number): boolean {
-  if (!endTime) return false;
-  const endMs = Date.parse(endTime);
-  return Number.isFinite(endMs) && endMs <= nowMs;
+  const endMs = parseTime(endTime);
+  return Boolean(endMs && endMs <= nowMs);
+}
+
+function parseTime(value: string | null): number | null {
+  if (!value) return null;
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : null;
 }
 
 export { CRYPTO_TICK_SYMBOL_BY_COIN, resolveCryptoTickStartInput };

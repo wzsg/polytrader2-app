@@ -918,6 +918,10 @@ export interface TradingRuntimeCryptoTickState {
   source: 'chainlink';
   symbol: string;
   status: TradingRuntimeCryptoTickStatus;
+  referenceStartTime: string | null;
+  referenceEndTime: string | null;
+  displayStartTime: string | null;
+  displayEndTime: string | null;
   ticks: CryptoTick[];
   latestTick: CryptoTick | null;
   error: string;

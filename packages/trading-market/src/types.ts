@@ -62,10 +62,15 @@ interface TradingMarketSubscribeResult {
   snapshot: TradingMarketSnapshot;
 }
 
+interface TradingMarketSubscribeHooks {
+  onEvent?: (event: TradingMarketEvent) => void;
+}
+
 interface TradingMarketService {
   subscribe(
     input: TradingWindowInput,
     options?: TradingMarketSubscribeOptions,
+    hooks?: TradingMarketSubscribeHooks,
   ): Promise<TradingMarketSubscribeResult>;
   getMarket(marketId: string): TradingMarketRuntime | null;
   getSnapshot(marketId: string): TradingMarketSnapshot | null;
@@ -79,6 +84,7 @@ export type {
   TradingMarketRuntime,
   TradingMarketService,
   TradingMarketServiceOptions,
+  TradingMarketSubscribeHooks,
   TradingMarketSubscribeResult,
   TradingMarketSubscription,
 };
