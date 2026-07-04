@@ -4,12 +4,12 @@ import { Star } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { EventListItem } from '@polytrader/shared';
 import { formatDateTimeShort, formatNum } from '@/shared/utils/format';
-import { getStatusInfo } from '@/shared/utils/markets';
 
 const props = defineProps<{
   event: EventListItem;
   selected?: boolean;
   statusNowMs: number;
+  timeframeDurationMinutes: number;
   isInWatchlist: boolean;
 }>();
 
@@ -21,7 +21,49 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const status = computed(() => getStatusInfo(props.event, props.statusNowMs));
+function formatRemainingTime(milliseconds: number): string {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const minutes = totalMinutes % 60;
+  const hours = Math.floor(totalMinutes / 60);
+  const paddedSeconds = String(seconds).padStart(2, '0');
+  const paddedMinutes = String(minutes).padStart(2, '0');
+
+  if (hours > 0) return `${hours}:${paddedMinutes}:${paddedSeconds}`;
+  return `${paddedMinutes}:${paddedSeconds}`;
+}
+
+function getCryptoStatusInfo(): { label: string; class: string } {
+  if (props.event.closed) {
+    return { label: t('common.ended'), class: 'bg-danger/20 text-[#f08090]' };
+  }
+
+  if (!props.event.active || !props.event.end_date) {
+    return { label: '', class: '' };
+  }
+
+  const endTimeMs = Date.parse(props.event.end_date);
+  if (!Number.isFinite(endTimeMs)) return { label: '', class: '' };
+
+  const remainingMs = endTimeMs - props.statusNowMs;
+  if (remainingMs <= 0) {
+    return { label: t('common.ended'), class: 'bg-danger/20 text-[#f08090]' };
+  }
+  if (
+    props.timeframeDurationMinutes <= 0 ||
+    remainingMs > props.timeframeDurationMinutes * 60_000
+  ) {
+    return { label: t('status.notStarted'), class: 'bg-primary/20 text-[#6b8cff]' };
+  }
+
+  return {
+    label: formatRemainingTime(remainingMs),
+    class: 'bg-emerald-500/15 text-emerald-300',
+  };
+}
+
+const status = computed(() => getCryptoStatusInfo());
 
 function watchlistTitle(): string {
   return t(props.isInWatchlist ? 'market.removeFromWatchlist' : 'market.addToWatchlist');
@@ -62,6 +104,7 @@ function onContextMenu(event: MouseEvent): void {
     </td>
     <td class="border-border-light border-b px-4 py-2.5 text-sm whitespace-nowrap">
       <span
+        v-if="status.label"
         class="inline-block rounded px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase"
         :class="status.class"
       >

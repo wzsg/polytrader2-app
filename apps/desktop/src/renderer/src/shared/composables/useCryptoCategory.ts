@@ -114,6 +114,31 @@ export function resolveStartTimeMinutes(
   return Number.isInteger(minutes) ? minutes! : 0;
 }
 
+const TIMEFRAME_DURATION_MINUTES: Record<string, number> = {
+  '5m': 5,
+  '15m': 15,
+  '1h': 60,
+  '4h': 4 * 60,
+  daily: 24 * 60,
+  '1h-above': 60,
+  'daily-above': 24 * 60,
+  'daily-range': 24 * 60,
+  monthly: 30 * 24 * 60,
+};
+
+export function resolveTimeframeDurationMinutes(
+  config: CryptoCategoryConfig | null | undefined,
+  coinSlug: string,
+  modeSlug: string,
+  timeframeSlug: string,
+): number {
+  const timeframe = getAvailableTimeframes(config, coinSlug, modeSlug).find(
+    (t) => t.slug === timeframeSlug,
+  );
+  if (!timeframe) return 0;
+  return TIMEFRAME_DURATION_MINUTES[timeframe.slug] ?? 0;
+}
+
 export function useCryptoCategory() {
   const config = ref<CryptoCategoryConfig | null>(null);
   const loading = ref(false);
@@ -148,5 +173,6 @@ export function useCryptoCategory() {
     validateSelection,
     resolveTagIds,
     resolveStartTimeMinutes,
+    resolveTimeframeDurationMinutes,
   };
 }

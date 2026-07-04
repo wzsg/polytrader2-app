@@ -7,6 +7,7 @@ import {
   validateSelection,
   resolveTagIds,
   resolveStartTimeMinutes,
+  resolveTimeframeDurationMinutes,
 } from './useCryptoCategory';
 import { useWatchlist } from './useWatchlist';
 
@@ -66,6 +67,7 @@ export function useCryptoEvents() {
   const pageInfo = computed(() =>
     translateUiKey('page.indicator', { current: currentPage.value, total: totalPages.value }),
   );
+  const timeframeDurationMinutes = computed(() => getTimeframeDurationMinutes());
 
   async function loadPersistedFilters(): Promise<void> {
     const saved = await window.api.loadFilters();
@@ -102,6 +104,16 @@ export function useCryptoEvents() {
   function getTagIds(): string[] {
     if (!cryptoCategory.config.value) return [];
     return resolveTagIds(
+      cryptoCategory.config.value,
+      filters.cryptoCoin || '',
+      filters.cryptoMarketMode || '',
+      filters.cryptoTimeframe || '',
+    );
+  }
+
+  function getTimeframeDurationMinutes(): number {
+    if (!cryptoCategory.config.value) return 0;
+    return resolveTimeframeDurationMinutes(
       cryptoCategory.config.value,
       filters.cryptoCoin || '',
       filters.cryptoMarketMode || '',
@@ -245,6 +257,7 @@ export function useCryptoEvents() {
     error,
     totalPages,
     pageInfo,
+    timeframeDurationMinutes,
     init,
     loadEvents,
     defaultFilters: DEFAULT_CRYPTO_FILTERS,

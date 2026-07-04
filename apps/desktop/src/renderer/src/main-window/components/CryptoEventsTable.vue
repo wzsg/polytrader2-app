@@ -13,6 +13,7 @@ const props = defineProps<{
   >;
   selectedEventId?: string | null;
   statusNowMs: number;
+  timeframeDurationMinutes: number;
   isInWatchlist: (eventId: string) => boolean;
 }>();
 
@@ -101,6 +102,7 @@ function handleOpenDetail(event: EventListItem): void {
             :event="event"
             :selected="isSelected(event)"
             :status-now-ms="statusNowMs"
+            :timeframe-duration-minutes="timeframeDurationMinutes"
             :is-in-watchlist="isInWatchlist(event.id)"
             @toggle-watchlist="emit('toggle-watchlist', $event)"
             @open-detail="handleOpenDetail"

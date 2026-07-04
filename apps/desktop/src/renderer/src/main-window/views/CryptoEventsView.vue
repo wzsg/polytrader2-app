@@ -52,7 +52,7 @@ onMounted(() => {
   statusNowMs.value = Date.now();
   statusTimerId = window.setInterval(() => {
     statusNowMs.value = Date.now();
-  }, 3_000);
+  }, 1_000);
 });
 
 onUnmounted(() => {
@@ -144,6 +144,7 @@ defineExpose({ reload });
     :filters="crypto.filters"
     :selected-event-id="selectedEventId"
     :status-now-ms="statusNowMs"
+    :timeframe-duration-minutes="crypto.timeframeDurationMinutes.value"
     :is-in-watchlist="crypto.isInWatchlist"
     @sort="crypto.setSortField"
     @toggle-watchlist="crypto.toggleWatchlist"

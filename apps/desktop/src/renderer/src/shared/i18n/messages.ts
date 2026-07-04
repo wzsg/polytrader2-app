@@ -592,6 +592,7 @@ export const messages = {
       active: 'Active',
       closed: 'Closed',
       inactive: 'Inactive',
+      notStarted: 'Not Started',
     },
     trade: {
       buy: 'Buy',
@@ -1299,6 +1300,7 @@ export const messages = {
       active: '进行中',
       closed: '已关闭',
       inactive: '未激活',
+      notStarted: '未开始',
     },
     trade: {
       buy: '买入',

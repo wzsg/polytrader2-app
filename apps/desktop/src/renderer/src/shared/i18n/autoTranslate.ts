@@ -46,6 +46,7 @@ const exactTerms: Record<string, TranslationTerm> = {
   'status.active': { zh: '进行中', en: 'Active' },
   'status.closed': { zh: '已关闭', en: 'Closed' },
   'status.inactive': { zh: '未激活', en: 'Inactive' },
+  'status.notStarted': { zh: '未开始', en: 'Not Started' },
   'common.back': { zh: '后退', en: 'Back' },
   'common.forward': { zh: '前进', en: 'Forward' },
   'common.stop': { zh: '停止', en: 'Stop' },
