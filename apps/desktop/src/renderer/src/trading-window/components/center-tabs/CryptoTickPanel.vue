@@ -229,7 +229,6 @@ function formatAxisTime(value: number): string {
   return date.toLocaleTimeString(getCurrentIntlLocale(), {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   });
 }
 
@@ -311,7 +310,7 @@ function createChartOptions(width: number, height: number) {
     timeScale: {
       borderColor: '#2a2a3e',
       timeVisible: true,
-      secondsVisible: true,
+      secondsVisible: false,
       rightBarStaysOnScroll: true,
       shiftVisibleRangeOnNewBar: false,
       fixLeftEdge: true,
