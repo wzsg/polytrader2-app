@@ -54,6 +54,8 @@ import type {
   StrategyRunRuntimeEvent,
   StrategyUpdateInput,
   StrategyVersionSummary,
+  SetupDirectorySelectionResult,
+  SetupState,
   SportsEventScope,
   SportsEventsResult,
   SportsMetadataItem,
@@ -191,6 +193,8 @@ export type {
   StrategyRunLogEntry,
   StrategyRunOrderRecord,
   StrategyRunRuntimeEvent,
+  SetupDirectorySelectionResult,
+  SetupState,
 } from './types/index.js';
 export type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
 
@@ -234,6 +238,10 @@ export interface IpcApi {
   setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
   setOrderConfirmationThresholdUsd: (thresholdUsd: number) => Promise<AppPreferences>;
   onPreferencesChanged: (callback: (preferences: AppPreferences) => void) => () => void;
+  getSetupState: () => Promise<SetupState>;
+  chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
+  startInitialSetup: (input: { dataDirectory: string }) => Promise<ApiResult<SetupState>>;
+  onSetupSyncStatus: (callback: (status: SyncStatus) => void) => () => void;
   startSync: () => void;
   onSyncStatus: (callback: (status: SyncStatus) => void) => void;
   getSyncScheduleConfig: () => Promise<SyncScheduleConfig>;

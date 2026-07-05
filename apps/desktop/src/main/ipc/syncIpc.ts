@@ -1,10 +1,14 @@
 import type { IpcMain } from 'electron';
-import type { SyncScheduleConfig } from '@polytrader/shared';
+import type { EventSyncTrigger, SyncScheduleConfig } from '@polytrader/shared';
 import { polymarketMarketService } from '../services/polymarketMarketService.js';
 import { appPreferencesService } from '../services/appPreferencesService.js';
 
-function registerSyncHandlers(ipcMain: IpcMain): void {
-  void initializeEventSyncSchedule().catch((error) => {
+interface RegisterSyncHandlersOptions {
+  initialTrigger: EventSyncTrigger | null;
+}
+
+function registerSyncHandlers(ipcMain: IpcMain, options: RegisterSyncHandlersOptions): void {
+  void initializeEventSyncSchedule(options.initialTrigger).catch((error) => {
     console.warn('Failed to apply sync schedule config', error);
   });
   ipcMain.on('sync:start', () => {
@@ -22,10 +26,10 @@ function registerSyncHandlers(ipcMain: IpcMain): void {
   });
 }
 
-async function initializeEventSyncSchedule(): Promise<void> {
+async function initializeEventSyncSchedule(initialTrigger: EventSyncTrigger | null): Promise<void> {
   const preferences = await appPreferencesService.getAppPreferences();
   polymarketMarketService.setEventSyncLocale(preferences.locale);
-  await polymarketMarketService.applySyncScheduleConfig();
+  await polymarketMarketService.applySyncScheduleConfig(undefined, initialTrigger);
 }
 
 export { registerSyncHandlers };

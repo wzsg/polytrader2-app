@@ -202,13 +202,15 @@ class EventSyncScheduler {
 
   public async apply(
     config?: SyncScheduleConfig,
-    initialTrigger: EventSyncTrigger = 'startup',
+    initialTrigger: EventSyncTrigger | null = 'startup',
   ): Promise<void> {
     const next = config ?? (await this.readConfig());
     this.clear();
     if (!next.enabled) return;
 
-    await this.enqueue(initialTrigger);
+    if (initialTrigger) {
+      await this.enqueue(initialTrigger);
+    }
     this._timer = setInterval(() => {
       void this.enqueue('schedule').catch((error) => {
         console.warn('Failed to enqueue scheduled event sync', error);

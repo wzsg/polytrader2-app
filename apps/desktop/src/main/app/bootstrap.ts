@@ -39,6 +39,9 @@ import { registerStrategyEditorWindowHandlers } from '../windows/strategyEditorW
 import { registerTradingWindowHandlers } from '../windows/tradingWindow.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+let storageInitialized = false;
+let ipcHandlersRegistered = false;
+let electronAppPrepared = false;
 
 function resolveMigrationsFolder(): string {
   const bundled = join(__dirname, 'drizzle');
@@ -50,7 +53,8 @@ function resolveSqliteWorkerPath(): string {
   return join(__dirname, 'sqliteWorker.js');
 }
 
-function registerIpcHandlers(): void {
+function registerIpcHandlers(options: { initialEventSync: boolean }): void {
+  if (ipcHandlersRegistered) return;
   registerAuthHandlers(ipcMain);
   registerDbHandlers(ipcMain);
   registerDeveloperHandlers(ipcMain);
@@ -58,7 +62,9 @@ function registerIpcHandlers(): void {
   registerMcpHandlers(ipcMain);
   registerWindowHandlers(ipcMain);
   registerPreferenceHandlers(ipcMain);
-  registerSyncHandlers(ipcMain);
+  registerSyncHandlers(ipcMain, {
+    initialTrigger: options.initialEventSync ? 'startup' : null,
+  });
   registerAccountHandlers(ipcMain);
   registerTradingAccountHandlers(ipcMain);
   registerBotHandlers(ipcMain);
@@ -70,16 +76,23 @@ function registerIpcHandlers(): void {
   registerTradingWindowHandlers(ipcMain);
   registerBrowserWindowHandlers(ipcMain);
   registerStrategyEditorWindowHandlers(ipcMain);
+  ipcHandlersRegistered = true;
 }
 
-async function bootstrapApp(): Promise<void> {
+function prepareElectronApp(): void {
+  if (electronAppPrepared) return;
   app.setName('Polytrader2');
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.polytrader2.app');
   }
   registerAuthProtocol();
   Menu.setApplicationMenu(null);
+  electronAppPrepared = true;
+}
 
+async function initializeAppStorage(userDataPath?: string): Promise<void> {
+  if (storageInitialized) return;
+  if (userDataPath) app.setPath('userData', userDataPath);
   const userData = app.getPath('userData');
   await initDb({
     userDataPath: userData,
@@ -89,8 +102,14 @@ async function bootstrapApp(): Promise<void> {
   await kvStore.initialize(userData);
   MarketTradeRepositoryFactory.getInstance().setMarketTradeStoragePath(userData);
   MarketPriceHistoryRepositoryFactory.getInstance().setMarketPriceHistoryStoragePath(userData);
-  registerIpcHandlers();
   desktopWorkflowService.start();
+  storageInitialized = true;
+}
+
+async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promise<void> {
+  prepareElectronApp();
+  await initializeAppStorage();
+  registerIpcHandlers({ initialEventSync: options.initialEventSync !== false });
   supabaseAuthService.initialize();
   await strategyRunHistoryService.init();
   botRuntimeService.init();
@@ -137,3 +156,4 @@ function stopAppServices(): void {
 }
 
 export { bootstrapApp, stopAppServices };
+export { initializeAppStorage, prepareElectronApp };

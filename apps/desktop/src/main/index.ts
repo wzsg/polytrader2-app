@@ -1,13 +1,14 @@
-import { app } from 'electron';
-import { join } from 'path';
-import { bootstrapApp, stopAppServices } from './app/bootstrap.js';
+import { app, ipcMain } from 'electron';
+import { bootstrapApp, prepareElectronApp, stopAppServices } from './app/bootstrap.js';
 import { loadLocalEnv } from './env.js';
+import { registerSetupHandlers } from './ipc/setupIpc.js';
+import { setupService } from './services/setupService.js';
 import { supabaseAuthService } from './services/supabaseAuthService.js';
+import { closeSetupWindow, createSetupWindow } from './windows/setupWindow.js';
 import { focusMainWindow } from './windows/mainWindow.js';
 
 loadLocalEnv();
 app.setName('Polytrader2');
-app.setPath('userData', join(app.getPath('appData'), 'polytrader2'));
 
 const singleInstanceLock = app.requestSingleInstanceLock();
 
@@ -29,7 +30,7 @@ if (!singleInstanceLock) {
   supabaseAuthService.maybeHandleDeepLinkArgv(process.argv);
   app
     .whenReady()
-    .then(bootstrapApp)
+    .then(startApp)
     .catch((error) => {
       console.error('Failed to bootstrap app', error);
       app.quit();
@@ -43,3 +44,22 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   stopAppServices();
 });
+
+async function startApp(): Promise<void> {
+  prepareElectronApp();
+  registerSetupHandlers(ipcMain, {
+    onSetupCompleted: async () => {
+      await bootstrapApp({ initialEventSync: false });
+      closeSetupWindow();
+    },
+  });
+
+  const setupState = await setupService.resolveStartupState();
+  if (!setupState.setupCompleted || !setupState.dataDirectory) {
+    createSetupWindow();
+    return;
+  }
+
+  app.setPath('userData', setupState.dataDirectory);
+  await bootstrapApp();
+}

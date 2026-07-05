@@ -122,7 +122,7 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
 
   public applySyncScheduleConfig(
     config?: SyncScheduleConfig,
-    initialTrigger: EventSyncTrigger = 'startup',
+    initialTrigger: EventSyncTrigger | null = 'startup',
   ): Promise<void> {
     return this._eventSyncScheduler.apply(config, initialTrigger);
   }

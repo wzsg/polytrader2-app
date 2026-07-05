@@ -63,6 +63,19 @@ export interface SyncScheduleConfig {
   intervalMinutes: number;
 }
 
+export interface SetupDirectorySelectionResult {
+  canceled: boolean;
+  dataDirectory: string | null;
+}
+
+export interface SetupState {
+  setupCompleted: boolean;
+  dataDirectory: string | null;
+  defaultDataDirectory: string;
+  cacheStats?: CacheStats;
+  syncStatus?: SyncStatus;
+}
+
 export interface McpServerConfig {
   enabled: boolean;
   port: number;
