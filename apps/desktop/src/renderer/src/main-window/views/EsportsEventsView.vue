@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import type { EventListItem } from '@polytrader/shared';
+import EventSearchBox from '../components/EventSearchBox.vue';
 import EsportsFilterBar from '../components/EsportsFilterBar.vue';
 import StatsBar from '../components/StatsBar.vue';
 import SportsEventsTable from '../components/SportsEventsTable.vue';
@@ -52,6 +53,7 @@ defineExpose({ reload });
     :active-count="esports.activeCount.value"
   >
     <template #actions>
+      <EventSearchBox :filters="esports.filters" />
       <EventSyncStatusIndicator :sync-state="syncState" :sync-status="syncStatus" />
     </template>
   </StatsBar>

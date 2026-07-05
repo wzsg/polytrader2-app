@@ -32,9 +32,11 @@ const FILTER_KEYS = [
   'cryptoEndDateMin',
   'cryptoEndDateMax',
   'sportsSport',
+  'sportsSearch',
   'sportsSortField',
   'sportsSortOrder',
   'esportsSport',
+  'esportsSearch',
   'esportsSortField',
   'esportsSortOrder',
 ] as const;

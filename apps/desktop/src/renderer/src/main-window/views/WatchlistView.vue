@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ChevronDown, ListFilter, RotateCcw } from '@lucide/vue';
 import AppHeader from '../components/AppHeader.vue';
+import EventSearchBox from '../components/EventSearchBox.vue';
 import FilterBar from '../components/FilterBar.vue';
 import StatsBar from '../components/StatsBar.vue';
 import EventsTable from '../components/EventsTable.vue';
@@ -46,7 +47,6 @@ const list = useEventList(filters, { watchlistOnly: true });
 const filterPanelOpen = ref(false);
 
 const FILTER_STATE_KEYS = [
-  'search',
   'volume24hrMin',
   'volume24hrMax',
   'volumeMin',
@@ -80,6 +80,12 @@ onMounted(async () => {
 
 function toggleFilterPanel(): void {
   filterPanelOpen.value = !filterPanelOpen.value;
+}
+
+function resetFilterPanel(): void {
+  const search = filters.search;
+  resetFilters();
+  filters.search = search;
 }
 
 function reload() {
@@ -125,7 +131,7 @@ defineExpose({ reload });
         class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center justify-center gap-2 rounded-md border px-3 text-sm transition-colors"
         :title="t('filter.reset')"
         :aria-label="t('filter.reset')"
-        @click="resetFilters"
+        @click="resetFilterPanel"
       >
         <RotateCcw :size="14" />
         {{ t('common.reset') }}
@@ -140,6 +146,7 @@ defineExpose({ reload });
     :active-count="list.activeCount.value"
   >
     <template #actions>
+      <EventSearchBox :filters="filters" />
       <EventSyncStatusIndicator :sync-state="syncState" :sync-status="syncStatus" />
     </template>
   </StatsBar>

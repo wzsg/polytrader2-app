@@ -28,7 +28,7 @@ const { t } = useI18n();
         {{ t('stats.active') }}: <strong class="text-primary">{{ activeCount }}</strong>
       </span>
     </div>
-    <div class="flex shrink-0 items-center justify-end">
+    <div class="flex shrink-0 items-center justify-end gap-3">
       <slot name="actions" />
     </div>
   </div>

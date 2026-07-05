@@ -179,9 +179,11 @@ export interface Filters {
   cryptoEndDateMin?: string;
   cryptoEndDateMax?: string;
   sportsSport?: string;
+  sportsSearch?: string;
   sportsSortField?: string;
   sportsSortOrder?: SortOrder;
   esportsSport?: string;
+  esportsSearch?: string;
   esportsSortField?: string;
   esportsSortOrder?: SortOrder;
 }

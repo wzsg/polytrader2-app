@@ -20,16 +20,6 @@ const selectClass =
     class="border-border bg-surface flex shrink-0 flex-wrap items-center gap-4 border-b px-6 py-4"
   >
     <div class="flex shrink-0 items-center gap-1.5">
-      <label class="text-muted text-[13px] whitespace-nowrap">{{ t('common.search') }}</label>
-      <input
-        v-model="props.filters.search"
-        type="text"
-        :placeholder="t('filter.searchPlaceholder')"
-        class="border-border bg-bg text-text focus:border-primary h-8 min-w-[140px] rounded-md border px-2.5 text-sm outline-none"
-      />
-    </div>
-
-    <div class="flex shrink-0 items-center gap-1.5">
       <label class="text-muted text-[13px] whitespace-nowrap">
         {{ t('filter.volume24hGreaterThan') }}
       </label>

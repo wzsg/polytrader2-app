@@ -22,10 +22,17 @@ const ESPORTS_SORT_FIELDS = new Set([
 
 type EsportsEventsFilters = Pick<
   Filters,
-  'sortField' | 'sortOrder' | 'cryptoCoin' | 'cryptoMarketMode' | 'cryptoTimeframe' | 'esportsSport'
+  | 'search'
+  | 'sortField'
+  | 'sortOrder'
+  | 'cryptoCoin'
+  | 'cryptoMarketMode'
+  | 'cryptoTimeframe'
+  | 'esportsSport'
 >;
 
 const DEFAULT_ESPORTS_FILTERS: EsportsEventsFilters = {
+  search: '',
   sortField: 'end_date',
   sortOrder: 'asc',
   cryptoCoin: '',
@@ -74,6 +81,7 @@ function useEsportsEvents() {
       ? sortField
       : DEFAULT_ESPORTS_FILTERS.sortField;
     filters.sortOrder = (sortOrder === 'desc' ? 'desc' : 'asc') as SortOrder;
+    filters.search = saved.esportsSearch ?? '';
     filters.esportsSport = saved.esportsSport ?? '';
   }
 
@@ -103,6 +111,7 @@ function useEsportsEvents() {
       const params = {
         tagIds: resolveQueryTagIds(),
         excludeTagIds: resolveQueryExcludeTagIds(),
+        search: filters.search,
         status: 'active' as const,
         sortField: filters.sortField,
         sortOrder: filters.sortOrder,
@@ -179,11 +188,20 @@ function useEsportsEvents() {
   );
 
   watch(
+    () => filters.search,
+    () => {
+      if (!ready) return;
+      onFiltersChanged();
+    },
+  );
+
+  watch(
     filters,
     () => {
       if (!ready) return;
       window.api.saveFilters({
         esportsSport: filters.esportsSport,
+        esportsSearch: filters.search,
         esportsSortField: filters.sortField,
         esportsSortOrder: filters.sortOrder,
       });
