@@ -1131,7 +1131,7 @@ watch(detailPanelCollapsed, (next) => writeDetailPanelCollapsed(next));
           </tbody>
         </table>
         <div v-else class="text-muted flex h-full items-center justify-center p-8 text-sm">
-          {{ t('account.noAccounts') }}
+          {{ t('account.noWallets') }}
         </div>
       </section>
 
