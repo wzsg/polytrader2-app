@@ -20,7 +20,7 @@ import { useFilters } from '../shared/composables/useFilters';
 import { preloadSportsMetadata } from '../shared/composables/sportsMetadata';
 import { useSync } from '../shared/composables/useSync';
 import { translateUiKey } from '../shared/i18n';
-import { getSingleOpenMarket } from '../shared/utils/markets';
+import { displayMarkets, getSingleOpenMarket } from '../shared/utils/markets';
 import { getMarketOutcomes } from '../shared/utils/apiEvent';
 
 interface ReloadableListView {
@@ -155,6 +155,34 @@ async function openEventDetail(event: EventListItem, metadata?: unknown): Promis
   selectedEventMetadata.value = metadata;
 }
 
+function getDefaultOpenMarket(
+  markets: Array<DbMarket | Market> | undefined,
+): DbMarket | Market | null {
+  return displayMarkets(markets).find((market) => !market.closed) ?? null;
+}
+
+async function openEventTrading(event: EventListItem, metadata?: unknown): Promise<void> {
+  const market = getDefaultOpenMarket(event.markets as Array<DbMarket | Market>);
+  if (market) {
+    openTradingWindowForMarket(market, event.id, null, null, metadata);
+    return;
+  }
+
+  try {
+    const childEvents = await window.api.listChildEvents(event.id);
+    for (const childEvent of childEvents) {
+      const childMarket = getDefaultOpenMarket(childEvent.markets as DbMarket[]);
+      if (!childMarket) continue;
+      openTradingWindowForMarket(childMarket, childEvent.id, null, null, metadata);
+      return;
+    }
+  } catch {
+    // Fall back to the event market panel below.
+  }
+
+  await openEventDetail(event, metadata);
+}
+
 function closeEventDetail(): void {
   selectedEvent.value = null;
   selectedEventMetadata.value = undefined;
@@ -239,6 +267,7 @@ onUnmounted(() => {
             :sync-state="syncState"
             :sync-status="syncStatus"
             @open-detail="openEventDetail"
+            @open-trading="openEventTrading"
           />
           <WatchlistView
             v-else-if="activeNav === 'watchlist'"
@@ -247,6 +276,7 @@ onUnmounted(() => {
             :sync-state="syncState"
             :sync-status="syncStatus"
             @open-detail="openEventDetail"
+            @open-trading="openEventTrading"
           />
           <CryptoEventsView
             v-else-if="activeNav === 'crypto'"
@@ -255,6 +285,7 @@ onUnmounted(() => {
             :sync-state="syncState"
             :sync-status="syncStatus"
             @open-detail="openEventDetail"
+            @open-trading="openEventTrading"
           />
           <SportsEventsView
             v-else-if="activeNav === 'sports'"
@@ -263,6 +294,7 @@ onUnmounted(() => {
             :sync-state="syncState"
             :sync-status="syncStatus"
             @open-detail="openEventDetail"
+            @open-trading="openEventTrading"
           />
           <EsportsEventsView
             v-else-if="activeNav === 'esports'"
@@ -271,6 +303,7 @@ onUnmounted(() => {
             :sync-state="syncState"
             :sync-status="syncStatus"
             @open-detail="openEventDetail"
+            @open-trading="openEventTrading"
           />
         </div>
 

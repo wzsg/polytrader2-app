@@ -12,6 +12,7 @@ import type { EventListItem } from '@polytrader/shared';
 
 const emit = defineEmits<{
   'open-detail': [event: EventListItem, metadata?: unknown];
+  'open-trading': [event: EventListItem, metadata?: unknown];
 }>();
 
 defineProps<{
@@ -84,6 +85,10 @@ function openDetail(event: EventListItem): void {
   emit('open-detail', event, createTradingMetadata());
 }
 
+function openTrading(event: EventListItem): void {
+  emit('open-trading', event, createTradingMetadata());
+}
+
 defineExpose({ reload });
 </script>
 
@@ -149,6 +154,7 @@ defineExpose({ reload });
     @sort="crypto.setSortField"
     @toggle-watchlist="crypto.toggleWatchlist"
     @open-detail="openDetail"
+    @open-trading="openTrading"
   />
 
   <Pagination

@@ -36,6 +36,7 @@ const itemRefs = ref(new Map<string, HTMLElement>());
 const rulesDialogOpen = ref(false);
 
 const markets = computed(() => (props.event ? displayMarkets(props.event.markets) : []));
+const openMarketCount = computed(() => markets.value.filter((market) => !market.closed).length);
 const status = computed(() => (props.event ? getStatusInfo(props.event) : null));
 const childEventShortTitle = computed(() =>
   props.event ? deriveChildEventShortTitle(props.event) : '',
@@ -218,9 +219,11 @@ function selectMarketOutcome(
               {{ getMarketTitle(market) }}
             </div>
             <div class="text-muted mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
-              <span>{{ t('market.volumeValue', { value: formatNum(market.volume) }) }}</span>
-              <span>24h {{ formatNum(market.volume24hr) }}</span>
-              <span>{{ t('market.liquidityValue', { value: formatNum(market.liquidity) }) }}</span>
+              <span>{{ t('market.volumeShortValue', { value: formatNum(market.volume) }) }}</span>
+              <span>{{ t('common.volume24hShort') }} {{ formatNum(market.volume24hr) }}</span>
+              <span>{{
+                t('market.liquidityShortValue', { value: formatNum(market.liquidity) })
+              }}</span>
             </div>
           </div>
         </button>
@@ -248,7 +251,6 @@ function selectMarketOutcome(
       v-if="markets.length"
       class="border-border text-muted flex shrink-0 items-center justify-between border-t px-4 py-2 text-[11px]"
     >
-      <span>{{ t('market.countMarkets', { count: markets.length }) }}</span>
       <button
         type="button"
         class="text-muted-light hover:bg-btn-secondary hover:text-text inline-flex h-7 items-center gap-1.5 rounded-md px-2 transition-colors"
@@ -259,6 +261,9 @@ function selectMarketOutcome(
         <ScrollText :size="13" />
         {{ t('market.rules') }}
       </button>
+      <span>{{
+        t('market.openMarketCount', { open: openMarketCount, count: markets.length })
+      }}</span>
     </div>
 
     <EventRulesDialog v-model:open="rulesDialogOpen" :event-id="event?.id" />

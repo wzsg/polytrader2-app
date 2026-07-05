@@ -79,6 +79,12 @@ const totalMarketCount = computed(() =>
     rootMarkets.value.length,
   ),
 );
+const totalOpenMarketCount = computed(() =>
+  childEventGroups.value.reduce(
+    (total, group) => total + group.markets.filter((market) => !market.closed).length,
+    rootMarkets.value.filter((market) => !market.closed).length,
+  ),
+);
 
 watch(
   () => props.event?.id,
@@ -328,9 +334,11 @@ function marketIcon(
               {{ getMarketTitle(market) }}
             </div>
             <div class="text-muted mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] tabular-nums">
-              <span>{{ t('market.volumeValue', { value: formatNum(market.volume) }) }}</span>
-              <span>{{ t('common.volume24h') }} {{ formatNum(market.volume24hr) }}</span>
-              <span>{{ t('market.liquidityValue', { value: formatNum(market.liquidity) }) }}</span>
+              <span>{{ t('market.volumeShortValue', { value: formatNum(market.volume) }) }}</span>
+              <span>{{ t('common.volume24hShort') }} {{ formatNum(market.volume24hr) }}</span>
+              <span>{{
+                t('market.liquidityShortValue', { value: formatNum(market.liquidity) })
+              }}</span>
             </div>
           </div>
         </button>
@@ -416,10 +424,12 @@ function marketIcon(
                 <div
                   class="text-muted mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] tabular-nums"
                 >
-                  <span>{{ t('market.volumeValue', { value: formatNum(market.volume) }) }}</span>
-                  <span>{{ t('common.volume24h') }} {{ formatNum(market.volume24hr) }}</span>
                   <span>{{
-                    t('market.liquidityValue', { value: formatNum(market.liquidity) })
+                    t('market.volumeShortValue', { value: formatNum(market.volume) })
+                  }}</span>
+                  <span>{{ t('common.volume24hShort') }} {{ formatNum(market.volume24hr) }}</span>
+                  <span>{{
+                    t('market.liquidityShortValue', { value: formatNum(market.liquidity) })
                   }}</span>
                 </div>
               </div>
@@ -450,7 +460,6 @@ function marketIcon(
       v-if="totalMarketCount"
       class="border-border text-muted flex shrink-0 items-center justify-between border-t px-4 py-2 text-xs"
     >
-      <span>{{ t('market.countMarkets', { count: totalMarketCount }) }}</span>
       <button
         type="button"
         class="text-muted-light hover:bg-btn-secondary hover:text-text inline-flex h-7 items-center gap-1.5 rounded-md px-2 transition-colors"
@@ -461,6 +470,9 @@ function marketIcon(
         <ScrollText :size="13" />
         {{ t('market.rules') }}
       </button>
+      <span>{{
+        t('market.openMarketCount', { open: totalOpenMarketCount, count: totalMarketCount })
+      }}</span>
     </div>
 
     <EventRulesDialog v-model:open="rulesDialogOpen" :event-id="displayEvent?.id" />

@@ -17,6 +17,7 @@ defineProps<{
 
 const emit = defineEmits<{
   'open-detail': [event: EventListItem];
+  'open-trading': [event: EventListItem];
 }>();
 
 const sports = useSportsEvents();
@@ -70,6 +71,7 @@ defineExpose({ reload });
     @sort="sports.setSortField"
     @toggle-watchlist="sports.toggleWatchlist"
     @open-detail="emit('open-detail', $event)"
+    @open-trading="emit('open-trading', $event)"
   />
 
   <Pagination

@@ -21,6 +21,7 @@ const emit = defineEmits<{
   sort: [field: string];
   'toggle-watchlist': [id: string];
   'open-detail': [event: EventListItem];
+  'open-trading': [event: EventListItem];
 }>();
 
 const { t } = useI18n();
@@ -74,6 +75,11 @@ function handleOpenDetail(event: EventListItem): void {
   contextSelectedEventId.value = '';
   emit('open-detail', event);
 }
+
+function handleOpenTrading(event: EventListItem): void {
+  contextSelectedEventId.value = '';
+  emit('open-trading', event);
+}
 </script>
 
 <template>
@@ -118,7 +124,7 @@ function handleOpenDetail(event: EventListItem): void {
       :y="contextMenuY"
       :event="contextEvent"
       :is-in-watchlist="isInWatchlist"
-      @open-detail="handleOpenDetail"
+      @open-trading="handleOpenTrading"
       @toggle-watchlist="emit('toggle-watchlist', $event)"
       @close="closeContextMenu"
     />

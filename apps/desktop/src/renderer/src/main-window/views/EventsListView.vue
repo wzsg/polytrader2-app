@@ -17,6 +17,7 @@ import type { EventListItem } from '@polytrader/shared';
 
 const emit = defineEmits<{
   'open-detail': [event: EventListItem];
+  'open-trading': [event: EventListItem];
 }>();
 
 defineProps<{
@@ -192,6 +193,7 @@ defineExpose({ reload });
     @sort="setSortField"
     @toggle-watchlist="list.handleToggleWatchlist"
     @open-detail="emit('open-detail', $event)"
+    @open-trading="emit('open-trading', $event)"
   />
 
   <Pagination

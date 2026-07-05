@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Copy, ExternalLink, ScrollText, Star } from '@lucide/vue';
-import type { EventListItem } from '@polytrader/shared';
+import { Copy, ExternalLink, Globe, ScrollText, Star } from '@lucide/vue';
+import { POLYMARKET_WEB_URL, type EventListItem } from '@polytrader/shared';
 import ContextMenu, { type ContextMenuItem } from '@/shared/components/ContextMenu.vue';
 import { writeClipboardText } from '@/shared/utils/clipboard';
 import EventRulesDialog from './EventRulesDialog.vue';
@@ -18,7 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:open': [value: boolean];
   close: [];
-  'open-detail': [event: EventListItem];
+  'open-trading': [event: EventListItem];
   'toggle-watchlist': [id: string];
 }>();
 
@@ -31,17 +31,21 @@ const menuItems = computed<ContextMenuItem[]>(() => {
   if (!event) return [];
 
   const listed = props.isInWatchlist(event.id);
+  const polymarketUrl = getPolymarketEventUrl(event);
   return [
     {
-      label: t('market.openDetail'),
+      label: t('market.startTrading'),
       icon: ExternalLink,
-      onSelect: () => emit('open-detail', event),
+      onSelect: () => emit('open-trading', event),
     },
     {
-      label: t('market.viewRules'),
-      icon: ScrollText,
-      onSelect: () => openEventRules(event),
+      label: t('market.openOnPolymarket'),
+      icon: Globe,
+      title: polymarketUrl,
+      disabled: !polymarketUrl,
+      onSelect: () => openOnPolymarket(event),
     },
+    { separator: true },
     {
       label: t(listed ? 'market.removeFromWatchlist' : 'market.addToWatchlist'),
       icon: Star,
@@ -49,6 +53,7 @@ const menuItems = computed<ContextMenuItem[]>(() => {
       danger: listed,
       onSelect: () => emit('toggle-watchlist', event.id),
     },
+    { separator: true },
     {
       label: t('common.copy'),
       icon: Copy,
@@ -76,6 +81,12 @@ const menuItems = computed<ContextMenuItem[]>(() => {
         },
       ],
     },
+    { separator: true },
+    {
+      label: t('market.showRules'),
+      icon: ScrollText,
+      onSelect: () => openEventRules(event),
+    },
   ];
 });
 
@@ -83,6 +94,18 @@ async function copyText(value: string): Promise<void> {
   const text = value.trim();
   if (!text) return;
   await writeClipboardText(text);
+}
+
+function getPolymarketEventUrl(event: EventListItem): string {
+  const slug = event.slug?.trim();
+  if (!slug) return '';
+  return `${POLYMARKET_WEB_URL}/event/${encodeURIComponent(slug)}`;
+}
+
+async function openOnPolymarket(event: EventListItem): Promise<void> {
+  const url = getPolymarketEventUrl(event);
+  if (!url) return;
+  await window.api.browserNavigate(url);
 }
 
 function openEventRules(event: EventListItem): void {
