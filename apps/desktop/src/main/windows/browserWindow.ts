@@ -1,4 +1,5 @@
 import {
+  app,
   BrowserWindow,
   clipboard,
   Menu,
@@ -37,6 +38,7 @@ import { getWindowIcon } from './icon.js';
 
 const DEFAULT_BROWSER_URL = POLYMARKET_WEB_URL;
 const BROWSER_SESSION_PARTITION = 'persist:polytrader2-browser';
+const BROWSER_USER_AGENT_PRODUCT = `Polytrader2/${app.getVersion()}`;
 
 let browserWindow: BrowserWindow | null = null;
 let browserView: WebContentsView | null = null;
@@ -189,6 +191,12 @@ function ensureBrowserSession(): Session {
   return browserSession;
 }
 
+function appendBrowserUserAgentProduct(contents: WebContents): void {
+  const defaultUserAgent = contents.getUserAgent();
+  if (defaultUserAgent.includes(BROWSER_USER_AGENT_PRODUCT)) return;
+  contents.setUserAgent(`${defaultUserAgent} ${BROWSER_USER_AGENT_PRODUCT}`);
+}
+
 function appendSeparator(template: MenuItemConstructorOptions[]): void {
   const lastItem = template.at(-1);
   if (lastItem && lastItem.type !== 'separator') {
@@ -295,6 +303,8 @@ function createBrowserView(): WebContentsView {
       safeDialogs: true,
     },
   });
+
+  appendBrowserUserAgentProduct(view.webContents);
 
   view.webContents.setWindowOpenHandler(({ url }) => {
     void navigateBrowser(url);
