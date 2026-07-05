@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Minus, Pin, Square, X } from '@lucide/vue';
 import { translateUiKey } from '../i18n';
 import brandIconUrl from '../../assets/project-brand.svg';
@@ -13,6 +13,7 @@ const props = withDefaults(
     showBrandIcon?: boolean;
     iconUrl?: string;
     customClose?: boolean;
+    windowControls?: 'full' | 'close-only' | 'none';
   }>(),
   {
     title: 'Polytrader2',
@@ -22,6 +23,7 @@ const props = withDefaults(
     showBrandIcon: false,
     iconUrl: '',
     customClose: false,
+    windowControls: 'full',
   },
 );
 
@@ -31,10 +33,13 @@ const emit = defineEmits<{
 
 const isMaximized = ref(false);
 const isPinned = ref(false);
+const fullWindowControls = computed(() => props.windowControls === 'full');
+const showCloseControl = computed(() => props.windowControls !== 'none');
 
 let unsubscribe: (() => void) | null = null;
 
 async function refreshMaximized() {
+  if (!fullWindowControls.value) return;
   isMaximized.value = await window.api.windowIsMaximized();
 }
 
@@ -44,10 +49,12 @@ async function refreshPinned() {
 }
 
 function minimize() {
+  if (!fullWindowControls.value) return;
   window.api.windowMinimize();
 }
 
 async function toggleMaximize() {
+  if (!fullWindowControls.value) return;
   await window.api.windowMaximize();
   await refreshMaximized();
 }
@@ -65,6 +72,7 @@ function close() {
 }
 
 onMounted(async () => {
+  if (!fullWindowControls.value) return;
   await refreshMaximized();
   await refreshPinned();
   unsubscribe = window.api.onWindowMaximizedChanged((maximized) => {
@@ -114,7 +122,7 @@ onUnmounted(() => {
 
     <div class="app-no-drag flex shrink-0 items-stretch">
       <button
-        v-if="pinnable"
+        v-if="fullWindowControls && pinnable"
         type="button"
         class="inline-flex w-11 items-center justify-center transition-colors hover:bg-[#1e1e35]"
         :class="isPinned ? 'text-primary-light' : 'text-muted-light hover:text-text'"
@@ -125,6 +133,7 @@ onUnmounted(() => {
       </button>
 
       <button
+        v-if="fullWindowControls"
         type="button"
         class="text-muted-light hover:text-text inline-flex w-11 items-center justify-center transition-colors hover:bg-[#1e1e35]"
         :title="translateUiKey('window.minimize')"
@@ -134,6 +143,7 @@ onUnmounted(() => {
       </button>
 
       <button
+        v-if="fullWindowControls"
         type="button"
         class="text-muted-light hover:text-text inline-flex w-11 items-center justify-center transition-colors hover:bg-[#1e1e35]"
         :title="isMaximized ? translateUiKey('window.restore') : translateUiKey('window.maximize')"
@@ -153,6 +163,7 @@ onUnmounted(() => {
       </button>
 
       <button
+        v-if="showCloseControl"
         type="button"
         class="text-muted-light hover:bg-danger inline-flex w-11 items-center justify-center transition-colors hover:text-white"
         :title="translateUiKey('common.close')"

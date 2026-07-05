@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, type IpcMain, type OpenDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, type IpcMain, type OpenDialogOptions } from 'electron';
 import type { SetupDirectorySelectionResult } from '@polytrader/shared';
 import { setupService } from '../services/setupService.js';
 import { applicationEventBus } from '../services/applicationEventBus.js';
@@ -32,12 +32,18 @@ function registerSetupHandlers(ipcMain: IpcMain, options: RegisterSetupHandlersO
       return { canceled: false, dataDirectory: result.filePaths[0] };
     },
   );
-  ipcMain.handle('setup:startInitialSetup', async (_event, input: { dataDirectory: string }) => {
-    const result = await setupService.startInitialSetup(input);
-    if (result.ok && result.data.dataDirectory) {
-      await options.onSetupCompleted(result.data.dataDirectory);
+  ipcMain.handle('setup:startInitialSetup', (_event, input: { dataDirectory: string }) =>
+    setupService.startInitialSetup(input),
+  );
+  ipcMain.handle('setup:completeInitialSetup', async () => {
+    const state = await setupService.resolveStartupState();
+    if (!state.setupCompleted || !state.dataDirectory) {
+      throw new Error('Initial setup is not complete');
     }
-    return result;
+    await options.onSetupCompleted(state.dataDirectory);
+  });
+  ipcMain.handle('setup:cancelInitialSetup', () => {
+    app.quit();
   });
 
   if (!setupStatusSubscriptionRegistered) {

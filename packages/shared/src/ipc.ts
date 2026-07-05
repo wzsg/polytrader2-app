@@ -241,6 +241,8 @@ export interface IpcApi {
   getSetupState: () => Promise<SetupState>;
   chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
   startInitialSetup: (input: { dataDirectory: string }) => Promise<ApiResult<SetupState>>;
+  completeInitialSetup: () => Promise<void>;
+  cancelInitialSetup: () => Promise<void>;
   onSetupSyncStatus: (callback: (status: SyncStatus) => void) => () => void;
   startSync: () => void;
   onSyncStatus: (callback: (status: SyncStatus) => void) => void;

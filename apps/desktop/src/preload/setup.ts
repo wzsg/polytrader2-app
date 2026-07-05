@@ -7,6 +7,8 @@ const setupApi = {
   chooseSetupDataDirectory: (defaultPath) =>
     ipcRenderer.invoke('setup:chooseDataDirectory', defaultPath),
   startInitialSetup: (input) => ipcRenderer.invoke('setup:startInitialSetup', input),
+  completeInitialSetup: () => ipcRenderer.invoke('setup:completeInitialSetup'),
+  cancelInitialSetup: () => ipcRenderer.invoke('setup:cancelInitialSetup'),
   onSetupSyncStatus: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
       callback(input as SyncStatus);
