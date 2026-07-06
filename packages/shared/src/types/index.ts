@@ -1059,7 +1059,7 @@ export interface BrowserViewBounds {
   height: number;
 }
 
-export type BrowserProviderRequestKind = 'connect' | 'sign';
+export type BrowserProviderRequestKind = 'connect' | 'sign' | 'transaction';
 
 export interface BrowserProviderAccount {
   id: string;
@@ -1085,7 +1085,25 @@ export interface BrowserProviderRequest {
   walletName?: string;
   accountAddress?: string;
   message?: string;
+  transactionPreview?: BrowserProviderTransactionPreview;
   rawParams?: unknown;
+}
+
+export interface BrowserProviderTransactionPreview {
+  kind: 'erc20-transfer' | 'erc20-approve' | 'contract-call' | 'native-transfer';
+  tokenAddress?: string;
+  tokenName?: string;
+  tokenSymbol?: string;
+  tokenDecimals?: number;
+  actionLabel: string;
+  amountRaw?: string;
+  amountFormatted?: string;
+  from?: string;
+  to?: string;
+  spender?: string;
+  contractAddress?: string;
+  nativeValueFormatted?: string;
+  method?: string;
 }
 
 export interface BrowserProviderResponseInput {

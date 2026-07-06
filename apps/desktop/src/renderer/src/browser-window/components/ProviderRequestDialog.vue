@@ -21,13 +21,20 @@ const activeRequestAccount = computed(() => {
 });
 
 const decodedMessage = computed(() => decodeHexUtf8Message(props.request.message));
+const transactionPreview = computed(() => props.request.transactionPreview ?? null);
 
 const shouldShowRawMessage = computed(() => {
-  return Boolean(props.request.message && !decodedMessage.value);
+  return Boolean(props.request.message && !decodedMessage.value && !transactionPreview.value);
+});
+
+const shouldShowTransactionRawDetails = computed(() => {
+  return Boolean(props.request.message && transactionPreview.value);
 });
 
 const requestTitle = computed(() => {
-  return props.request.kind === 'connect' ? t('browser.connectWallet') : t('browser.signRequest');
+  if (props.request.kind === 'connect') return t('browser.connectWallet');
+  if (props.request.kind === 'transaction') return t('browser.transactionRequest');
+  return t('browser.signRequest');
 });
 
 const approveDisabled = computed(() => {
@@ -38,8 +45,31 @@ function compactAddress(address: string): string {
   return address.length > 14 ? `${address.slice(0, 8)}...${address.slice(-6)}` : address;
 }
 
+function transactionKindLabel(kind: string): string {
+  if (kind === 'erc20-transfer') return t('browser.erc20Transfer');
+  if (kind === 'erc20-approve') return t('browser.erc20Approval');
+  if (kind === 'native-transfer') return t('browser.nativeTransfer');
+  return t('browser.contractCall');
+}
+
+function tokenLabel(): string {
+  const preview = transactionPreview.value;
+  if (!preview) return '';
+  return preview.tokenSymbol || preview.tokenName || compactAddress(preview.tokenAddress || '');
+}
+
+function amountLabel(): string {
+  const preview = transactionPreview.value;
+  if (!preview) return '';
+  if (preview.amountFormatted) return preview.amountFormatted;
+  if (preview.nativeValueFormatted) return `${preview.nativeValueFormatted} POL`;
+  return '';
+}
+
 function formatMethod(method: string): string {
   if (method === 'eth_requestAccounts') return 'eth_requestAccounts';
+  if (method === 'eth_sendTransaction') return 'eth_sendTransaction';
+  if (method === 'wallet_sendCalls') return 'wallet_sendCalls';
   if (method === 'personal_sign') return 'personal_sign';
   if (method === 'eth_signTypedData') return 'eth_signTypedData';
   if (method === 'eth_signTypedData_v3') return 'eth_signTypedData_v3';
@@ -154,6 +184,63 @@ watch(
             </p>
           </div>
 
+          <div
+            v-if="transactionPreview"
+            class="border-border bg-bg/60 grid gap-3 rounded-md border p-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-muted text-xs">{{ t('browser.transactionType') }}</p>
+                <p class="text-text mt-1 text-sm font-semibold">
+                  {{ transactionKindLabel(transactionPreview.kind) }}
+                </p>
+              </div>
+              <div
+                v-if="tokenLabel()"
+                class="border-border bg-surface max-w-[42%] shrink-0 truncate rounded-md border px-2 py-1 text-right text-xs font-medium text-white"
+                :title="transactionPreview.tokenName || tokenLabel()"
+              >
+                {{ tokenLabel() }}
+              </div>
+            </div>
+
+            <div v-if="amountLabel()">
+              <p class="text-muted text-xs">{{ t('browser.amount') }}</p>
+              <p
+                class="selectable-text text-text mt-1 font-mono text-[15px] font-semibold break-all"
+              >
+                {{ amountLabel() }}
+                <span
+                  v-if="transactionPreview.amountFormatted && tokenLabel()"
+                  class="text-muted-light ml-1 font-sans text-xs"
+                >
+                  {{ tokenLabel() }}
+                </span>
+              </p>
+            </div>
+
+            <div v-if="transactionPreview.to">
+              <p class="text-muted text-xs">{{ t('browser.recipient') }}</p>
+              <p class="selectable-text text-text mt-1 font-mono text-xs break-all">
+                {{ transactionPreview.to }}
+              </p>
+            </div>
+
+            <div v-if="transactionPreview.spender">
+              <p class="text-muted text-xs">{{ t('browser.spender') }}</p>
+              <p class="selectable-text text-text mt-1 font-mono text-xs break-all">
+                {{ transactionPreview.spender }}
+              </p>
+            </div>
+
+            <div v-if="transactionPreview.contractAddress || transactionPreview.tokenAddress">
+              <p class="text-muted text-xs">{{ t('browser.contract') }}</p>
+              <p class="selectable-text text-text mt-1 font-mono text-xs break-all">
+                {{ transactionPreview.contractAddress || transactionPreview.tokenAddress }}
+              </p>
+            </div>
+          </div>
+
           <div v-if="decodedMessage">
             <p class="text-muted text-xs">{{ t('browser.content') }}</p>
             <textarea
@@ -164,6 +251,19 @@ watch(
               :value="decodedMessage"
             />
           </div>
+
+          <details v-if="shouldShowTransactionRawDetails" class="group">
+            <summary class="text-muted hover:text-text cursor-pointer text-xs">
+              {{ t('browser.rawContent') }}
+            </summary>
+            <textarea
+              class="border-border bg-bg text-muted-light mt-2 h-20 max-h-[140px] min-h-16 w-full resize-y overflow-x-hidden overflow-y-auto rounded-md border p-3 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap outline-none"
+              readonly
+              :aria-label="t('browser.rawTransactionContent')"
+              :title="t('browser.rawTransactionContentTitle')"
+              :value="request.message"
+            />
+          </details>
 
           <div v-if="shouldShowRawMessage">
             <p class="text-muted text-xs">{{ t('browser.rawContent') }}</p>
