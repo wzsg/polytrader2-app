@@ -17,8 +17,6 @@ const emit = defineEmits<{
 
 defineProps<{
   selectedEventId?: string | null;
-  syncState?: string;
-  syncStatus?: string;
 }>();
 
 const crypto = useCryptoEvents();

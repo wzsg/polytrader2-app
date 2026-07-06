@@ -7,7 +7,6 @@ import EventSearchBox from '../components/EventSearchBox.vue';
 import FilterBar from '../components/FilterBar.vue';
 import StatsBar from '../components/StatsBar.vue';
 import EventsTable from '../components/EventsTable.vue';
-import EventSyncStatusIndicator from '../components/EventSyncStatusIndicator.vue';
 import Pagination from '../../shared/components/Pagination.vue';
 import { WATCHLIST_DEFAULT_FILTERS, useFilters } from '../../shared/composables/useFilters';
 import { useEventList } from '../../shared/composables/useEventList';
@@ -21,8 +20,6 @@ const emit = defineEmits<{
 
 defineProps<{
   selectedEventId?: string | null;
-  syncState?: string;
-  syncStatus?: string;
 }>();
 
 const { t } = useI18n();
@@ -147,7 +144,6 @@ defineExpose({ reload });
   >
     <template #actions>
       <EventSearchBox :filters="filters" />
-      <EventSyncStatusIndicator :sync-state="syncState" :sync-status="syncStatus" />
     </template>
   </StatsBar>
 

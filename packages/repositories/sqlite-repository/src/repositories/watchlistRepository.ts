@@ -34,6 +34,17 @@ class SqliteWatchlistRepository {
     const row = db.select({ cnt: count() }).from(watchlist).get();
     return row?.cnt ?? 0;
   }
+
+  public countOpenWatchlistEvents(): number {
+    const db = getDb();
+    const row = db
+      .select({ cnt: count() })
+      .from(watchlist)
+      .innerJoin(events, eq(watchlist.eventId, events.id))
+      .where(eq(events.closed, false))
+      .get();
+    return row?.cnt ?? 0;
+  }
 }
 
 export { SqliteWatchlistRepository };

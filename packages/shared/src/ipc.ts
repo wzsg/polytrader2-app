@@ -269,6 +269,7 @@ export interface IpcApi {
   addToWatchlist: (eventId: string) => Promise<boolean>;
   removeFromWatchlist: (eventId: string) => Promise<void>;
   countWatchlist: () => Promise<number>;
+  countOpenWatchlistEvents: () => Promise<number>;
   loadFilters: () => Promise<Partial<Filters> | null>;
   saveFilters: (data: Partial<Filters>) => Promise<void>;
   fetchEvent: (eventId: string) => Promise<GammaEventRaw>;

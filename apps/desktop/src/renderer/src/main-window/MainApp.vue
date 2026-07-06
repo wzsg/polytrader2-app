@@ -19,6 +19,7 @@ import TitleBar from '../shared/components/TitleBar.vue';
 import { useFilters } from '../shared/composables/useFilters';
 import { preloadSportsMetadata } from '../shared/composables/sportsMetadata';
 import { useSync } from '../shared/composables/useSync';
+import { useWatchlist } from '../shared/composables/useWatchlist';
 import { translateUiKey } from '../shared/i18n';
 import { displayMarkets, getSingleOpenMarket } from '../shared/utils/markets';
 import { getMarketOutcomes } from '../shared/utils/apiEvent';
@@ -55,6 +56,7 @@ let unsubscribeAuth: (() => void) | null = null;
 
 const { loadPersistedFilters } = useFilters();
 const selectedEventId = computed(() => selectedEvent.value?.id ?? null);
+const { openWatchlistEventCount, refreshOpenWatchlistEventCount } = useWatchlist();
 const eventPanelVisible = computed(
   () =>
     !!selectedEvent.value &&
@@ -77,6 +79,7 @@ const { syncState, syncStatus, setupSync, toggleSync } = useSync(async () => {
   } else if (activeNav.value === 'esports') {
     await esportsEventsRef.value?.reload();
   }
+  await refreshOpenWatchlistEventCount();
 });
 
 const authStatusText = computed(() => {
@@ -223,6 +226,7 @@ onMounted(async () => {
   setupSync();
   preloadSportsMetadata();
   await loadPersistedFilters();
+  await refreshOpenWatchlistEventCount();
 });
 
 onUnmounted(() => {
@@ -241,6 +245,9 @@ onUnmounted(() => {
         :active-nav="activeNav"
         :developer-mode-enabled="developerModeEnabled"
         :auth-state="authState"
+        :open-watchlist-event-count="openWatchlistEventCount"
+        :sync-state="syncState"
+        :sync-status="syncStatus"
         @change-nav="handleNavChange"
         @open-auth="authPanelOpen = true"
       />
@@ -264,8 +271,6 @@ onUnmounted(() => {
             v-else-if="activeNav === 'events'"
             ref="eventsListRef"
             :selected-event-id="selectedEventId"
-            :sync-state="syncState"
-            :sync-status="syncStatus"
             @open-detail="openEventDetail"
             @open-trading="openEventTrading"
           />
@@ -273,8 +278,6 @@ onUnmounted(() => {
             v-else-if="activeNav === 'watchlist'"
             ref="watchlistRef"
             :selected-event-id="selectedEventId"
-            :sync-state="syncState"
-            :sync-status="syncStatus"
             @open-detail="openEventDetail"
             @open-trading="openEventTrading"
           />
@@ -282,8 +285,6 @@ onUnmounted(() => {
             v-else-if="activeNav === 'crypto'"
             ref="cryptoEventsRef"
             :selected-event-id="selectedEventId"
-            :sync-state="syncState"
-            :sync-status="syncStatus"
             @open-detail="openEventDetail"
             @open-trading="openEventTrading"
           />
@@ -291,8 +292,6 @@ onUnmounted(() => {
             v-else-if="activeNav === 'sports'"
             ref="sportsEventsRef"
             :selected-event-id="selectedEventId"
-            :sync-state="syncState"
-            :sync-status="syncStatus"
             @open-detail="openEventDetail"
             @open-trading="openEventTrading"
           />
@@ -300,8 +299,6 @@ onUnmounted(() => {
             v-else-if="activeNav === 'esports'"
             ref="esportsEventsRef"
             :selected-event-id="selectedEventId"
-            :sync-state="syncState"
-            :sync-status="syncStatus"
             @open-detail="openEventDetail"
             @open-trading="openEventTrading"
           />

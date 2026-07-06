@@ -49,6 +49,7 @@ const mainWindowApi = {
   addToWatchlist: (eventId) => ipcRenderer.invoke('watchlist:add', eventId),
   removeFromWatchlist: (eventId) => ipcRenderer.invoke('watchlist:remove', eventId),
   countWatchlist: () => ipcRenderer.invoke('watchlist:count'),
+  countOpenWatchlistEvents: () => ipcRenderer.invoke('watchlist:countOpen'),
   loadFilters: () => ipcRenderer.invoke('filters:load'),
   saveFilters: (data) => ipcRenderer.invoke('filters:save', data),
   fetchEvent: (eventId) => ipcRenderer.invoke('api:fetchEvent', eventId),

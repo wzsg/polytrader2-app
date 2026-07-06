@@ -91,6 +91,7 @@ interface WatchlistRepository {
   addToWatchlist(eventId: string): Promise<boolean>;
   removeFromWatchlist(eventId: string): Promise<void>;
   countWatchlist(): Promise<number>;
+  countOpenWatchlistEvents(): Promise<number>;
 }
 
 interface MetaRepository {

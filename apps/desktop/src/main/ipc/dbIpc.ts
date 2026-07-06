@@ -40,6 +40,7 @@ function registerDbHandlers(ipcMain: IpcMain): void {
     supabaseAuthService.syncLocalChangesInBackground();
   });
   ipcMain.handle('watchlist:count', () => watchlistRepository.countWatchlist());
+  ipcMain.handle('watchlist:countOpen', () => watchlistRepository.countOpenWatchlistEvents());
   ipcMain.handle('filters:load', () => filtersStore.loadFilters());
   ipcMain.handle('filters:save', (_event, data: Partial<Filters>) =>
     filtersStore.saveFilters(data),

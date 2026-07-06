@@ -20,6 +20,9 @@ const props = defineProps<{
   activeNav: string;
   developerModeEnabled: boolean;
   authState: AuthState;
+  openWatchlistEventCount: number;
+  syncState?: string;
+  syncStatus?: string;
 }>();
 
 const { t } = useI18n();
@@ -82,7 +85,15 @@ function authHint(): string {
         @click="emit('change-nav', item.nav)"
       >
         <component :is="item.icon" :size="16" />
-        {{ t(item.labelKey) }}
+        <span class="flex min-w-0 flex-1 items-center gap-1.5">
+          <span class="min-w-0 truncate">{{ t(item.labelKey) }}</span>
+          <span
+            v-if="item.nav === 'watchlist' && openWatchlistEventCount > 0"
+            class="border-border bg-btn-secondary/60 text-muted-light inline-flex h-3.5 min-w-3.5 shrink-0 items-center justify-center rounded px-1 text-[9px] leading-none font-medium tabular-nums"
+          >
+            {{ openWatchlistEventCount }}
+          </span>
+        </span>
       </button>
 
       <template v-if="strategyAutomationEnabled">

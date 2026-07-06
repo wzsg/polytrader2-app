@@ -5,15 +5,12 @@ import EventSearchBox from '../components/EventSearchBox.vue';
 import SportsFilterBar from '../components/SportsFilterBar.vue';
 import StatsBar from '../components/StatsBar.vue';
 import SportsEventsTable from '../components/SportsEventsTable.vue';
-import EventSyncStatusIndicator from '../components/EventSyncStatusIndicator.vue';
 import Pagination from '../../shared/components/Pagination.vue';
 import { useSportsEvents } from '../../shared/composables/useSportsEvents';
 import { useI18n } from 'vue-i18n';
 
 defineProps<{
   selectedEventId?: string | null;
-  syncState?: string;
-  syncStatus?: string;
 }>();
 
 const emit = defineEmits<{
@@ -54,7 +51,6 @@ defineExpose({ reload });
   >
     <template #actions>
       <EventSearchBox :filters="sports.filters" />
-      <EventSyncStatusIndicator :sync-state="syncState" :sync-status="syncStatus" />
     </template>
   </StatsBar>
 
