@@ -8,7 +8,7 @@ import type { MarketServiceCacheStore } from './types.js';
 const DEFAULT_CONFIG_TTL_MS = 60 * 60 * 1000;
 const CRYPTO_CATEGORY_PATH = 'crypto-category.json';
 const CRYPTO_CATEGORY_STORE_KEY = 'crypto-category';
-const EVENT_CATEGORY_PATH = 'event-category.json';
+const EVENT_CATEGORY_URL = 'https://trading-api.polytrader2.com/api/event-category';
 const EVENT_CATEGORY_STORE_KEY = 'event-category';
 
 interface MarketCategoryConfigClientOptions {
@@ -45,10 +45,11 @@ class MarketCategoryConfigClient {
   }
 
   public fetchEventCategory(): Promise<EventCategoryConfig> {
-    return this.fetchCachedConfig<EventCategoryConfig>({
-      path: EVENT_CATEGORY_PATH,
-      storeKey: EVENT_CATEGORY_STORE_KEY,
-    });
+    return this._cacheStore.getOrSetValue<EventCategoryConfig>(
+      EVENT_CATEGORY_STORE_KEY,
+      this._configTtlMs,
+      async () => this.normalizeEventCategoryConfig(await this.fetchRemoteConfig(EVENT_CATEGORY_URL)),
+    );
   }
 
   private fetchCachedConfig<T>(definition: ConfigDefinition): Promise<T> {
@@ -72,6 +73,25 @@ class MarketCategoryConfigClient {
 
   private normalizeBaseUrl(baseUrl: string): string {
     return baseUrl.replace(/\/+$/, '');
+  }
+
+  private normalizeEventCategoryConfig(config: EventCategoryConfig): EventCategoryConfig {
+    return {
+      ...config,
+      categories: config.categories.map((category) => ({
+        ...category,
+        tagIds: this.normalizeEventCategoryIds(category.tagIds),
+        excludeTagIds: this.normalizeEventCategoryIds(category.excludeTagIds),
+      })),
+    };
+  }
+
+  private normalizeEventCategoryIds(ids: Array<string | number> | undefined): number[] | undefined {
+    if (!Array.isArray(ids)) return undefined;
+
+    return ids
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id));
   }
 }
 

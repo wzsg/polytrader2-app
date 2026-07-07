@@ -10,3 +10,11 @@ cache/
 *.tsbuildinfo
 *.log
 docs/
+!docs/
+docs/*
+!docs/assets/
+docs/assets/*
+!docs/assets/screenshots/
+!docs/assets/screenshots/*.png
+!docs/build-from-source.md
+!docs/build-from-source.zh-CN.md
