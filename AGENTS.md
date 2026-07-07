@@ -14,6 +14,15 @@ http://docs.polymarket.com/llms.txt
 - 加载提示不要使用可见文字（例如“加载中”“正在加载”），统一使用账号管理余额加载同款的旋转图标效果；需要说明时放在 title/aria-label 等非可见辅助属性中。
 - 项目仍处于开发和重构阶段，默认不要为了旧实现、旧数据文件、旧字段或旧接口增加兼容代码；除非明确要求保留兼容，否则应直接收敛到新的设计，删除旧路径，避免长期维护负担。
 
+## 分支与发布流程
+
+- 日常开发必须基于 `develop` 分支完成，并把开发提交推送到 `origin/develop`。
+- `master` 是受保护主分支，不要直接向 `master` push；需要将 `develop` 合并到 `master` 时，必须创建 `develop` -> `master` 的 Pull Request。
+- 正式 release 只从 `master` 发布：先确认 `develop` 的变更已经通过 PR 合并到 `master`，再在 `master` 最新提交上创建并推送 `v*` 语义化版本 tag，例如 `v1.0.23`。
+- 推送 `v*` tag 会触发 `.github/workflows/release-windows.yml`，该 workflow 会从 tag 写入桌面端版本号，执行校验、构建并发布 Windows 安装包到 GitHub draft release。
+- GitHub draft release 生成后，需要在 GitHub Releases 页面人工确认 tag、版本号、安装包文件名和发布说明，再手动 publish。
+- 详细操作步骤以 `docs/release-process.md` 为准；本地安装包验证流程参考 `docs/windows-installer-vm-smoke-test.md`。
+
 ## 多语言与国际化规范
 
 - 项目默认采用英文优先（`en-US`），并支持中文（`zh-CN`）；新增界面、窗口标题、弹窗、按钮、表头、空状态、错误提示、title、aria-label、placeholder 等用户可感知文案时，必须先提供英文文案，再补充中文资源。
