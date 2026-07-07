@@ -91,6 +91,11 @@ class SqliteEventRepository {
 
     db.transaction((tx) => {
       for (const event of rawEvents) {
+        if (!this._hasRequiredEventMarkets(event)) {
+          stats.eventsSkipped++;
+          continue;
+        }
+
         const eventRow = this._formatEventRow(event, locale);
         const marketRows = (event.markets || [])
           .filter((market) => market.id != null)
@@ -609,6 +614,23 @@ class SqliteEventRepository {
   private _requireMarketNegRisk(market: NonNullable<GammaEventRaw['markets']>[number]): boolean {
     if (typeof market.negRisk === 'boolean') return market.negRisk;
     throw new Error(`Market snapshot is missing boolean negRisk: ${String(market.id || '')}`);
+  }
+
+  private _hasRequiredEventMarkets(event: GammaEventRaw): boolean {
+    for (const market of event.markets || []) {
+      if (market.id == null || this._hasOwnProperty(market, 'negRisk')) continue;
+      console.warn(
+        `Skipping event snapshot with market missing boolean negRisk: event=${String(
+          event.id || '',
+        )} market=${String(market.id || '')}`,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  private _hasOwnProperty(value: object, key: string): boolean {
+    return Object.prototype.hasOwnProperty.call(value, key);
   }
 
   private _normalizeTagIds(tagIds: string[] | undefined): string[] {

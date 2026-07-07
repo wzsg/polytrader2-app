@@ -3,6 +3,7 @@ import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { createGunzip } from 'node:zlib';
 import {
+  DEFAULT_LOCALE,
   POLYTRADER_EVENT_SNAPSHOT_BASE_URL,
   type AppLocale,
   type GammaEventRaw,
@@ -31,11 +32,9 @@ class R2EventSnapshotClient {
 
   public async *streamOpenEvents(
     signal: AbortSignal,
-    locale: AppLocale = 'en-US',
+    locale: AppLocale = DEFAULT_LOCALE,
   ): AsyncGenerator<GammaStreamPage> {
-    const snapshotKey = await this.fetchLatestSnapshotKey(signal, locale);
-    const res = await fetch(this.objectUrl(snapshotKey), { signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    const res = await this.fetchSnapshotResponse(signal, locale);
     if (!res.body) throw new Error('R2 event snapshot response did not include a body');
 
     const body = Readable.fromWeb(res.body as unknown as NodeReadableStream<Uint8Array>);
@@ -89,7 +88,7 @@ class R2EventSnapshotClient {
 
   private async fetchLatestSnapshotKey(signal: AbortSignal, locale: AppLocale): Promise<string> {
     const res = await fetch(this.objectUrl(this.latestKeyForLocale(locale)), { signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    if (!res.ok) throw await this.createHttpError(res);
 
     const data = (await res.json()) as R2EventSnapshotLatest;
     const key = data.snapshot?.key;
@@ -97,6 +96,30 @@ class R2EventSnapshotClient {
       throw new Error('R2 latest.json did not include a snapshot key');
     }
     return key;
+  }
+
+  private async fetchSnapshotResponse(signal: AbortSignal, locale: AppLocale): Promise<Response> {
+    try {
+      return await this.fetchSnapshotResponseForLocale(signal, locale);
+    } catch (error) {
+      if (!this.shouldFallbackToDefaultLocale(error, locale)) throw error;
+      return this.fetchSnapshotResponseForLocale(signal, DEFAULT_LOCALE);
+    }
+  }
+
+  private async fetchSnapshotResponseForLocale(
+    signal: AbortSignal,
+    locale: AppLocale,
+  ): Promise<Response> {
+    const snapshotKey = await this.fetchLatestSnapshotKey(signal, locale);
+    const res = await fetch(this.objectUrl(snapshotKey), { signal });
+    if (!res.ok) throw await this.createHttpError(res);
+    return res;
+  }
+
+  private shouldFallbackToDefaultLocale(error: unknown, locale: AppLocale): boolean {
+    if (locale === DEFAULT_LOCALE) return false;
+    return !this.isAbortError(error);
   }
 
   private objectUrl(key: string): string {
@@ -122,6 +145,17 @@ class R2EventSnapshotClient {
     const error = new Error('The operation was aborted');
     error.name = 'AbortError';
     return error;
+  }
+
+  private isAbortError(error: unknown): boolean {
+    return error instanceof Error && error.name === 'AbortError';
+  }
+
+  private async createHttpError(res: Response): Promise<Error> {
+    const body = await res.text();
+    const text = body.trim().replace(/\s+/g, ' ');
+    const details = text ? `: ${text.slice(0, 300)}` : '';
+    return new Error(`HTTP ${res.status}${details}`);
   }
 }
 
