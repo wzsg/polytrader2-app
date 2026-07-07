@@ -192,7 +192,7 @@ class WindowsPackager {
       npmRebuild: false,
       publish: {
         provider: 'github',
-        owner: 'polytrader2',
+        owner: 'wzsg',
         repo: 'polytrader2-app',
         private: true,
         releaseType: 'draft',

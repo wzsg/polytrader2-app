@@ -1,7 +1,6 @@
 name: Release Windows
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - 'v*'
@@ -37,18 +36,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify tag matches package version
+      - name: Set package version from tag
         shell: bash
         run: |
           node - <<'NODE'
           const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('apps/desktop/package.json', 'utf8'));
-          const expected = `v${pkg.version}`;
-          const actual = process.env.GITHUB_REF_NAME;
-          if (actual !== expected) {
-            console.error(`Tag ${actual} does not match package version ${expected}`);
+          const tag = process.env.GITHUB_REF_NAME ?? '';
+          const version = tag.replace(/^v/, '');
+          if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+            console.error(`Tag ${tag} is not a valid release version tag`);
             process.exit(1);
           }
+          const packageJsonPath = 'apps/desktop/package.json';
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+          packageJson.version = version;
+          fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `P2_RELEASE_VERSION=${version}\n`);
+          console.log(`Release version: ${version}`);
           NODE
 
       - name: Typecheck
