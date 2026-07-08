@@ -94,7 +94,7 @@ import type {
   UserSyncResult,
   WorkflowTaskRecord,
 } from './types/index.js';
-import type { AppLocalePreference, AppPreferences } from './i18n.js';
+import type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
 
 export type {
   ApiEvent,
@@ -275,6 +275,9 @@ export interface IpcApi {
   fetchEvent: (eventId: string) => Promise<GammaEventRaw>;
   fetchCryptoCategory: () => Promise<CryptoCategoryConfig>;
   fetchEventCategory: () => Promise<EventCategoryConfig>;
+  onCategoryConfigChanged: (
+    callback: (event: { locale: AppLocale; scopes: Array<'event' | 'crypto'> }) => void,
+  ) => () => void;
   listCryptoEvents: (params: ListCryptoEventsParams) => Promise<CryptoEventsResult>;
   fetchSportsMetadata: () => Promise<SportsMetadataItem[]>;
   listSportsEvents: (params: ListSportsEventsParams) => Promise<SportsEventsResult>;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ChevronDown, ListFilter, RotateCcw } from '@lucide/vue';
 import AppHeader from '../components/AppHeader.vue';
@@ -54,6 +54,7 @@ const list = useEventList(filters, {
     ),
 });
 const filterPanelOpen = ref(false);
+let categoryConfigReady = false;
 
 const FILTER_STATE_KEYS = [
   'volume24hrMin',
@@ -99,7 +100,24 @@ onMounted(async () => {
   }
   await list.refreshWatchlistEventIds();
   await list.loadEvents();
+  categoryConfigReady = true;
 });
+
+watch(
+  () => eventCategory.config.value,
+  async (categoryConfig) => {
+    if (!categoryConfigReady || !categoryConfig) return;
+    const validCategorySlug = eventCategory.validateEventCategorySlug(
+      categoryConfig,
+      selectedCategorySlug.value,
+    );
+    if (validCategorySlug !== selectedCategorySlug.value) {
+      selectedCategorySlug.value = validCategorySlug;
+      await window.api.saveFilters({ eventCategorySlug: validCategorySlug });
+    }
+    list.onFiltersChanged();
+  },
+);
 
 function toggleFilterPanel(): void {
   filterPanelOpen.value = !filterPanelOpen.value;

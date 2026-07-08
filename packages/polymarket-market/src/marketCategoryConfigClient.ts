@@ -1,4 +1,5 @@
 import {
+  type AppLocale,
   type CryptoCategoryConfig,
   type EventCategoryConfig,
 } from '@polytrader/shared';
@@ -32,18 +33,21 @@ class MarketCategoryConfigClient {
     this._configTtlMs = options.configTtlMs ?? DEFAULT_CONFIG_TTL_MS;
   }
 
-  public fetchCryptoCategory(): Promise<CryptoCategoryConfig> {
+  public fetchCryptoCategory(locale: AppLocale): Promise<CryptoCategoryConfig> {
     return this.fetchCachedConfig<CryptoCategoryConfig>({
-      url: CRYPTO_CATEGORY_URL,
-      storeKey: CRYPTO_CATEGORY_STORE_KEY,
+      url: this.resolveLocaleUrl(CRYPTO_CATEGORY_URL, locale),
+      storeKey: this.resolveLocaleStoreKey(CRYPTO_CATEGORY_STORE_KEY, locale),
     });
   }
 
-  public fetchEventCategory(): Promise<EventCategoryConfig> {
+  public fetchEventCategory(locale: AppLocale): Promise<EventCategoryConfig> {
     return this._cacheStore.getOrSetValue<EventCategoryConfig>(
-      EVENT_CATEGORY_STORE_KEY,
+      this.resolveLocaleStoreKey(EVENT_CATEGORY_STORE_KEY, locale),
       this._configTtlMs,
-      async () => this.normalizeEventCategoryConfig(await this.fetchRemoteConfig(EVENT_CATEGORY_URL)),
+      async () =>
+        this.normalizeEventCategoryConfig(
+          await this.fetchRemoteConfig(this.resolveLocaleUrl(EVENT_CATEGORY_URL, locale)),
+        ),
     );
   }
 
@@ -60,6 +64,16 @@ class MarketCategoryConfigClient {
     }
 
     return (await res.json()) as T;
+  }
+
+  private resolveLocaleUrl(url: string, locale: AppLocale): string {
+    const target = new URL(url);
+    target.searchParams.set('locale', locale);
+    return target.toString();
+  }
+
+  private resolveLocaleStoreKey(storeKey: string, locale: AppLocale): string {
+    return `${storeKey}:${locale}`;
   }
 
   private normalizeEventCategoryConfig(config: EventCategoryConfig): EventCategoryConfig {

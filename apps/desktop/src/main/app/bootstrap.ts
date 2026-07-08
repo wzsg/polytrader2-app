@@ -24,7 +24,10 @@ import { registerTradingStrategyHandlers } from '../ipc/tradingStrategyIpc.js';
 import { registerSyncHandlers } from '../ipc/syncIpc.js';
 import { registerWindowHandlers } from '../ipc/windowIpc.js';
 import { registerPreferenceHandlers } from '../preferences.js';
-import { polymarketMarketService } from '../services/polymarketMarketService.js';
+import {
+  polymarketMarketService,
+  syncPolymarketMarketServicePreferences,
+} from '../services/polymarketMarketService.js';
 import { botRuntimeService, strategyRunHistoryService } from '../services/strategyRuntime.js';
 import { tradingAccountService } from '../services/tradingAccountService.js';
 import { tradingMarketService } from '../services/tradingMarketService.js';
@@ -109,6 +112,7 @@ async function initializeAppStorage(userDataPath?: string): Promise<void> {
 async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promise<void> {
   prepareElectronApp();
   await initializeAppStorage();
+  await syncPolymarketMarketServicePreferences();
   registerIpcHandlers({ initialEventSync: options.initialEventSync !== false });
   supabaseAuthService.initialize();
   await strategyRunHistoryService.init();

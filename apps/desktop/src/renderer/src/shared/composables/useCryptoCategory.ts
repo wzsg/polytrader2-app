@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { onScopeDispose, ref } from 'vue';
 import type { AppLocale } from '@polytrader/shared';
 import type { CryptoCategoryConfig, CryptoCategoryItem } from '@polytrader/shared';
 import { currentLocale } from '../i18n';
@@ -144,8 +144,19 @@ export function useCryptoCategory() {
   const loading = ref(false);
   const error = ref('');
 
-  async function loadCategory(): Promise<CryptoCategoryConfig | null> {
-    if (config.value) return config.value;
+  const unsubscribeCategoryConfigChanged = window.api.onCategoryConfigChanged((event) => {
+    if (!event.scopes.includes('crypto')) return;
+    void loadCategory({ force: true });
+  });
+
+  onScopeDispose(() => {
+    unsubscribeCategoryConfigChanged();
+  });
+
+  async function loadCategory(
+    options: { force?: boolean } = {},
+  ): Promise<CryptoCategoryConfig | null> {
+    if (config.value && !options.force) return config.value;
 
     loading.value = true;
     error.value = '';

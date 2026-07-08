@@ -200,6 +200,10 @@ function eventGroupTitle(event: EventListItem): string {
   if (parentTitle && title.startsWith(prefix)) {
     return title.slice(prefix.length).trim() || title;
   }
+  const titleParts = title.split(' - ');
+  if (titleParts.length === 2) {
+    return titleParts[1].trim() || title;
+  }
   return title;
 }
 

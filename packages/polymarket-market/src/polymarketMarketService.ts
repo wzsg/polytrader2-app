@@ -14,6 +14,7 @@ import type {
   SyncStatus,
   EventSyncTrigger,
 } from '@polytrader/shared';
+import { DEFAULT_LOCALE } from '@polytrader/shared';
 import type { ApplicationEventBus } from '@polytrader/event-bus';
 import { CryptoEventsService } from './crypto/cryptoEventsService.js';
 import { MarketCategoryConfigClient } from './marketCategoryConfigClient.js';
@@ -37,10 +38,12 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   private readonly _eventSyncScheduler: EventSyncScheduler;
   private readonly _marketTradeSyncService: MarketTradeSyncService;
   private readonly _eventBus: ApplicationEventBus | null;
+  private _categoryConfigLocale: AppLocale;
 
   public constructor(options: MarketServiceOptions) {
     super();
     this._eventBus = options.eventBus ?? null;
+    this._categoryConfigLocale = DEFAULT_LOCALE;
     this._detailService = new MarketDetailService(options.apiClient);
     this._cryptoEventsService = new CryptoEventsService(options.eventRepository);
     this._sportsEventsService = new SportsEventsService({
@@ -86,11 +89,11 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   }
 
   public fetchCryptoCategory(): Promise<CryptoCategoryConfig> {
-    return this._categoryConfigClient.fetchCryptoCategory();
+    return this._categoryConfigClient.fetchCryptoCategory(this._categoryConfigLocale);
   }
 
   public fetchEventCategory(): Promise<EventCategoryConfig> {
-    return this._categoryConfigClient.fetchEventCategory();
+    return this._categoryConfigClient.fetchEventCategory(this._categoryConfigLocale);
   }
 
   public fetchSportsMetadata(): Promise<SportsMetadataItem[]> {
@@ -110,6 +113,12 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
 
   public setEventSyncLocale(locale: AppLocale): void {
     this._eventSyncScheduler.setLocale(locale);
+  }
+
+  public setCategoryConfigLocale(locale: AppLocale): boolean {
+    if (this._categoryConfigLocale === locale) return false;
+    this._categoryConfigLocale = locale;
+    return true;
   }
 
   public readSyncScheduleConfig(): Promise<SyncScheduleConfig> {

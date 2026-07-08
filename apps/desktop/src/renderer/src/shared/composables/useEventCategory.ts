@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { onScopeDispose, ref } from 'vue';
 import type { AppLocale } from '@polytrader/shared';
 import type { EventCategoryConfig, EventCategoryItem } from '@polytrader/shared';
 import { currentLocale } from '../i18n';
@@ -76,8 +76,17 @@ export function useEventCategory() {
   const loading = ref(false);
   const error = ref('');
 
-  async function loadCategory(): Promise<EventCategoryConfig | null> {
-    if (config.value) return config.value;
+  const unsubscribeCategoryConfigChanged = window.api.onCategoryConfigChanged((event) => {
+    if (!event.scopes.includes('event')) return;
+    void loadCategory({ force: true });
+  });
+
+  onScopeDispose(() => {
+    unsubscribeCategoryConfigChanged();
+  });
+
+  async function loadCategory(options: { force?: boolean } = {}): Promise<EventCategoryConfig | null> {
+    if (config.value && !options.force) return config.value;
 
     loading.value = true;
     error.value = '';
