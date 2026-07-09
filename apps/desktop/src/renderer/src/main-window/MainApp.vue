@@ -138,24 +138,29 @@ function cloneTradingMetadata(metadata: unknown): unknown {
   }
 }
 
+function showEventDetailPanel(event: EventListItem, metadata?: unknown): void {
+  selectedEvent.value = event;
+  selectedEventMetadata.value = metadata;
+}
+
 async function openEventDetail(event: EventListItem, metadata?: unknown): Promise<void> {
-  const single = getSingleOpenMarket(event);
-  if (single) {
-    try {
-      const childEvents = await window.api.listChildEvents(event.id);
-      if (!childEvents.length) {
-        openTradingWindowForMarket(single, event.id, null, null, metadata);
+  if (activeNav.value === 'crypto') {
+    const single = getSingleOpenMarket(event);
+    if (single) {
+      try {
+        const childEvents = await window.api.listChildEvents(event.id);
+        if (!childEvents.length) {
+          openTradingWindowForMarket(single, event.id, null, null, metadata);
+          return;
+        }
+      } catch {
+        showEventDetailPanel(event, metadata);
         return;
       }
-    } catch {
-      selectedEvent.value = event;
-      selectedEventMetadata.value = metadata;
-      return;
     }
   }
 
-  selectedEvent.value = event;
-  selectedEventMetadata.value = metadata;
+  showEventDetailPanel(event, metadata);
 }
 
 function getDefaultOpenMarket(
@@ -183,7 +188,7 @@ async function openEventTrading(event: EventListItem, metadata?: unknown): Promi
     // Fall back to the event market panel below.
   }
 
-  await openEventDetail(event, metadata);
+  showEventDetailPanel(event, metadata);
 }
 
 function closeEventDetail(): void {
