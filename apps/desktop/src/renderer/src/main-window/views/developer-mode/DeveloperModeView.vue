@@ -46,6 +46,28 @@ function timestamp(value: string | number | null): string {
   return formatTimestamp(String(value));
 }
 
+function duration(startedAt: string | null, finishedAt: string | null): string {
+  if (startedAt == null || startedAt === '') return '-';
+  const startMs = Date.parse(startedAt);
+  if (!Number.isFinite(startMs)) return '-';
+  const endMs =
+    finishedAt != null && finishedAt !== '' && Number.isFinite(Date.parse(finishedAt))
+      ? Date.parse(finishedAt)
+      : Date.now();
+  const durationMs = endMs - startMs;
+  if (!Number.isFinite(durationMs) || durationMs < 0) return '-';
+  if (durationMs < 1_000) return `${durationMs} ms`;
+  if (durationMs < 60_000) return `${(durationMs / 1_000).toFixed(1)} s`;
+
+  const totalSeconds = Math.floor(durationMs / 1_000);
+  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const minutes = totalMinutes % 60;
+  const hours = Math.floor(totalMinutes / 60);
+  const parts = [minutes, seconds].map((value) => String(value).padStart(2, '0'));
+  return hours > 0 ? `${String(hours).padStart(2, '0')}:${parts.join(':')}` : parts.join(':');
+}
+
 function truncate(value: unknown, max = 80): string {
   const normalized = text(value);
   return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
@@ -286,7 +308,7 @@ onMounted(() => {
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[1700px] table-fixed border-collapse text-left text-sm">
+          <table class="w-full min-w-[1800px] table-fixed border-collapse text-left text-sm">
             <colgroup>
               <col class="w-40" />
               <col class="w-56" />
@@ -295,6 +317,7 @@ onMounted(() => {
               <col class="w-44" />
               <col class="w-44" />
               <col class="w-44" />
+              <col class="w-28" />
               <col class="w-52" />
               <col class="w-52" />
               <col class="w-52" />
@@ -308,6 +331,7 @@ onMounted(() => {
                 <th class="truncate px-3 py-2">{{ t('developer.nextRunAt') }}</th>
                 <th class="truncate px-3 py-2">{{ t('developer.startedAt') }}</th>
                 <th class="truncate px-3 py-2">{{ t('developer.finishedAt') }}</th>
+                <th class="truncate px-3 py-2">{{ t('developer.durationMs') }}</th>
                 <th class="truncate px-3 py-2">{{ t('developer.payloadJson') }}</th>
                 <th class="truncate px-3 py-2">{{ t('developer.resultJson') }}</th>
                 <th class="truncate px-3 py-2">{{ t('developer.errorMessage') }}</th>
@@ -315,7 +339,7 @@ onMounted(() => {
             </thead>
             <tbody>
               <tr v-if="workflowTasks.length === 0">
-                <td class="text-muted px-3 py-6" colspan="10">{{ t('common.noData') }}</td>
+                <td class="text-muted px-3 py-6" colspan="11">{{ t('common.noData') }}</td>
               </tr>
               <tr
                 v-for="task in workflowTasks"
@@ -345,6 +369,9 @@ onMounted(() => {
                 </td>
                 <td class="truncate px-3 py-2 whitespace-nowrap">
                   {{ timestamp(task.finishedAt) }}
+                </td>
+                <td class="truncate px-3 py-2 whitespace-nowrap">
+                  {{ duration(task.startedAt, task.finishedAt) }}
                 </td>
                 <td class="truncate px-3 py-2 font-mono text-xs" :title="text(task.payloadJson)">
                   {{ truncate(task.payloadJson, 72) }}

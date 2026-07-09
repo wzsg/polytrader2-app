@@ -219,6 +219,15 @@ export function useCryptoEvents() {
   );
 
   watch(
+    () => cryptoCategory.config.value,
+    () => {
+      if (!ready) return;
+      applyDefaultsToFilters();
+      onFiltersChanged();
+    },
+  );
+
+  watch(
     filters,
     () => {
       if (!ready) return;

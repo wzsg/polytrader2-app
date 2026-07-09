@@ -1,7 +1,10 @@
 import type { IpcMain } from 'electron';
 import { PolymarketApiClient } from '@polytrader/polymarket-api';
 import { MarketTradeRepositoryFactory } from '@polytrader/duckdb-repository';
-import { polymarketMarketService } from '../services/polymarketMarketService.js';
+import {
+  polymarketMarketService,
+  syncPolymarketMarketServicePreferences,
+} from '../services/polymarketMarketService.js';
 import { wrap } from './result.js';
 import type { MarketTradeAnalysisQuery, MarketTradeQuery } from '@polytrader/shared';
 
@@ -25,8 +28,14 @@ function resolveMarketTradeRepository(query: MarketTradeAnalysisQuery | MarketTr
 
 function registerMarketHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('api:fetchEvent', (_event, eventId: string) => apiClient.fetchEventById(eventId));
-  ipcMain.handle('api:fetchCryptoCategory', () => polymarketMarketService.fetchCryptoCategory());
-  ipcMain.handle('api:fetchEventCategory', () => polymarketMarketService.fetchEventCategory());
+  ipcMain.handle('api:fetchCryptoCategory', async () => {
+    await syncPolymarketMarketServicePreferences();
+    return await polymarketMarketService.fetchCryptoCategory();
+  });
+  ipcMain.handle('api:fetchEventCategory', async () => {
+    await syncPolymarketMarketServicePreferences();
+    return await polymarketMarketService.fetchEventCategory();
+  });
   ipcMain.handle('api:fetchSportsMetadata', () => polymarketMarketService.fetchSportsMetadata());
   ipcMain.handle('api:listCryptoEvents', (_event, params) =>
     polymarketMarketService.listCryptoEvents(params),
