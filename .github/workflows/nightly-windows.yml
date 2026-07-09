@@ -1,0 +1,132 @@
+name: Nightly Windows
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 20 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-windows
+  cancel-in-progress: true
+
+jobs:
+  nightly-windows:
+    name: Build and publish Windows nightly
+    runs-on: windows-latest
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v5
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.5.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set nightly package version
+        shell: pwsh
+        run: |
+          $packageJsonPath = 'apps/desktop/package.json'
+          $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
+          $baseVersion = [string]$packageJson.version
+          $baseVersion = $baseVersion -replace '[-+].*$', ''
+          if ($baseVersion -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Base package version $baseVersion is not a valid release version"
+          }
+
+          $shortSha = git rev-parse --short=7 HEAD
+          $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmm')
+          $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm UTC')
+          $version = "$baseVersion-nightly.$stamp.$shortSha"
+
+          $packageJson.version = $version
+          $packageJson | ConvertTo-Json -Depth 20 | Set-Content $packageJsonPath -Encoding utf8
+
+          "P2_NIGHTLY_VERSION=$version" >> $env:GITHUB_ENV
+          "P2_NIGHTLY_DATE=$date" >> $env:GITHUB_ENV
+          "P2_NIGHTLY_SHA=$shortSha" >> $env:GITHUB_ENV
+          "Nightly version: $version"
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build renderer and main process
+        run: pnpm run build
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          if (Test-Path dist) {
+            Remove-Item dist -Recurse -Force
+          }
+          pnpm --filter @polytrader2/app run dist:win:app
+
+      - name: Publish nightly prerelease
+        shell: pwsh
+        run: |
+          $repo = $env:GITHUB_REPOSITORY
+          $releaseTag = 'nightly'
+          $installer = Get-ChildItem dist -Filter "Polytrader2-Setup-$env:P2_NIGHTLY_VERSION.exe" | Select-Object -First 1
+          $blockmap = Get-ChildItem dist -Filter "Polytrader2-Setup-$env:P2_NIGHTLY_VERSION.exe.blockmap" | Select-Object -First 1
+          $latest = Get-ChildItem dist -Filter 'latest.yml' | Select-Object -First 1
+
+          if (-not $installer) { throw 'Missing nightly installer asset' }
+          if (-not $blockmap) { throw 'Missing nightly blockmap asset' }
+          if (-not $latest) { throw 'Missing nightly latest.yml asset' }
+
+          gh release delete $releaseTag --repo $repo --cleanup-tag --yes 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            "No existing nightly release to delete"
+          }
+
+          git push origin ":refs/tags/$releaseTag" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            "No existing remote nightly tag to delete"
+          }
+
+          git tag -f $releaseTag HEAD
+          git push origin "refs/tags/$releaseTag" --force
+
+          $notes = @"
+          Nightly build from develop.
+
+          - Version: $env:P2_NIGHTLY_VERSION
+          - Commit: $env:P2_NIGHTLY_SHA
+          - Built at: $env:P2_NIGHTLY_DATE
+
+          Nightly releases are for testing the latest development build and may be less stable than tagged releases.
+          "@
+          $notesPath = Join-Path $env:RUNNER_TEMP 'nightly-release-notes.md'
+          $notes | Set-Content $notesPath -Encoding utf8
+
+          gh release create $releaseTag `
+            $installer.FullName `
+            $blockmap.FullName `
+            $latest.FullName `
+            --repo $repo `
+            --title "Nightly $env:P2_NIGHTLY_DATE" `
+            --notes-file $notesPath `
+            --prerelease
