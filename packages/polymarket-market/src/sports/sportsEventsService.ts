@@ -12,14 +12,14 @@ const SPORTS_METADATA_STORE_KEY = 'sports-metadata-visible-v1';
 const SPORTS_METADATA_TTL_MS = 60 * 60 * 1000;
 const SPORTS_TAG_ID = '1';
 const ESPORTS_TAG_ID = '64';
+const SPORTS_START_TIME_GRACE_MS = 24 * 60 * 60 * 1000;
 
 const SPORTS_SORT_FIELDS = new Set([
   'volume24hr',
   'volume',
   'liquidity',
   'title',
-  'start_date',
-  'end_date',
+  'start_time',
   'active',
   'closed',
   'market_count',
@@ -63,12 +63,7 @@ class SportsEventsService {
   }
 
   public async listSportsEvents(params: ListSportsEventsParams): Promise<SportsEventsResult> {
-    const tagIds = this._resolveTagIds(params);
-    if (!tagIds.length) {
-      return { events: [], filteredCount: 0, totalCount: 0, activeCount: 0 };
-    }
-
-    const localParams = this._buildLocalParams(params, tagIds);
+    const localParams = this._buildLocalParams(params);
     const [events, total] = await Promise.all([
       this._repository.listEvents(localParams),
       this._repository.countEvents(localParams),
@@ -146,15 +141,23 @@ class SportsEventsService {
     return Array.from(new Set(tagIds.map((id) => String(id).trim()).filter(Boolean)));
   }
 
-  private _buildLocalParams(params: ListSportsEventsParams, tagIds: string[]): ListEventsParams {
+  private _buildLocalParams(params: ListSportsEventsParams): ListEventsParams {
     const limit = Math.max(1, Math.min(Number(params.limit) || 50, 500));
     const offset = Math.max(0, Number(params.offset) || 0);
     const sortFieldCandidate = params.sortField || '';
-    const sortField = SPORTS_SORT_FIELDS.has(sortFieldCandidate) ? sortFieldCandidate : 'end_date';
+    const sortField = SPORTS_SORT_FIELDS.has(sortFieldCandidate) ? sortFieldCandidate : 'start_time';
+    const sportId = String(params.sportId || '').trim();
 
     return {
-      tagIds,
-      excludeTagIds: this._resolveExcludeTagIds(params),
+      sportId: sportId || undefined,
+      requireSportId: params.scope === 'sports' && !sportId,
+      excludeEnded: params.scope === 'sports',
+      startTimeAfter:
+        params.scope === 'sports'
+          ? new Date(Date.now() - SPORTS_START_TIME_GRACE_MS).toISOString()
+          : undefined,
+      tagIds: sportId ? undefined : this._resolveTagIds(params),
+      excludeTagIds: sportId ? undefined : this._resolveExcludeTagIds(params),
       status: 'active',
       sortField,
       sortOrder: params.sortOrder === 'desc' ? 'desc' : 'asc',

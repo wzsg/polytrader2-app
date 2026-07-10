@@ -8,6 +8,7 @@ import type {
   ListSportsEventsParams,
   MarketDetailData,
   MarketTradeSyncStatus,
+  SportsCategoryConfig,
   SportsEventsResult,
   SportsMetadataItem,
   SyncScheduleConfig,
@@ -94,6 +95,10 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
 
   public fetchEventCategory(): Promise<EventCategoryConfig> {
     return this._categoryConfigClient.fetchEventCategory(this._categoryConfigLocale);
+  }
+
+  public fetchSportsCategory(): Promise<SportsCategoryConfig> {
+    return this._categoryConfigClient.fetchSportsCategory(this._categoryConfigLocale);
   }
 
   public fetchSportsMetadata(): Promise<SportsMetadataItem[]> {

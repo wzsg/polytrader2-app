@@ -35,7 +35,7 @@ function broadcastCategoryConfigChanged(locale: AppLocale): void {
     if (!window.isDestroyed()) {
       window.webContents.send('category-config:changed', {
         locale,
-        scopes: ['event', 'crypto'],
+        scopes: ['event', 'crypto', 'sports'],
       });
     }
   }

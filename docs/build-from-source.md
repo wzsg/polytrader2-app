@@ -66,6 +66,20 @@ pnpm run start
 pnpm run dist:win
 ```
 
+## Package For macOS (Apple Silicon)
+
+```bash
+pnpm run dist:mac
+```
+
+This creates a signed DMG, ZIP update archive, and `latest-mac.yml` in `dist/` without publishing a GitHub release. The command requires the `Developer ID Application: YongKui Zhao (6X3K4446Z2)` signing identity in the local keychain.
+
+To include Apple notarization, provide `APPLE_API_KEY`, `APPLE_API_KEY_ID`, and `APPLE_API_ISSUER`, then run:
+
+```bash
+pnpm run dist:mac:notarized
+```
+
 ## Validation Commands
 
 ```powershell

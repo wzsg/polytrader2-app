@@ -56,6 +56,7 @@ import type {
   StrategyVersionSummary,
   SetupDirectorySelectionResult,
   SetupState,
+  SportsCategoryConfig,
   SportsEventScope,
   SportsEventsResult,
   SportsMetadataItem,
@@ -195,6 +196,7 @@ export type {
   StrategyRunRuntimeEvent,
   SetupDirectorySelectionResult,
   SetupState,
+  SportsCategoryConfig,
 } from './types/index.js';
 export type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
 
@@ -212,6 +214,7 @@ export interface ListCryptoEventsParams {
 
 export interface ListSportsEventsParams {
   scope: SportsEventScope;
+  sportId?: string;
   tagIds?: string[];
   excludeTagIds?: string[];
   sortField?: string;
@@ -275,8 +278,9 @@ export interface IpcApi {
   fetchEvent: (eventId: string) => Promise<GammaEventRaw>;
   fetchCryptoCategory: () => Promise<CryptoCategoryConfig>;
   fetchEventCategory: () => Promise<EventCategoryConfig>;
+  fetchSportsCategory: () => Promise<SportsCategoryConfig>;
   onCategoryConfigChanged: (
-    callback: (event: { locale: AppLocale; scopes: Array<'event' | 'crypto'> }) => void,
+    callback: (event: { locale: AppLocale; scopes: Array<'event' | 'crypto' | 'sports'> }) => void,
   ) => () => void;
   listCryptoEvents: (params: ListCryptoEventsParams) => Promise<CryptoEventsResult>;
   fetchSportsMetadata: () => Promise<SportsMetadataItem[]>;

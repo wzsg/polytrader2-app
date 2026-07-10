@@ -15,6 +15,8 @@
     "build": "turbo run build --filter=@polytrader2/app",
     "start": "pnpm --filter @polytrader2/app run start",
     "dist:win": "pnpm run build && pnpm --filter @polytrader2/app run dist:win:app",
+    "dist:mac": "pnpm run build && pnpm --filter @polytrader2/app run dist:mac:app",
+    "dist:mac:notarized": "pnpm run build && pnpm --filter @polytrader2/app run dist:mac:notarized:app",
     "publish:win": "pnpm run build && pnpm --filter @polytrader2/app run publish:win:app",
     "typecheck": "turbo run typecheck --filter=@polytrader2/app",
     "lint": "turbo run lint --filter=@polytrader2/app",

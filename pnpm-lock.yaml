@@ -39,9 +39,6 @@ importers:
       '@duckdb/node-api':
         specifier: 1.5.3-r.3
         version: 1.5.3-r.3
-      '@duckdb/node-bindings-win32-x64':
-        specifier: 1.5.3-r.3
-        version: 1.5.3-r.3
       '@hono/node-server':
         specifier: 1.19.14
         version: 1.19.14(hono@4.12.25)
@@ -319,9 +316,6 @@ importers:
   packages/repositories/duckdb-repository:
     dependencies:
       '@duckdb/node-api':
-        specifier: 1.5.3-r.3
-        version: 1.5.3-r.3
-      '@duckdb/node-bindings-win32-x64':
         specifier: 1.5.3-r.3
         version: 1.5.3-r.3
       '@polytrader/repository-contract':
@@ -4404,7 +4398,8 @@ snapshots:
   '@duckdb/node-bindings-win32-arm64@1.5.3-r.3':
     optional: true
 
-  '@duckdb/node-bindings-win32-x64@1.5.3-r.3': {}
+  '@duckdb/node-bindings-win32-x64@1.5.3-r.3':
+    optional: true
 
   '@duckdb/node-bindings@1.5.3-r.3':
     dependencies:

@@ -1,11 +1,12 @@
 import { computed, reactive, ref, watch } from 'vue';
 import type { EventListItem, Filters, SortOrder } from '@polytrader/shared';
-import type { SportsMetadataItem } from '@polytrader/shared';
+import type { SportDisciplineCategory, SportsCategoryConfig } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
-import { fetchSportsMetadataOnce } from './sportsMetadata';
+import { useSportsCategory } from './useSportsCategory';
 import { useWatchlist } from './useWatchlist';
 
 const PAGE_SIZE = 50;
+const SPORTS_START_TIME_GRACE_MS = 24 * 60 * 60 * 1000;
 const SPORTS_TAG_ID = '1';
 const ESPORTS_TAG_ID = '64';
 
@@ -14,7 +15,7 @@ const SPORTS_SORT_FIELDS = new Set([
   'volume',
   'liquidity',
   'title',
-  'end_date',
+  'start_time',
   'active',
   'closed',
   'market_count',
@@ -28,50 +29,69 @@ type SportsEventsFilters = Pick<
   | 'cryptoCoin'
   | 'cryptoMarketMode'
   | 'cryptoTimeframe'
+  | 'sportsDiscipline'
   | 'sportsSport'
 >;
 
 const DEFAULT_SPORTS_FILTERS: SportsEventsFilters = {
   search: '',
-  sortField: 'end_date',
+  sortField: 'start_time',
   sortOrder: 'asc',
   cryptoCoin: '',
   cryptoMarketMode: '',
   cryptoTimeframe: '',
+  sportsDiscipline: '',
   sportsSport: '',
 };
 
 function useSportsEvents() {
   const { refreshWatchlistEventIds, toggleWatchlist, isInWatchlist } = useWatchlist();
+  const sportsCategory = useSportsCategory();
 
   const filters = reactive({ ...DEFAULT_SPORTS_FILTERS });
-  const metadata = ref<SportsMetadataItem[]>([]);
+  const disciplines = ref<SportDisciplineCategory[]>([]);
   const currentPage = ref(1);
   const pageEvents = ref<EventListItem[]>([]);
   const filteredCount = ref(0);
   const totalCount = ref(0);
   const activeCount = ref(0);
   const loading = ref(false);
-  const metadataLoading = ref(false);
   const error = ref('');
-  const metadataError = ref('');
+  const visibleCountsError = ref('');
+  const metadataLoading = computed(() => sportsCategory.loading.value);
+  const metadataError = computed(() => sportsCategory.error.value || visibleCountsError.value);
 
   let ready = false;
+  let appliedCategoryConfig: SportsCategoryConfig | null = null;
 
-  const availableSports = computed(() =>
-    metadata.value.filter((item) => {
-      const isEsport = item.tagIds.includes(ESPORTS_TAG_ID);
-      return !isEsport;
-    }),
+  const availableDisciplines = computed(() =>
+    disciplines.value
+      .map((discipline) => ({
+        ...discipline,
+        leagues: discipline.leagues.filter((league) => league.openEventCount > 0),
+      }))
+      .filter((discipline) => discipline.leagues.length > 0),
   );
-
+  const selectedDiscipline = computed(() => filters.sportsDiscipline || '');
+  const availableLeagues = computed(() => {
+    if (!selectedDiscipline.value) return [];
+    return (
+      availableDisciplines.value.find((item) => item.code === selectedDiscipline.value)?.leagues ??
+      []
+    );
+  });
   const selectedSport = computed(() => filters.sportsSport || '');
-  const selectedMetadata = computed(
-    () => availableSports.value.find((item) => item.sport === selectedSport.value) ?? null,
-  );
   const totalPages = computed(() => Math.max(1, Math.ceil(filteredCount.value / PAGE_SIZE)));
   const pageInfo = computed(() =>
     translateUiKey('page.indicator', { current: currentPage.value, total: totalPages.value }),
+  );
+
+  watch(
+    () => sportsCategory.config.value,
+    (config) => {
+      if (!ready || !config || config === appliedCategoryConfig) return;
+      void loadMetadataForConfig(config).then(() => onFiltersChanged());
+    },
   );
 
   async function loadPersistedFilters(): Promise<void> {
@@ -85,26 +105,96 @@ function useSportsEvents() {
       : DEFAULT_SPORTS_FILTERS.sortField;
     filters.sortOrder = (sortOrder === 'desc' ? 'desc' : 'asc') as SortOrder;
     filters.search = saved.sportsSearch ?? '';
+    filters.sportsDiscipline = saved.sportsDiscipline ?? '';
     filters.sportsSport = saved.sportsSport ?? '';
   }
 
   async function loadMetadata(): Promise<void> {
-    metadataLoading.value = true;
-    metadataError.value = '';
+    const config = await sportsCategory.loadCategory();
+    if (!config) return;
+
+    await loadMetadataForConfig(config);
+  }
+
+  async function loadMetadataForConfig(config: SportsCategoryConfig): Promise<void> {
+    appliedCategoryConfig = config;
+    visibleCountsError.value = '';
+    disciplines.value = config.disciplines;
+    validateSelection();
     try {
-      metadata.value = await fetchSportsMetadataOnce();
-      validateSelectedSport();
+      disciplines.value = await loadVisibleEventCounts(config.disciplines);
+      validateSelection();
     } catch (err) {
-      metadataError.value = err instanceof Error ? err.message : String(err);
-    } finally {
-      metadataLoading.value = false;
+      visibleCountsError.value = err instanceof Error ? err.message : String(err);
     }
   }
 
-  function validateSelectedSport(): void {
+  async function loadVisibleEventCounts(
+    categoryDisciplines: SportDisciplineCategory[],
+  ): Promise<SportDisciplineCategory[]> {
+    const baseParams = {
+      status: 'active' as const,
+      excludeEnded: true,
+      startTimeAfter: new Date(Date.now() - SPORTS_START_TIME_GRACE_MS).toISOString(),
+    };
+
+    return Promise.all(
+      categoryDisciplines.map(async (discipline) => {
+        const leagues = await Promise.all(
+          discipline.leagues.map(async (league) => {
+            try {
+              return {
+                ...league,
+                openEventCount: await window.api.countEvents({
+                  ...baseParams,
+                  sportId: league.id,
+                }),
+              };
+            } catch {
+              return league;
+            }
+          }),
+        );
+
+        return {
+          ...discipline,
+          openEventCount: leagues.reduce((total, league) => total + league.openEventCount, 0),
+          leagues,
+        };
+      }),
+    );
+  }
+
+  function validateSelection(): void {
+    const discipline = selectedDiscipline.value
+      ? availableDisciplines.value.find((item) => item.code === selectedDiscipline.value)
+      : null;
+
+    if (selectedDiscipline.value && !discipline) {
+      filters.sportsDiscipline = '';
+      filters.sportsSport = '';
+      return;
+    }
+
     if (!selectedSport.value) return;
-    const exists = availableSports.value.some((item) => item.sport === selectedSport.value);
-    if (!exists) filters.sportsSport = '';
+
+    if (discipline) {
+      const existsInDiscipline = discipline.leagues.some(
+        (league) => league.id === selectedSport.value,
+      );
+      if (!existsInDiscipline) filters.sportsSport = '';
+      return;
+    }
+
+    const owningDiscipline = availableDisciplines.value.find((item) =>
+      item.leagues.some((league) => league.id === selectedSport.value),
+    );
+    if (owningDiscipline) {
+      filters.sportsDiscipline = owningDiscipline.code;
+      return;
+    }
+
+    filters.sportsSport = '';
   }
 
   async function loadEvents(): Promise<void> {
@@ -112,8 +202,14 @@ function useSportsEvents() {
     error.value = '';
     try {
       const params = {
-        tagIds: resolveQueryTagIds(),
-        excludeTagIds: resolveQueryExcludeTagIds(),
+        sportId: selectedSport.value || undefined,
+        sportIds: selectedSport.value ? undefined : selectedDisciplineSportIds(),
+        requireSportId: selectedSport.value || selectedDiscipline.value ? undefined : true,
+        excludeEnded: true,
+        startTimeAfter: new Date(Date.now() - SPORTS_START_TIME_GRACE_MS).toISOString(),
+        tagIds: selectedSport.value || selectedDiscipline.value ? undefined : [SPORTS_TAG_ID],
+        excludeTagIds:
+          selectedSport.value || selectedDiscipline.value ? undefined : [ESPORTS_TAG_ID],
         search: filters.search,
         status: 'active' as const,
         sortField: filters.sortField,
@@ -136,19 +232,21 @@ function useSportsEvents() {
     }
   }
 
-  function resolveQueryTagIds(): string[] {
-    if (selectedMetadata.value?.tagIds.length) return [...selectedMetadata.value.tagIds];
-    return [SPORTS_TAG_ID];
-  }
-
-  function resolveQueryExcludeTagIds(): string[] {
-    if (selectedMetadata.value?.tagIds.length) return [];
-    return [ESPORTS_TAG_ID];
-  }
-
   function setSport(sport: string): void {
     if (selectedSport.value === sport) return;
     filters.sportsSport = sport;
+  }
+
+  function setDiscipline(discipline: string): void {
+    if (selectedDiscipline.value === discipline) return;
+    filters.sportsDiscipline = discipline;
+    filters.sportsSport = '';
+  }
+
+  function selectedDisciplineSportIds(): string[] | undefined {
+    if (!selectedDiscipline.value) return undefined;
+    const ids = availableLeagues.value.map((league) => league.id).filter(Boolean);
+    return ids.length ? ids : ['__none__'];
   }
 
   function onFiltersChanged(): void {
@@ -183,7 +281,7 @@ function useSportsEvents() {
   }
 
   watch(
-    () => selectedSport.value,
+    () => [selectedDiscipline.value, selectedSport.value],
     () => {
       if (!ready) return;
       onFiltersChanged();
@@ -203,6 +301,7 @@ function useSportsEvents() {
     () => {
       if (!ready) return;
       window.api.saveFilters({
+        sportsDiscipline: filters.sportsDiscipline,
         sportsSport: filters.sportsSport,
         sportsSearch: filters.search,
         sportsSortField: filters.sortField,
@@ -222,8 +321,10 @@ function useSportsEvents() {
 
   return {
     filters,
-    metadata,
-    availableSports,
+    disciplines,
+    availableDisciplines,
+    availableLeagues,
+    selectedDiscipline,
     selectedSport,
     currentPage,
     pageEvents,
@@ -238,6 +339,7 @@ function useSportsEvents() {
     pageInfo,
     init,
     loadEvents,
+    setDiscipline,
     setSport,
     setSortField,
     goPrevPage,

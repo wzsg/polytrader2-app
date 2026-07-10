@@ -27,10 +27,13 @@ interface EventRow {
   liquidity: number;
   active: number;
   closed: number;
+  ended: number;
   market_count: number;
   start_date: string | null;
+  start_time: string | null;
   end_date: string | null;
   category: string;
+  sport_id: string | null;
   featured: number;
   parent_event_id: string | null;
   teams: string | null;
@@ -78,6 +81,7 @@ class SqliteEventRepository {
     'liquidity',
     'market_count',
     'start_date',
+    'start_time',
     'end_date',
     'active',
     'closed',
@@ -119,10 +123,13 @@ class SqliteEventRepository {
               liquidity: eventRow.liquidity,
               active: eventRow.active,
               closed: eventRow.closed,
+              ended: eventRow.ended,
               marketCount: eventRow.marketCount,
               startDate: eventRow.startDate,
+              startTime: eventRow.startTime,
               endDate: eventRow.endDate,
               category: eventRow.category,
+              sportId: eventRow.sportId,
               featured: eventRow.featured,
               parentEventId: eventRow.parentEventId,
               teams: eventRow.teams,
@@ -429,6 +436,7 @@ class SqliteEventRepository {
   private _formatEventRow(event: GammaEventRaw, locale: AppLocale) {
     const eventMarkets = event.markets || [];
     const parentEventId = event.parentEventId == null ? null : String(event.parentEventId);
+    const sportId = event.sportId ?? event.sport?.id ?? null;
     return {
       id: String(event.id),
       locale,
@@ -440,10 +448,13 @@ class SqliteEventRepository {
       liquidity: Number(event.liquidity) || 0,
       active: event.active !== false,
       closed: event.closed === true,
+      ended: event.ended === true,
       marketCount: countOpenMarkets(eventMarkets),
       startDate: event.startDate || null,
+      startTime: event.startTime || null,
       endDate: event.endDate || null,
       category: event.category || '',
+      sportId: sportId == null ? null : String(sportId),
       featured: event.featured === true,
       parentEventId,
       teams: this._formatTeams(event.teams),
@@ -459,18 +470,24 @@ class SqliteEventRepository {
 
     const sqlite = getSqlite();
     const existingEvent = sqlite
-      .prepare('SELECT locale, updated_at, parent_event_id, teams FROM events WHERE id = ?')
+      .prepare('SELECT locale, updated_at, parent_event_id, sport_id, ended, start_time, teams FROM events WHERE id = ?')
       .get(eventRow.id) as
       | {
           locale: string | null;
           updated_at: string | null;
           parent_event_id: string | null;
+          sport_id: string | null;
+          ended: number;
+          start_time: string | null;
           teams: string | null;
         }
       | undefined;
     if (!existingEvent || existingEvent.updated_at !== eventRow.updatedAt) return false;
     if (existingEvent.locale !== eventRow.locale) return false;
     if (existingEvent.parent_event_id !== eventRow.parentEventId) return false;
+    if (existingEvent.sport_id !== eventRow.sportId) return false;
+    if ((existingEvent.ended === 1) !== eventRow.ended) return false;
+    if (existingEvent.start_time !== eventRow.startTime) return false;
     if (existingEvent.teams !== eventRow.teams) return false;
 
     const existingMarkets = sqlite
@@ -559,7 +576,7 @@ class SqliteEventRepository {
     const row = value as Record<string, unknown>;
     const name = String(row.name || '').trim();
     const logo = String(row.logo || '').trim();
-    if (!name || !logo) return null;
+    if (!name) return null;
     const team: {
       name: string;
       logo: string;
@@ -707,10 +724,35 @@ class SqliteEventRepository {
       values.activeEndDateAfter = activeEndDateAfter;
     }
 
+    const startTimeAfter = this._parseDateTimeFilter(params.startTimeAfter);
+    if (startTimeAfter) {
+      clauses.push('(start_time IS NULL OR datetime(start_time) >= datetime(@startTimeAfter))');
+      values.startTimeAfter = startTimeAfter;
+    }
+
     if (params.status === 'active') {
       clauses.push('active = 1 AND closed = 0');
     } else if (params.status === 'closed') {
       clauses.push('closed = 1');
+    }
+
+    if (params.excludeEnded === true) {
+      clauses.push('ended = 0');
+    }
+
+    if (params.sportId) {
+      clauses.push('sport_id = @sportId');
+      values.sportId = String(params.sportId);
+    } else if (params.sportIds?.length) {
+      const sportIds = params.sportIds.map((id) => String(id).trim()).filter(Boolean);
+      if (sportIds.length) {
+        clauses.push(`sport_id IN (${sportIds.map((_, index) => `@sportId${index}`).join(', ')})`);
+        sportIds.forEach((id, index) => {
+          values[`sportId${index}`] = id;
+        });
+      }
+    } else if (params.requireSportId === true) {
+      clauses.push("sport_id IS NOT NULL AND sport_id != ''");
     }
 
     if (params.includeChildEvents !== true) {
@@ -799,6 +841,9 @@ class SqliteEventRepository {
     if (field === 'title') {
       return `ORDER BY ${col} COLLATE NOCASE ${dir}`;
     }
+    if (field === 'start_time') {
+      return `ORDER BY ${col} IS NULL ASC, ${col} ${dir}`;
+    }
     return `ORDER BY ${col} ${dir}`;
   }
 
@@ -813,10 +858,13 @@ class SqliteEventRepository {
       liquidity: row.liquidity,
       active: row.active === 1,
       closed: row.closed === 1,
+      ended: row.ended === 1,
       market_count: row.market_count,
       start_date: row.start_date,
+      start_time: row.start_time,
       end_date: row.end_date,
       category: row.category,
+      sportId: row.sport_id,
       featured: row.featured === 1,
       parentEventId: row.parent_event_id,
       teams: row.teams,
@@ -913,7 +961,7 @@ class SqliteEventRepository {
     if (!where) return '';
     if (!withAlias) return where;
     return where.replace(
-      /(?<!\.)\b(volume24hr|volume|liquidity|market_count|title|slug|active|closed|start_date|end_date|category|featured|parent_event_id)\b/g,
+      /(?<!\.)\b(volume24hr|volume|liquidity|market_count|title|slug|active|closed|ended|start_date|start_time|end_date|category|sport_id|featured|parent_event_id)\b/g,
       'e.$1',
     );
   }

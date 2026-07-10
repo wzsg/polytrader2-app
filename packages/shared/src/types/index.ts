@@ -178,6 +178,7 @@ export interface Filters {
   cryptoStatus?: EventStatusFilter;
   cryptoEndDateMin?: string;
   cryptoEndDateMax?: string;
+  sportsDiscipline?: string;
   sportsSport?: string;
   sportsSearch?: string;
   sportsSortField?: string;
@@ -202,7 +203,12 @@ export interface ListEventsParams {
   endDateMax?: string;
   endDateAfter?: string;
   activeEndDateAfter?: string;
+  startTimeAfter?: string;
   status?: EventStatusFilter;
+  excludeEnded?: boolean;
+  sportId?: string;
+  sportIds?: string[];
+  requireSportId?: boolean;
   tagIds?: string[];
   excludeTagIds?: string[];
   watchlistOnly?: boolean;
@@ -254,10 +260,13 @@ export interface EventListItem {
   liquidity: number;
   active: boolean;
   closed: boolean;
+  ended: boolean;
   market_count: number;
   start_date: string | null;
+  start_time: string | null;
   end_date: string | null;
   category: string;
+  sportId?: string | null;
   featured: boolean;
   parentEventId: string | null;
   teams: string | null;
@@ -372,6 +381,10 @@ export interface SportsMetadataRaw {
 export interface SportsMetadataItem {
   id?: number;
   sport: string;
+  name?: string;
+  defaultName?: string;
+  disciplineCode?: string;
+  disciplineName?: string;
   image: string;
   resolution: string;
   ordering: string;
@@ -379,6 +392,37 @@ export interface SportsMetadataItem {
   series: string;
   activeEventCount?: number;
   createdAt?: string;
+}
+
+export type SportsCategoryInclude = 'active' | 'all';
+
+export interface SportLeagueCategory {
+  id: string;
+  code: string;
+  name: string;
+  shortName: string;
+  defaultName: string;
+  image: string | null;
+  resolution: string | null;
+  ordering: string | null;
+  openEventCount: number;
+}
+
+export interface SportDisciplineCategory {
+  code: string;
+  name: string;
+  defaultName: string;
+  icon: string | null;
+  sortOrder: number;
+  openEventCount: number;
+  leagues: SportLeagueCategory[];
+}
+
+export interface SportsCategoryConfig {
+  locale: string;
+  include: SportsCategoryInclude;
+  generatedAt: string;
+  disciplines: SportDisciplineCategory[];
 }
 
 export interface SportsEventsResult {
@@ -515,9 +559,15 @@ export interface GammaEventRaw {
   liquidity?: number | string;
   active?: boolean;
   closed?: boolean;
+  ended?: boolean;
   startDate?: string | null;
+  startTime?: string | null;
   endDate?: string | null;
   category?: string;
+  sportId?: string | number | null;
+  sport?: {
+    id?: string | number | null;
+  } | null;
   featured?: boolean;
   parentEventId?: string | number | null;
   teams?: unknown;

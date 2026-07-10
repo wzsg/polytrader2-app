@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.3-r.3",
-    "@duckdb/node-bindings-win32-x64": "1.5.3-r.3",
     "@polytrader/repository-contract": "workspace:*",
     "@polytrader/shared": "workspace:*"
   },

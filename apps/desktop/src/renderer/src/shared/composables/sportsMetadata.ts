@@ -7,6 +7,10 @@ function sportCodeLabel(sport: string): string {
   return sport.trim().toUpperCase();
 }
 
+function sportMetadataLabel(item: SportsMetadataItem): string {
+  return item.name?.trim() || sportCodeLabel(item.sport);
+}
+
 function fetchSportsMetadataOnce(): Promise<SportsMetadataItem[]> {
   if (sportsMetadataCache) return Promise.resolve(sportsMetadataCache);
   if (sportsMetadataRequest) return sportsMetadataRequest;
@@ -27,4 +31,4 @@ function preloadSportsMetadata(): void {
   void fetchSportsMetadataOnce().catch(() => undefined);
 }
 
-export { fetchSportsMetadataOnce, preloadSportsMetadata, sportCodeLabel };
+export { fetchSportsMetadataOnce, preloadSportsMetadata, sportCodeLabel, sportMetadataLabel };

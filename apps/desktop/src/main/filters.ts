@@ -31,6 +31,7 @@ const FILTER_KEYS = [
   'cryptoStatus',
   'cryptoEndDateMin',
   'cryptoEndDateMax',
+  'sportsDiscipline',
   'sportsSport',
   'sportsSearch',
   'sportsSortField',
