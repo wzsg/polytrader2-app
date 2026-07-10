@@ -66,6 +66,20 @@ pnpm run start
 pnpm run dist:win
 ```
 
+## 打包 macOS 应用（Apple Silicon）
+
+```bash
+pnpm run dist:mac
+```
+
+该命令会在 `dist/` 中生成已签名的 DMG、ZIP 更新包和 `latest-mac.yml`，但不会发布 GitHub Release。运行前要求本机钥匙串中存在 `Developer ID Application: YongKui Zhao (6X3K4446Z2)` 签名身份。
+
+如需包含 Apple 公证，请设置 `APPLE_API_KEY`、`APPLE_API_KEY_ID` 和 `APPLE_API_ISSUER`，然后运行：
+
+```bash
+pnpm run dist:mac:notarized
+```
+
 ## 校验命令
 
 ```powershell

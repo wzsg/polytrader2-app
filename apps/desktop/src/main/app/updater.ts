@@ -35,8 +35,8 @@ export function initAutoUpdater(): void {
     return;
   }
 
-  if (process.platform !== 'win32') {
-    updaterLogger.info('Automatic update checks are enabled only on Windows');
+  if (process.platform !== 'win32' && process.platform !== 'darwin') {
+    updaterLogger.info('Automatic update checks are enabled only on Windows and macOS');
     return;
   }
 

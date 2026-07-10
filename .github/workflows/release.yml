@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Build and publish Windows installer
+    runs-on: windows-latest
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.5.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set package version from tag
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const tag = process.env.GITHUB_REF_NAME ?? '';
+          const version = tag.replace(/^v/, '');
+          if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+            console.error(`Tag ${tag} is not a valid release version tag`);
+            process.exit(1);
+          }
+          const packageJsonPath = 'apps/desktop/package.json';
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+          packageJson.version = version;
+          fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `P2_RELEASE_VERSION=${version}\n`);
+          console.log(`Release version: ${version}`);
+          NODE
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build renderer and main process
+        run: pnpm run build
+
+      - name: Build and publish Windows installer
+        run: pnpm --filter @polytrader2/app run publish:win
+
+  release-macos:
+    name: Build and publish macOS installer
+    needs: release-windows
+    runs-on: macos-14
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+      MACOS_NOTARY_API_KEY: ${{ secrets.MACOS_NOTARY_API_KEY }}
+      MACOS_NOTARY_API_KEY_ID: ${{ secrets.MACOS_NOTARY_API_KEY_ID }}
+      MACOS_NOTARY_ISSUER: ${{ secrets.MACOS_NOTARY_ISSUER }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify Apple Silicon runner
+        shell: bash
+        run: test "$(uname -m)" = 'arm64'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.5.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set package version from tag
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const tag = process.env.GITHUB_REF_NAME ?? '';
+          const version = tag.replace(/^v/, '');
+          if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+            console.error(`Tag ${tag} is not a valid release version tag`);
+            process.exit(1);
+          }
+          const packageJsonPath = 'apps/desktop/package.json';
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+          packageJson.version = version;
+          fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `P2_RELEASE_VERSION=${version}\n`);
+          console.log(`Release version: ${version}`);
+          NODE
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build renderer and main process
+        run: pnpm run build
+
+      - name: Write notarization API key
+        shell: bash
+        run: |
+          key_path="$RUNNER_TEMP/AuthKey_${MACOS_NOTARY_API_KEY_ID}.p8"
+          printf '%s' "$MACOS_NOTARY_API_KEY" | base64 -D > "$key_path"
+          chmod 600 "$key_path"
+          echo "APPLE_API_KEY=$key_path" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_ID=$MACOS_NOTARY_API_KEY_ID" >> "$GITHUB_ENV"
+          echo "APPLE_API_ISSUER=$MACOS_NOTARY_ISSUER" >> "$GITHUB_ENV"
+
+      - name: Build and notarize macOS installer
+        run: pnpm --filter @polytrader2/app run dist:mac:notarized:app
+
+      - name: Publish macOS release assets
+        shell: bash
+        run: |
+          gh release upload "$GITHUB_REF_NAME" \
+            "dist/Polytrader2-${P2_RELEASE_VERSION}-mac-arm64.dmg" \
+            "dist/Polytrader2-${P2_RELEASE_VERSION}-mac-arm64.dmg.blockmap" \
+            "dist/Polytrader2-${P2_RELEASE_VERSION}-mac-arm64.zip" \
+            "dist/Polytrader2-${P2_RELEASE_VERSION}-mac-arm64.zip.blockmap" \
+            dist/latest-mac.yml \
+            --repo "$GITHUB_REPOSITORY"
