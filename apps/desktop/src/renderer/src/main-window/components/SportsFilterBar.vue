@@ -33,7 +33,8 @@ function leagueTitle(item: SportLeagueCategory): string {
 }
 
 function leagueLabel(item: SportLeagueCategory): string {
-  return item.shortName || item.code;
+  const shortName = item.shortName.trim();
+  return shortName && shortName !== item.code ? shortName : item.code.toUpperCase();
 }
 
 function categoryTitle(label: string, count: number): string {

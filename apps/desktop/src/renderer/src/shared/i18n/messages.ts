@@ -157,7 +157,7 @@ export const messages = {
       league: 'League',
       allSports: 'All',
       allLeagues: 'All',
-      allEsports: 'All Esports',
+      allEsports: 'All',
       startTime: 'Start Time',
       loadMetadata: 'Load sports metadata',
       loadMetadataFailed: 'Failed to load sports metadata: {error}',
