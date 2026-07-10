@@ -18,8 +18,7 @@ const SPORTS_SORT_FIELDS = new Set([
   'volume',
   'liquidity',
   'title',
-  'start_date',
-  'end_date',
+  'start_time',
   'active',
   'closed',
   'market_count',
@@ -145,7 +144,7 @@ class SportsEventsService {
     const limit = Math.max(1, Math.min(Number(params.limit) || 50, 500));
     const offset = Math.max(0, Number(params.offset) || 0);
     const sortFieldCandidate = params.sortField || '';
-    const sortField = SPORTS_SORT_FIELDS.has(sortFieldCandidate) ? sortFieldCandidate : 'end_date';
+    const sortField = SPORTS_SORT_FIELDS.has(sortFieldCandidate) ? sortFieldCandidate : 'start_time';
     const sportId = String(params.sportId || '').trim();
 
     return {

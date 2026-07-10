@@ -17,7 +17,7 @@ const SPORTS_SORT_FIELDS = new Set([
   'volume',
   'liquidity',
   'title',
-  'end_date',
+  'start_time',
   'active',
   'closed',
   'market_count',
@@ -37,7 +37,7 @@ type SportsEventsFilters = Pick<
 
 const DEFAULT_SPORTS_FILTERS: SportsEventsFilters = {
   search: '',
-  sortField: 'end_date',
+  sortField: 'start_time',
   sortOrder: 'asc',
   cryptoCoin: '',
   cryptoMarketMode: '',

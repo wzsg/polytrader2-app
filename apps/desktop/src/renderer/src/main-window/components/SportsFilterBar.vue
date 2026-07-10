@@ -76,7 +76,7 @@ function hideBrokenIcon(event: Event): void {
           <button
             type="button"
             class="inline-flex h-9 shrink-0 items-center rounded-md border px-3 text-sm font-medium transition-colors"
-            :class="buttonClass('')"
+            :class="disciplineButtonClass('')"
             :title="allLabel"
             :aria-label="allLabel"
             :aria-pressed="selectedDiscipline === ''"

@@ -85,7 +85,7 @@ async function main() {
 
   const baseParams = {
     status: 'active',
-    sortField: 'end_date',
+    sortField: 'start_time',
     sortOrder: 'asc',
     limit: 20,
     offset: 0,

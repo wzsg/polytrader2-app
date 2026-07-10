@@ -260,6 +260,7 @@ export interface EventListItem {
   closed: boolean;
   market_count: number;
   start_date: string | null;
+  start_time: string | null;
   end_date: string | null;
   category: string;
   sportId?: string | null;
@@ -556,6 +557,7 @@ export interface GammaEventRaw {
   active?: boolean;
   closed?: boolean;
   startDate?: string | null;
+  startTime?: string | null;
   endDate?: string | null;
   category?: string;
   sportId?: string | number | null;

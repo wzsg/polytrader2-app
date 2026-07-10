@@ -29,6 +29,7 @@ interface EventRow {
   closed: number;
   market_count: number;
   start_date: string | null;
+  start_time: string | null;
   end_date: string | null;
   category: string;
   sport_id: string | null;
@@ -79,6 +80,7 @@ class SqliteEventRepository {
     'liquidity',
     'market_count',
     'start_date',
+    'start_time',
     'end_date',
     'active',
     'closed',
@@ -122,6 +124,7 @@ class SqliteEventRepository {
               closed: eventRow.closed,
               marketCount: eventRow.marketCount,
               startDate: eventRow.startDate,
+              startTime: eventRow.startTime,
               endDate: eventRow.endDate,
               category: eventRow.category,
               sportId: eventRow.sportId,
@@ -445,6 +448,7 @@ class SqliteEventRepository {
       closed: event.closed === true,
       marketCount: countOpenMarkets(eventMarkets),
       startDate: event.startDate || null,
+      startTime: event.startTime || null,
       endDate: event.endDate || null,
       category: event.category || '',
       sportId: sportId == null ? null : String(sportId),
@@ -463,13 +467,14 @@ class SqliteEventRepository {
 
     const sqlite = getSqlite();
     const existingEvent = sqlite
-      .prepare('SELECT locale, updated_at, parent_event_id, sport_id, teams FROM events WHERE id = ?')
+      .prepare('SELECT locale, updated_at, parent_event_id, sport_id, start_time, teams FROM events WHERE id = ?')
       .get(eventRow.id) as
       | {
           locale: string | null;
           updated_at: string | null;
           parent_event_id: string | null;
           sport_id: string | null;
+          start_time: string | null;
           teams: string | null;
         }
       | undefined;
@@ -477,6 +482,7 @@ class SqliteEventRepository {
     if (existingEvent.locale !== eventRow.locale) return false;
     if (existingEvent.parent_event_id !== eventRow.parentEventId) return false;
     if (existingEvent.sport_id !== eventRow.sportId) return false;
+    if (existingEvent.start_time !== eventRow.startTime) return false;
     if (existingEvent.teams !== eventRow.teams) return false;
 
     const existingMarkets = sqlite
@@ -820,6 +826,9 @@ class SqliteEventRepository {
     if (field === 'title') {
       return `ORDER BY ${col} COLLATE NOCASE ${dir}`;
     }
+    if (field === 'start_time') {
+      return `ORDER BY ${col} IS NULL ASC, ${col} ${dir}`;
+    }
     return `ORDER BY ${col} ${dir}`;
   }
 
@@ -836,6 +845,7 @@ class SqliteEventRepository {
       closed: row.closed === 1,
       market_count: row.market_count,
       start_date: row.start_date,
+      start_time: row.start_time,
       end_date: row.end_date,
       category: row.category,
       sportId: row.sport_id,
@@ -935,7 +945,7 @@ class SqliteEventRepository {
     if (!where) return '';
     if (!withAlias) return where;
     return where.replace(
-      /(?<!\.)\b(volume24hr|volume|liquidity|market_count|title|slug|active|closed|start_date|end_date|category|sport_id|featured|parent_event_id)\b/g,
+      /(?<!\.)\b(volume24hr|volume|liquidity|market_count|title|slug|active|closed|start_date|start_time|end_date|category|sport_id|featured|parent_event_id)\b/g,
       'e.$1',
     );
   }

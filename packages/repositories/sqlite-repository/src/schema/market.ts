@@ -24,6 +24,7 @@ export const events = sqliteTable(
     closed: integer('closed', { mode: 'boolean' }).notNull().default(false),
     marketCount: integer('market_count').default(0),
     startDate: text('start_date'),
+    startTime: text('start_time'),
     endDate: text('end_date'),
     category: text('category'),
     sportId: text('sport_id'),
@@ -42,6 +43,12 @@ export const events = sqliteTable(
       table.closed,
       table.parentEventId,
       table.endDate,
+    ),
+    index('idx_events_active_closed_parent_start_time').on(
+      table.active,
+      table.closed,
+      table.parentEventId,
+      table.startTime,
     ),
   ],
 );

@@ -78,6 +78,13 @@
       "when": 1783730000000,
       "tag": "0010_add_event_sport_id",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1783740000000,
+      "tag": "0011_add_event_start_time",
+      "breakpoints": true
     }
   ]
 }

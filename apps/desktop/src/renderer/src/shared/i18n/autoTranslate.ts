@@ -260,9 +260,10 @@ const exactTerms: Record<string, TranslationTerm> = {
   'sports.sportLabel': { zh: '体育项目', en: 'Sport' },
   'sports.discipline': { zh: '门类', en: 'Discipline' },
   'sports.league': { zh: '联赛', en: 'League' },
-  'sports.allSports': { zh: '全部体育', en: 'All Sports' },
-  'sports.allLeagues': { zh: '全部联赛', en: 'All Leagues' },
+  'sports.allSports': { zh: '全部', en: 'All' },
+  'sports.allLeagues': { zh: '全部', en: 'All' },
   'sports.allEsports': { zh: '全部电竞', en: 'All Esports' },
+  'sports.startTime': { zh: '开赛时间', en: 'Start Time' },
   'sports.loadMetadata': { zh: '加载体育元数据', en: 'Load sports metadata' },
   'sports.loadMetadataFailed': {
     zh: '加载体育元数据失败：{error}',
