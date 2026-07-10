@@ -14,6 +14,9 @@ function registerSetupHandlers(ipcMain: IpcMain, options: RegisterSetupHandlersO
   if (setupHandlersRegistered) return;
 
   ipcMain.handle('setup:getState', () => setupService.getCurrentSetupState());
+  ipcMain.handle('setup:validateDataDirectory', (_event, dataDirectory: string) =>
+    setupService.validateDataDirectory(dataDirectory),
+  );
   ipcMain.handle(
     'setup:chooseDataDirectory',
     async (event, defaultPath?: string): Promise<SetupDirectorySelectionResult> => {
@@ -32,9 +35,16 @@ function registerSetupHandlers(ipcMain: IpcMain, options: RegisterSetupHandlersO
       return { canceled: false, dataDirectory: result.filePaths[0] };
     },
   );
-  ipcMain.handle('setup:startInitialSetup', (_event, input: { dataDirectory: string }) =>
+  ipcMain.handle('setup:startInitialSetup', (_event, input) =>
     setupService.startInitialSetup(input),
   );
+  ipcMain.handle('setup:unlockInitialSetup', async (_event, password: string) => {
+    const result = await setupService.unlockInitialSetup(password);
+    if (result.ok && result.data.dataDirectory) {
+      await options.onSetupCompleted(result.data.dataDirectory);
+    }
+    return result;
+  });
   ipcMain.handle('setup:completeInitialSetup', async () => {
     const state = await setupService.resolveStartupState();
     if (!state.setupCompleted || !state.dataDirectory) {

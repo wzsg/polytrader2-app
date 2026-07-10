@@ -1,6 +1,7 @@
 interface R2EventSnapshotLatest {
   snapshot?: {
     key?: unknown;
+    eventCount?: unknown;
   };
 }
 

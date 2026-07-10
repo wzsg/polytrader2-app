@@ -228,6 +228,99 @@ export interface TradingAccountStatusData {
   positionsConfigured: boolean;
 }
 
+interface TradingMarketIpcApi {
+  subscribe: (
+    input: TradingWindowInput,
+    options?: TradingMarketSubscribeOptions,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  selectToken: (
+    marketId: string,
+    tokenId: string,
+    outcome?: string | null,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  loadPriceHistory: (
+    marketId: string,
+    interval?: string,
+    fidelity?: number,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  listTrades: (
+    marketId: string,
+    query: MarketTradeQuery,
+  ) => Promise<ApiResult<MarketTradeListResult>>;
+  getTradeAnalysis: (
+    marketId: string,
+    query: MarketTradeAnalysisQuery,
+  ) => Promise<ApiResult<MarketTradeAnalysisResult>>;
+  unsubscribe: (marketId: string) => Promise<void>;
+  onEvent: (callback: (event: TradingMarketEvent) => void) => () => void;
+}
+
+interface TradingStrategyIpcApi {
+  getState: (marketId: string) => Promise<ApiResult<TradingStrategyState>>;
+  selectRun: (marketId: string, runId: string) => Promise<ApiResult<TradingStrategyState>>;
+  onEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
+}
+
+interface TradingAccountIpcApi {
+  getStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
+  getData: (query?: TradingAccountDataQuery) => Promise<ApiResult<TradingRuntimeAccountState>>;
+  getOrders: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobOrder[]>>;
+  cancelOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
+  cancelOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
+  deleteFailedOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
+  cancelAllOrders: (walletId: string) => Promise<ApiResult<unknown>>;
+  getTrades: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobTrade[]>>;
+  getPositions: (query?: TradingAccountDataQuery) => Promise<ApiResult<DataPosition[]>>;
+  placeOrder: (input: ManualPlaceOrderInput) => Promise<ApiResult<unknown>>;
+  splitPosition: (
+    input: TradingAccountPositionSplitInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  mergePositions: (
+    input: TradingAccountPositionMergeInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  redeemPositions: (
+    input: TradingAccountPositionRedeemInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  onEvent: (callback: (event: TradingAccountDataEvent) => void) => () => void;
+}
+
+interface WalletIpcApi {
+  list: () => Promise<ApiResult<PolymarketWalletSummary[]>>;
+  getKeyMaterial: (id: string) => Promise<ApiResult<PolymarketWalletKeyMaterialReveal>>;
+  create: (input: PolymarketWalletCreateInput) => Promise<ApiResult<PolymarketWalletSummary>>;
+  createDerived: (
+    input: PolymarketWalletDerivedInput,
+  ) => Promise<ApiResult<PolymarketWalletSummary>>;
+  import: (input: PolymarketWalletImportInput) => Promise<ApiResult<PolymarketWalletSummary>>;
+  update: (input: PolymarketWalletUpdateInput) => Promise<ApiResult<PolymarketWalletSummary>>;
+  markKeyMaterialBackedUp: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  retryInitialization: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  setDefault: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  delete: (id: string) => Promise<ApiResult<void>>;
+  onEvent: (callback: (event: PolymarketWalletEvent) => void) => () => void;
+}
+
+interface CrossChainIpcApi {
+  listSupportedAssets: () => Promise<ApiResult<PolymarketBridgeSupportedAssetsResponse>>;
+  createDeposit: (
+    input: PolymarketBridgeDepositInput,
+  ) => Promise<ApiResult<PolymarketBridgeAddressResponse>>;
+  quoteTransfer: (
+    input: PolymarketBridgeQuoteInput,
+  ) => Promise<ApiResult<PolymarketBridgeQuoteResponse>>;
+  withdraw: (
+    input: PolymarketBridgeWithdrawalInput,
+  ) => Promise<ApiResult<PolymarketBridgeWithdrawalSubmitResult>>;
+  getTransactionStatus: (
+    address: string,
+  ) => Promise<ApiResult<PolymarketBridgeTransactionStatusResponse>>;
+  listWithdrawals: (
+    walletId?: string,
+    limit?: number,
+  ) => Promise<ApiResult<PolymarketBridgeWithdrawalRecord[]>>;
+  onWithdrawalEvent: (callback: (event: PolymarketBridgeWithdrawalEvent) => void) => () => void;
+}
+
 export interface IpcApi {
   getAuthState: () => Promise<AuthState>;
   signUpWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;
@@ -240,10 +333,19 @@ export interface IpcApi {
   getAppPreferences: () => Promise<AppPreferences>;
   setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
   setOrderConfirmationThresholdUsd: (thresholdUsd: number) => Promise<AppPreferences>;
+  setEventSyncBatchSize: (batchSize: number) => Promise<AppPreferences>;
   onPreferencesChanged: (callback: (preferences: AppPreferences) => void) => () => void;
   getSetupState: () => Promise<SetupState>;
   chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
-  startInitialSetup: (input: { dataDirectory: string }) => Promise<ApiResult<SetupState>>;
+  validateSetupDataDirectory: (dataDirectory: string) => Promise<ApiResult<SetupState>>;
+  startInitialSetup: (input: {
+    dataDirectory: string;
+    localePreference: AppLocalePreference;
+    encryptionMethod: 'keychain' | 'dpapi' | 'aes-256-gcm';
+    password?: string;
+    confirmPassword?: string;
+  }) => Promise<ApiResult<SetupState>>;
+  unlockInitialSetup: (password: string) => Promise<ApiResult<SetupState>>;
   completeInitialSetup: () => Promise<void>;
   cancelInitialSetup: () => Promise<void>;
   onSetupSyncStatus: (callback: (status: SyncStatus) => void) => () => void;
@@ -301,75 +403,9 @@ export interface IpcApi {
     interval?: string,
     fidelity?: number,
   ) => Promise<ApiResult<PriceHistoryPoint[]>>;
-  getTradingAccountStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
-  getTradingAccountData: (
-    query?: TradingAccountDataQuery,
-  ) => Promise<ApiResult<TradingRuntimeAccountState>>;
-  getTradingWalletOrders: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobOrder[]>>;
-  cancelTradingAccountOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
-  cancelTradingWalletOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
-  deleteFailedTradingAccountOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
-  cancelAllTradingWalletOrders: (walletId: string) => Promise<ApiResult<unknown>>;
-  getTradingWalletTrades: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobTrade[]>>;
-  getTradingWalletPositions: (
-    query?: TradingAccountDataQuery,
-  ) => Promise<ApiResult<DataPosition[]>>;
-  placeManualTradingAccountOrder: (input: ManualPlaceOrderInput) => Promise<ApiResult<unknown>>;
-  splitTradingAccountPosition: (
-    input: TradingAccountPositionSplitInput,
-  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
-  mergeTradingWalletPositions: (
-    input: TradingAccountPositionMergeInput,
-  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
-  redeemTradingWalletPositions: (
-    input: TradingAccountPositionRedeemInput,
-  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
-  onTradingAccountEvent: (callback: (event: TradingAccountDataEvent) => void) => () => void;
-  onPolymarketWalletEvent: (callback: (event: PolymarketWalletEvent) => void) => () => void;
-  listPolymarketWallets: () => Promise<ApiResult<PolymarketWalletSummary[]>>;
-  getPolymarketWalletKeyMaterial: (
-    id: string,
-  ) => Promise<ApiResult<PolymarketWalletKeyMaterialReveal>>;
-  createPolymarketWallet: (
-    input: PolymarketWalletCreateInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  createDerivedPolymarketWallet: (
-    input: PolymarketWalletDerivedInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  importPolymarketWallet: (
-    input: PolymarketWalletImportInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  updatePolymarketWallet: (
-    input: PolymarketWalletUpdateInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  markPolymarketWalletKeyMaterialBackedUp: (
-    id: string,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  retryPolymarketWalletInitialization: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
-  setDefaultPolymarketWallet: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
-  deletePolymarketWallet: (id: string) => Promise<ApiResult<void>>;
-  listPolymarketBridgeSupportedAssets: () => Promise<
-    ApiResult<PolymarketBridgeSupportedAssetsResponse>
-  >;
-  createPolymarketBridgeDeposit: (
-    input: PolymarketBridgeDepositInput,
-  ) => Promise<ApiResult<PolymarketBridgeAddressResponse>>;
-  quotePolymarketBridgeTransfer: (
-    input: PolymarketBridgeQuoteInput,
-  ) => Promise<ApiResult<PolymarketBridgeQuoteResponse>>;
-  withdrawPolymarketBridge: (
-    input: PolymarketBridgeWithdrawalInput,
-  ) => Promise<ApiResult<PolymarketBridgeWithdrawalSubmitResult>>;
-  getPolymarketBridgeTransactionStatus: (
-    address: string,
-  ) => Promise<ApiResult<PolymarketBridgeTransactionStatusResponse>>;
-  listPolymarketBridgeWithdrawals: (
-    walletId?: string,
-    limit?: number,
-  ) => Promise<ApiResult<PolymarketBridgeWithdrawalRecord[]>>;
-  onPolymarketBridgeWithdrawalEvent: (
-    callback: (event: PolymarketBridgeWithdrawalEvent) => void,
-  ) => () => void;
+  tradingAccount: TradingAccountIpcApi;
+  wallet: WalletIpcApi;
+  crossChain: CrossChainIpcApi;
   listStrategies: () => Promise<ApiResult<StrategyListItem[]>>;
   getStrategy: (id: string) => Promise<ApiResult<StrategyDetail>>;
   createStrategy: (input: StrategyCreateInput) => Promise<ApiResult<StrategyDetail>>;
@@ -419,38 +455,8 @@ export interface IpcApi {
   updateTradingWindowMarketScope: (marketIds: string[]) => Promise<void>;
   confirmTradingWindowClose: () => Promise<void>;
   onTradingWindowCloseRequested: (callback: () => void) => () => void;
-  subscribeTradingMarket: (
-    input: TradingWindowInput,
-    options?: TradingMarketSubscribeOptions,
-  ) => Promise<ApiResult<TradingMarketSnapshot>>;
-  getTradingMarketSnapshot: (marketId: string) => Promise<ApiResult<TradingMarketSnapshot | null>>;
-  selectTradingMarketToken: (
-    marketId: string,
-    tokenId: string,
-    outcome?: string | null,
-  ) => Promise<ApiResult<TradingMarketSnapshot>>;
-  getTradingStrategyState: (marketId: string) => Promise<ApiResult<TradingStrategyState>>;
-  selectTradingStrategyRun: (
-    marketId: string,
-    runId: string,
-  ) => Promise<ApiResult<TradingStrategyState>>;
-  getTradingStrategyActiveRun: (marketId: string) => Promise<ApiResult<StrategyRunDetail | null>>;
-  onTradingStrategyEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
-  loadTradingMarketPriceHistory: (
-    marketId: string,
-    interval?: string,
-    fidelity?: number,
-  ) => Promise<ApiResult<TradingMarketSnapshot>>;
-  listTradingMarketTrades: (
-    marketId: string,
-    query: MarketTradeQuery,
-  ) => Promise<ApiResult<MarketTradeListResult>>;
-  getTradingMarketTradeAnalysis: (
-    marketId: string,
-    query: MarketTradeAnalysisQuery,
-  ) => Promise<ApiResult<MarketTradeAnalysisResult>>;
-  unsubscribeTradingMarket: (marketId: string) => Promise<void>;
-  onTradingMarketEvent: (callback: (event: TradingMarketEvent) => void) => () => void;
+  tradingMarket: TradingMarketIpcApi;
+  tradingStrategy: TradingStrategyIpcApi;
   openBrowserWindow: () => Promise<void>;
   browserNavigate: (
     url: string,

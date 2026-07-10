@@ -2,6 +2,7 @@ import { BrowserWindow, type IpcMain } from 'electron';
 import { join } from 'path';
 import type { StrategyEditorWindowInput } from '@polytrader/shared';
 import { getWindowIcon } from './icon.js';
+import { getWindowChromeOptions } from './windowChrome.js';
 
 const strategyEditorWindows = new Map<string, BrowserWindow>();
 const strategyEditorWindowKeys = new WeakMap<BrowserWindow, string>();
@@ -73,7 +74,7 @@ export function openStrategyEditorWindow(input: StrategyEditorWindowInput): Brow
     height: 860,
     minWidth: 960,
     minHeight: 620,
-    frame: false,
+    ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
       preload: join(__dirname, '../preload/strategyEditor.cjs'),

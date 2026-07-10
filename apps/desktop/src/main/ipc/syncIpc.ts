@@ -29,6 +29,7 @@ function registerSyncHandlers(ipcMain: IpcMain, options: RegisterSyncHandlersOpt
 async function initializeEventSyncSchedule(initialTrigger: EventSyncTrigger | null): Promise<void> {
   const preferences = await appPreferencesService.getAppPreferences();
   polymarketMarketService.setEventSyncLocale(preferences.locale);
+  polymarketMarketService.setEventSyncBatchSize(preferences.eventSyncBatchSize);
   await polymarketMarketService.applySyncScheduleConfig(undefined, initialTrigger);
 }
 

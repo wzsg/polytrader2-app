@@ -138,7 +138,7 @@ const {
   configured: ordersConfigured,
   refresh: refreshOrders,
   clear: clearOrders,
-} = useTradingAccountData<ClobOrder>((query) => window.api.getTradingWalletOrders(query), {
+} = useTradingAccountData<ClobOrder>((query) => window.api.tradingAccount.getOrders(query), {
   walletId: selectedWalletId,
 });
 const {
@@ -148,7 +148,7 @@ const {
   configured: tradesConfigured,
   refresh: refreshTrades,
   clear: clearTrades,
-} = useTradingAccountData<ClobTrade>((query) => window.api.getTradingWalletTrades(query), {
+} = useTradingAccountData<ClobTrade>((query) => window.api.tradingAccount.getTrades(query), {
   walletId: selectedWalletId,
 });
 const {
@@ -158,7 +158,7 @@ const {
   configured: positionsConfigured,
   refresh: refreshPositions,
   clear: clearPositions,
-} = useTradingAccountData<DataPosition>((query) => window.api.getTradingWalletPositions(query), {
+} = useTradingAccountData<DataPosition>((query) => window.api.tradingAccount.getPositions(query), {
   statusKey: 'positionsConfigured',
   walletId: selectedWalletId,
 });
@@ -428,7 +428,7 @@ async function refreshSelectedAccountAssets(): Promise<void> {
   positionsError.value = '';
 
   try {
-    const res = await window.api.getTradingAccountData({ walletId });
+    const res = await window.api.tradingAccount.getData({ walletId });
     if (loadId !== accountAssetsLoadId || selectedWalletId.value !== walletId) return;
 
     if (!res.ok) {
@@ -631,7 +631,7 @@ async function confirmKeyMaterialReveal(): Promise<void> {
   keyMaterialLoading.value = true;
   keyMaterialError.value = '';
   try {
-    const res = await window.api.getPolymarketWalletKeyMaterial(account.id);
+    const res = await window.api.wallet.getKeyMaterial(account.id);
     if (!res.ok) throw new Error(res.error);
     keyMaterialReveal.value = res.data;
     keyMaterialConfirmOpen.value = false;
@@ -658,7 +658,7 @@ async function confirmKeyMaterialBackedUp(): Promise<void> {
   keyMaterialBackupSaving.value = true;
   keyMaterialError.value = '';
   try {
-    const res = await window.api.markPolymarketWalletKeyMaterialBackedUp(walletId);
+    const res = await window.api.wallet.markKeyMaterialBackedUp(walletId);
     if (!res.ok) throw new Error(res.error);
     await loadAccounts();
     keyMaterialBackupSaving.value = false;
@@ -761,7 +761,7 @@ function schedulePositionsRefresh(): void {
 
 onMounted(() => {
   document.addEventListener('pointerdown', handleDocumentPointerDown);
-  unsubscribeTradingAccountEvent = window.api.onTradingAccountEvent(handleTradingAccountEvent);
+  unsubscribeTradingAccountEvent = window.api.tradingAccount.onEvent(handleTradingAccountEvent);
 });
 
 onBeforeUnmount(() => {

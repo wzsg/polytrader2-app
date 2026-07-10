@@ -77,8 +77,8 @@ async function confirmCancel(): Promise<void> {
   try {
     const res =
       mode === 'delete'
-        ? await window.api.deleteFailedTradingAccountOrder(targetOrderId, props.walletId)
-        : await window.api.cancelTradingAccountOrder(targetOrderId, props.walletId);
+        ? await window.api.tradingAccount.deleteFailedOrder(targetOrderId, props.walletId)
+        : await window.api.tradingAccount.cancelOrder(targetOrderId, props.walletId);
     if (!res.ok)
       throw new Error(res.error || t('order.actionFailed', { action: orderActionLabel(target) }));
     actionTarget.value = null;

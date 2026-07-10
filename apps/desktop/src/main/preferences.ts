@@ -31,6 +31,9 @@ function registerPreferenceHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('preferences:setOrderConfirmationThresholdUsd', async (_event, input: unknown) => {
     return await appPreferencesService.setOrderConfirmationThresholdUsd(Number(input));
   });
+  ipcMain.handle('preferences:setEventSyncBatchSize', async (_event, input: unknown) => {
+    return await appPreferencesService.setEventSyncBatchSize(Number(input));
+  });
 }
 
 export { getAppPreferences, registerPreferenceHandlers };

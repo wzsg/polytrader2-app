@@ -92,6 +92,13 @@
       "when": 1783750000000,
       "tag": "0012_add_event_ended",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1783800000000,
+      "tag": "0013_add_event_sync_batch_size",
+      "breakpoints": true
     }
   ]
 }

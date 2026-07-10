@@ -27,7 +27,6 @@ interface TradingStrategyServiceOptions {
 interface TradingStrategyService {
   getState(marketId: string): Promise<TradingStrategyState>;
   selectRun(marketId: string, runId: string): Promise<TradingStrategyState>;
-  getActiveRun(marketId: string): Promise<StrategyRunDetail | null>;
   onEvent(callback: (event: TradingStrategyStateEvent) => void): () => void;
   dispose(): void;
 }
@@ -62,10 +61,6 @@ class TradingStrategyServiceImpl
     const state = await this._createState(normalizedMarketId);
     this._emitEvent(normalizedMarketId, state);
     return state;
-  }
-
-  public async getActiveRun(marketId: string): Promise<StrategyRunDetail | null> {
-    return await this._strategyHistory.getActiveByMarket(this._normalizeMarketId(marketId));
   }
 
   public onEvent(callback: (event: TradingStrategyStateEvent) => void): () => void {

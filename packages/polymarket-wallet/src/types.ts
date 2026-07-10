@@ -17,7 +17,7 @@ import type {
   PolymarketWalletUpdateInput,
   PolymarketWalletWalletKeyMaterialType,
 } from '@polytrader/shared';
-import type { ElectronSafeStorageProvider } from './security/electronWalletKeyMaterialSecurityService.js';
+import type { WalletKeyMaterialSecurityService } from './security/walletKeyMaterialSecurityService.js';
 
 type PolymarketStrategyWalletSummary = Omit<
   PolymarketWalletSummary,
@@ -116,7 +116,7 @@ interface PolymarketWalletInitializationWorkflowScheduler {
 }
 
 interface PolymarketWalletServiceOptions {
-  safeStorage: ElectronSafeStorageProvider;
+  secretStore: WalletKeyMaterialSecurityService;
   accountCredentialDeriver: PolymarketAccountCredentialDeriver;
   depositWalletDeployer: PolymarketDepositWalletDeployer;
   depositWalletApprover: PolymarketDepositWalletApprover;
@@ -249,7 +249,6 @@ interface PolymarketWalletService {
 }
 
 export type {
-  ElectronSafeStorageProvider,
   PolymarketAccountCredentialDeriver,
   PolymarketDepositWalletApprover,
   PolymarketDepositWalletApprovalInput,

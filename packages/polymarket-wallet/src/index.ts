@@ -3,7 +3,6 @@ export {
   createPolymarketWalletService,
 } from './polymarketWalletFactory.js';
 export type {
-  ElectronSafeStorageProvider,
   PolymarketAccountCredentialDeriver,
   PolymarketDepositWalletApprover,
   PolymarketDepositWalletApprovalInput,
@@ -19,3 +18,7 @@ export type {
   PolymarketWalletServiceOptions,
   PolymarketStrategyWalletSummary,
 } from './types.js';
+export { AesWalletKeyMaterialSecurityService } from './security/aesWalletKeyMaterialSecurityService.js';
+export { ElectronWalletKeyMaterialSecurityService } from './security/electronWalletKeyMaterialSecurityService.js';
+export type { ElectronSafeStorageProvider } from './security/electronWalletKeyMaterialSecurityService.js';
+export type { WalletKeyMaterialSecurityService } from './security/walletKeyMaterialSecurityService.js';

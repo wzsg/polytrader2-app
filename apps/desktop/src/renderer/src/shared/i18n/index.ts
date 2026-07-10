@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n';
 import {
   DEFAULT_LOCALE,
   DEFAULT_LOCALE_PREFERENCE,
+  DEFAULT_EVENT_SYNC_BATCH_SIZE,
   DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
   type AppLocale,
   type AppLocalePreference,
@@ -24,6 +25,7 @@ export const currentLocalePreference = ref<AppLocalePreference>(DEFAULT_LOCALE_P
 export const currentOrderConfirmationThresholdUsd = ref<number>(
   DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
 );
+export const currentEventSyncBatchSize = ref<number>(DEFAULT_EVENT_SYNC_BATCH_SIZE);
 export const currentSystemLocale = ref<string>('');
 
 export const i18n = createI18n<[MessageSchema], AppLocale>({
@@ -99,6 +101,7 @@ function setRuntimeLocale(locale: AppLocale): void {
 function applyPreferences(preferences: AppPreferences): void {
   currentLocalePreference.value = preferences.localePreference;
   currentOrderConfirmationThresholdUsd.value = preferences.orderConfirmationThresholdUsd;
+  currentEventSyncBatchSize.value = preferences.eventSyncBatchSize;
   currentSystemLocale.value = preferences.systemLocale;
   setRuntimeLocale(preferences.locale);
 }
@@ -143,6 +146,11 @@ export async function setLocalePreference(preference: AppLocalePreference): Prom
 
 export async function setOrderConfirmationThresholdUsd(thresholdUsd: number): Promise<void> {
   const preferences = await window.api.setOrderConfirmationThresholdUsd(thresholdUsd);
+  applyPreferences(preferences);
+}
+
+export async function setEventSyncBatchSize(batchSize: number): Promise<void> {
+  const preferences = await window.api.setEventSyncBatchSize(batchSize);
   applyPreferences(preferences);
 }
 

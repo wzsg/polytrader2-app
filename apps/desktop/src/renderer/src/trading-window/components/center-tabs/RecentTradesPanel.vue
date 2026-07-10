@@ -130,7 +130,7 @@ async function loadPage(offset: number, options: { append?: boolean; silent?: bo
   }
 
   try {
-    const result = await window.api.listTradingMarketTrades(props.marketId, buildQuery(offset));
+    const result = await window.api.tradingMarket.listTrades(props.marketId, buildQuery(offset));
     if (seq !== requestSeq) return;
 
     if (!result.ok) {
@@ -249,7 +249,7 @@ watch(
 );
 
 onMounted(() => {
-  unsubscribeUpdates = window.api.onTradingMarketEvent(handleRuntimeUpdate);
+  unsubscribeUpdates = window.api.tradingMarket.onEvent(handleRuntimeUpdate);
 });
 
 onUnmounted(() => {

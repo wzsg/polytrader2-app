@@ -1,6 +1,9 @@
 import type { AppPreferences } from '@polytrader/shared';
 
-type AppPreferenceChangedKey = 'localePreference' | 'orderConfirmationThresholdUsd';
+type AppPreferenceChangedKey =
+  | 'localePreference'
+  | 'orderConfirmationThresholdUsd'
+  | 'eventSyncBatchSize';
 
 interface AppPreferencesChangedEvent {
   preferences: AppPreferences;

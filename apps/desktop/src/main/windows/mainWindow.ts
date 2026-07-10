@@ -4,6 +4,7 @@ import { closeBrowserWindow } from './browserWindow.js';
 import { getWindowIcon } from './icon.js';
 import { closeAllStrategyEditorWindows } from './strategyEditorWindow.js';
 import { closeAllTradingWindows } from './tradingWindow.js';
+import { getWindowChromeOptions } from './windowChrome.js';
 
 let mainWindow: BrowserWindow | null = null;
 let mainWindowCloseConfirmed = false;
@@ -63,7 +64,7 @@ function createMainWindow(): BrowserWindow {
     icon: getWindowIcon(),
     width: 1680,
     height: 1050,
-    frame: false,
+    ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
       preload: join(__dirname, '../preload/main.cjs'),

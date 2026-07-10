@@ -28,10 +28,11 @@
     "db:migrate": "pnpm --filter @polytrader2/app run db:migrate",
     "db:push": "pnpm --filter @polytrader2/app run db:push",
     "db:studio": "pnpm --filter @polytrader2/app run db:studio",
-    "db:rebuild-local": "pnpm --filter @polytrader2/app run db:rebuild-local"
+    "db:rebuild-local": "pnpm --filter @polytrader2/app run db:rebuild-local",
+    "setup:reset": "node scripts/resetSetup.mjs"
   },
   "devDependencies": {
     "tsup": "^8.5.1",
-    "turbo": "^2.9.18"
+    "turbo": "^2.10.4"
   }
 }

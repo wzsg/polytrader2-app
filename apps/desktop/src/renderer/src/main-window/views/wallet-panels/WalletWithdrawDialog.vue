@@ -83,7 +83,7 @@ watch(
 );
 
 onMounted(() => {
-  unsubscribeWithdrawalEvent = window.api.onPolymarketBridgeWithdrawalEvent((event) => {
+  unsubscribeWithdrawalEvent = window.api.crossChain.onWithdrawalEvent((event) => {
     if (result.value?.id !== event.withdrawal.id) return;
     result.value = event.withdrawal;
     if (event.type === 'succeeded' || event.type === 'failed' || event.type === 'timed-out') {
@@ -104,7 +104,7 @@ async function load(): Promise<void> {
   result.value = null;
   copied.value = false;
   try {
-    const res = await window.api.listPolymarketBridgeSupportedAssets();
+    const res = await window.api.crossChain.listSupportedAssets();
     if (!res.ok) throw new Error(res.error);
     assets.value = res.data.supportedAssets;
     selectInitialAsset();
@@ -147,7 +147,7 @@ async function submit(): Promise<void> {
   error.value = '';
   result.value = null;
   try {
-    const res = await window.api.withdrawPolymarketBridge({
+    const res = await window.api.crossChain.withdraw({
       walletId: props.wallet.id,
       amount: amount.value,
       toChainId: selectedAsset.value.chainId,

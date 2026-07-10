@@ -23,7 +23,6 @@ import {
   type PolymarketWalletWalletKeyMaterialType,
 } from '@polytrader/shared';
 import type { ApplicationEventBus } from '@polytrader/event-bus';
-import { ElectronWalletKeyMaterialSecurityService } from './security/electronWalletKeyMaterialSecurityService.js';
 import type { WalletKeyMaterialSecurityService } from './security/walletKeyMaterialSecurityService.js';
 import type {
   PolymarketAccountCredentialDeriver,
@@ -66,7 +65,7 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
   private readonly _eventBus: ApplicationEventBus | null;
 
   public constructor(options: PolymarketWalletServiceOptions) {
-    this._secretStore = new ElectronWalletKeyMaterialSecurityService(options.safeStorage);
+    this._secretStore = options.secretStore;
     this._accountCredentialDeriver = options.accountCredentialDeriver;
     this._depositWalletDeployer = options.depositWalletDeployer;
     this._depositWalletApprover = options.depositWalletApprover;
@@ -403,6 +402,14 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
     return `${value.slice(0, 4)}...${value.slice(-4)}`;
   }
 
+  private _encryptSensitiveValue(value: string): string {
+    return value ? this._secretStore.encryptWalletKeyMaterial(value) : '';
+  }
+
+  private _decryptSensitiveValue(value: string): string {
+    return value ? this._secretStore.decryptWalletKeyMaterial(value) : '';
+  }
+
   private _walletAddressFromPrivateKey(privateKey: string): string {
     return privateKeyToAccount(this._normalizePrivateKey(privateKey)).address;
   }
@@ -602,6 +609,10 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
   }
 
   private _mapCredential(row: PolymarketWalletRecord): PolymarketWalletCredential {
+    const apiKey = this._decryptSensitiveValue(row.apiKey);
+    const secret = this._decryptSensitiveValue(row.secret);
+    const passphrase = this._decryptSensitiveValue(row.passphrase);
+    const relayerApiKey = this._decryptSensitiveValue(row.relayerApiKey);
     return {
       id: row.id,
       name: row.name,
@@ -611,11 +622,11 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
       derivationPath: row.derivationPath,
       privateKey: this._resolvePrivateKey(row),
       walletAddress: row.walletAddress,
-      apiKey: row.apiKey,
-      secret: row.secret,
-      passphrase: row.passphrase,
+      apiKey,
+      secret,
+      passphrase,
       depositWalletAddress: row.depositWalletAddress,
-      relayerApiKey: row.relayerApiKey,
+      relayerApiKey,
       signatureType: row.signatureType,
       chainId: row.chainId,
       clobHost: row.clobHost,
@@ -629,6 +640,10 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
   }
 
   private _mapSummary(row: PolymarketWalletRecord): PolymarketWalletSummary {
+    const apiKey = this._decryptSensitiveValue(row.apiKey);
+    const secret = this._decryptSensitiveValue(row.secret);
+    const passphrase = this._decryptSensitiveValue(row.passphrase);
+    const relayerApiKey = this._decryptSensitiveValue(row.relayerApiKey);
     return {
       id: row.id,
       name: row.name,
@@ -638,14 +653,14 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
       derivationPath: row.derivationPath,
       walletAddress: row.walletAddress,
       credentialsConfigured: this._credentialsConfigured(row),
-      apiKeyMasked: this._mask(row.apiKey),
-      secretMasked: this._mask(row.secret),
-      passphraseMasked: this._mask(row.passphrase),
+      apiKeyMasked: this._mask(apiKey),
+      secretMasked: this._mask(secret),
+      passphraseMasked: this._mask(passphrase),
       depositWalletAddress: row.depositWalletAddress,
       balance: row.balance,
       positionsTotalValue: row.positionsTotalValue,
       positionsInitialValue: row.positionsInitialValue,
-      relayerApiKeyMasked: this._mask(row.relayerApiKey),
+      relayerApiKeyMasked: this._mask(relayerApiKey),
       signatureType: row.signatureType,
       chainId: row.chainId,
       clobHost: row.clobHost,
@@ -687,11 +702,11 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
       name,
       creationType: 'imported',
       ...this._stripPrivateKey(walletKeyMaterialFields),
-      apiKey,
-      secret,
-      passphrase,
+      apiKey: this._encryptSensitiveValue(apiKey),
+      secret: this._encryptSensitiveValue(secret),
+      passphrase: this._encryptSensitiveValue(passphrase),
       depositWalletAddress,
-      relayerApiKey,
+      relayerApiKey: this._encryptSensitiveValue(relayerApiKey),
       signatureType: this._numberOrFallback(input.signatureType, accountCredentials.signatureType),
       chainId: this._numberOrFallback(input.chainId, accountCredentials.chainId),
       clobHost: input.clobHost?.trim() || accountCredentials.clobHost,
@@ -754,11 +769,14 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
       parentWalletId: current.parentWalletId,
       derivationPath: current.derivationPath,
       walletAddress: current.walletAddress,
-      apiKey: current.apiKey,
-      secret: current.secret,
-      passphrase: current.passphrase,
+      apiKey: this._decryptSensitiveValue(current.apiKey),
+      secret: this._decryptSensitiveValue(current.secret),
+      passphrase: this._decryptSensitiveValue(current.passphrase),
       depositWalletAddress: current.depositWalletAddress,
-      relayerApiKey: this._retainWhenBlank(input.relayerApiKey, current.relayerApiKey),
+      relayerApiKey: this._retainWhenBlank(
+        input.relayerApiKey,
+        this._decryptSensitiveValue(current.relayerApiKey),
+      ),
       signatureType: current.signatureType,
       chainId: current.chainId,
       clobHost: current.clobHost,
@@ -769,7 +787,13 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
     };
 
     this._assertCredentialsCompleteOrEmpty(normalized);
-    return normalized;
+    return {
+      ...normalized,
+      apiKey: this._encryptSensitiveValue(normalized.apiKey),
+      secret: this._encryptSensitiveValue(normalized.secret),
+      passphrase: this._encryptSensitiveValue(normalized.passphrase),
+      relayerApiKey: this._encryptSensitiveValue(normalized.relayerApiKey),
+    };
   }
 
   private async _insertPolymarketWallet(
@@ -827,9 +851,9 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
   ): Promise<PolymarketWalletRecord> {
     const previousWallet = this._mapSummary(await this._getPolymarketWalletRecord(id));
     const record = await this._repository.updateInitializationCredentials(id, {
-      apiKey: accountCredentials.apiKey,
-      secret: accountCredentials.secret,
-      passphrase: accountCredentials.passphrase,
+      apiKey: this._encryptSensitiveValue(accountCredentials.apiKey),
+      secret: this._encryptSensitiveValue(accountCredentials.secret),
+      passphrase: this._encryptSensitiveValue(accountCredentials.passphrase),
       depositWalletAddress: accountCredentials.depositWalletAddress,
       signatureType: accountCredentials.signatureType,
       chainId: accountCredentials.chainId,
@@ -886,9 +910,9 @@ class PolymarketWalletServiceImpl implements PolymarketWalletService {
   ): PolymarketAccountCredentialDerivationResult {
     return {
       walletAddress: record.walletAddress,
-      apiKey: record.apiKey,
-      secret: record.secret,
-      passphrase: record.passphrase,
+      apiKey: this._decryptSensitiveValue(record.apiKey),
+      secret: this._decryptSensitiveValue(record.secret),
+      passphrase: this._decryptSensitiveValue(record.passphrase),
       depositWalletAddress: record.depositWalletAddress,
       signatureType: record.signatureType,
       chainId: record.chainId,

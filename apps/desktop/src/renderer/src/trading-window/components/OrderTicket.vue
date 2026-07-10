@@ -232,7 +232,7 @@ async function submitOrder(): Promise<void> {
   submitting.value = true;
 
   try {
-    const result = (await window.api.placeManualTradingAccountOrder(
+    const result = (await window.api.tradingAccount.placeOrder(
       buildInput(createOrderId()),
     )) as ApiResult<unknown>;
     if (!result.ok) {

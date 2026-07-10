@@ -106,6 +106,7 @@ interface AppPreferenceRecord {
   id: string;
   localePreference: AppLocalePreference;
   orderConfirmationThresholdUsd: number;
+  eventSyncBatchSize: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -120,6 +121,7 @@ interface AppPreferenceRepository {
     thresholdUsd: number,
     updatedAt: string,
   ): Promise<AppPreferenceRecord>;
+  setEventSyncBatchSize(batchSize: number, updatedAt: string): Promise<AppPreferenceRecord>;
 }
 
 interface AccountDataRepository {

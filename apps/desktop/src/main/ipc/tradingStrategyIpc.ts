@@ -17,10 +17,6 @@ function registerTradingStrategyHandlers(ipcMain: IpcMain): void {
     'trading-strategy:selectRun',
     wrap((marketId: string, runId: string) => tradingStrategyService.selectRun(marketId, runId)),
   );
-  ipcMain.handle(
-    'trading-strategy:getActiveRun',
-    wrap((marketId: string) => tradingStrategyService.getActiveRun(marketId)),
-  );
 }
 
 export { registerTradingStrategyHandlers };

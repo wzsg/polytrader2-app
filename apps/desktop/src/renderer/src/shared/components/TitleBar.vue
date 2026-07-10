@@ -33,13 +33,15 @@ const emit = defineEmits<{
 
 const isMaximized = ref(false);
 const isPinned = ref(false);
+const isMac = navigator.userAgent.includes('Macintosh');
 const fullWindowControls = computed(() => props.windowControls === 'full');
-const showCloseControl = computed(() => props.windowControls !== 'none');
+const showCustomWindowControls = computed(() => !isMac && fullWindowControls.value);
+const showCloseControl = computed(() => !isMac && props.windowControls !== 'none');
 
 let unsubscribe: (() => void) | null = null;
 
 async function refreshMaximized() {
-  if (!fullWindowControls.value) return;
+  if (!showCustomWindowControls.value) return;
   isMaximized.value = await window.api.windowIsMaximized();
 }
 
@@ -49,12 +51,12 @@ async function refreshPinned() {
 }
 
 function minimize() {
-  if (!fullWindowControls.value) return;
+  if (!showCustomWindowControls.value) return;
   window.api.windowMinimize();
 }
 
 async function toggleMaximize() {
-  if (!fullWindowControls.value) return;
+  if (!showCustomWindowControls.value) return;
   await window.api.windowMaximize();
   await refreshMaximized();
 }
@@ -72,9 +74,9 @@ function close() {
 }
 
 onMounted(async () => {
-  if (!fullWindowControls.value) return;
+  if (props.pinnable) await refreshPinned();
+  if (!showCustomWindowControls.value) return;
   await refreshMaximized();
-  await refreshPinned();
   unsubscribe = window.api.onWindowMaximizedChanged((maximized) => {
     isMaximized.value = maximized;
   });
@@ -87,12 +89,15 @@ onUnmounted(() => {
 
 <template>
   <header
-    class="app-drag-region border-border bg-sidebar flex h-9 shrink-0 items-stretch border-b select-none"
+    class="app-drag-region border-border bg-sidebar relative flex h-9 shrink-0 items-stretch border-b select-none"
     @dblclick="toggleMaximize"
   >
-    <div class="flex min-w-0 flex-1 items-center gap-2 px-4">
+    <div
+      class="flex min-w-0 items-center gap-2"
+      :class="isMac ? 'absolute inset-x-20 h-full justify-center' : 'flex-1 px-4'"
+    >
       <img
-        v-if="iconUrl || showBrandIcon"
+        v-if="!isMac && (iconUrl || showBrandIcon)"
         :src="iconUrl || brandIconUrl"
         alt=""
         aria-hidden="true"
@@ -120,9 +125,9 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="app-no-drag flex shrink-0 items-stretch">
+    <div class="app-no-drag ml-auto flex shrink-0 items-stretch">
       <button
-        v-if="fullWindowControls && pinnable"
+        v-if="pinnable"
         type="button"
         class="inline-flex w-11 items-center justify-center transition-colors hover:bg-[#1e1e35]"
         :class="isPinned ? 'text-primary-light' : 'text-muted-light hover:text-text'"
@@ -133,7 +138,7 @@ onUnmounted(() => {
       </button>
 
       <button
-        v-if="fullWindowControls"
+        v-if="showCustomWindowControls"
         type="button"
         class="text-muted-light hover:text-text inline-flex w-11 items-center justify-center transition-colors hover:bg-[#1e1e35]"
         :title="translateUiKey('window.minimize')"
@@ -143,7 +148,7 @@ onUnmounted(() => {
       </button>
 
       <button
-        v-if="fullWindowControls"
+        v-if="showCustomWindowControls"
         type="button"
         class="text-muted-light hover:text-text inline-flex w-11 items-center justify-center transition-colors hover:bg-[#1e1e35]"
         :title="isMaximized ? translateUiKey('window.restore') : translateUiKey('window.maximize')"

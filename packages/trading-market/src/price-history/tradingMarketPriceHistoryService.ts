@@ -40,15 +40,22 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
     const localPriceHistory = await context.repository.listPriceHistory(query);
     const states = await context.repository.getSyncState(query);
     const staleTokenIds = this._staleTokenIds(states, context.priorityFidelity);
+    const incompleteTokenIds = this._incompleteTokenIds(localPriceHistory, states);
 
-    if (this._hasPriceHistory(localPriceHistory)) {
+    if (!incompleteTokenIds.length) {
       if (staleTokenIds.length) {
-        this._startRefreshTask(context, context.priorityFidelity, staleTokenIds, false);
+        this._startRefreshTask(context, context.priorityFidelity, staleTokenIds, true);
       }
       return { priceHistory: localPriceHistory, error: '' };
     }
 
-    await this._startRefreshTask(context, context.priorityFidelity, context.tokenIds, true);
+    const tokenIdsToRefresh = this._normalizeTokenIds([...staleTokenIds, ...incompleteTokenIds]);
+    await this._startRefreshTask(
+      context,
+      context.priorityFidelity,
+      tokenIdsToRefresh,
+      false,
+    );
     return {
       priceHistory: await context.repository.listPriceHistory(query),
       error: '',
@@ -58,7 +65,7 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
   public warmPriceHistoryCache(input: TradingMarketPriceHistoryWarmInput): void {
     const context = this._createContext(input);
     if (!context.tokenIds.length) return;
-    this._startRefreshTask(context, context.priorityFidelity, context.tokenIds, false);
+    this._startRefreshTask(context, context.priorityFidelity, context.tokenIds, true);
   }
 
   public stopPriceHistoryRefresh(): void {
@@ -72,7 +79,7 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
     context: TradingMarketPriceHistoryContext,
     fidelity: number,
     tokenIds: string[],
-    requireData: boolean,
+    emitUpdates: boolean,
   ): Promise<void> {
     const normalizedTokenIds = this._normalizeTokenIds(tokenIds);
     if (!normalizedTokenIds.length) return Promise.resolve();
@@ -91,7 +98,7 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
       context,
       fidelity,
       normalizedTokenIds,
-      requireData,
+      emitUpdates,
       controller.signal,
     ).finally(() => {
       if (this._refreshTasks.get(key) === task) this._refreshTasks.delete(key);
@@ -104,20 +111,15 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
     context: TradingMarketPriceHistoryContext,
     fidelity: number,
     tokenIds: string[],
-    requireData: boolean,
+    emitUpdates: boolean,
     signal: AbortSignal,
   ): Promise<void> {
     let retryDelayMs = INITIAL_RETRY_DELAY_MS;
 
     while (!signal.aborted) {
       try {
-        await this._refreshFidelity(context, fidelity, tokenIds, signal);
-        if (!requireData) return;
-
-        const priceHistory = await context.repository.listPriceHistory(
-          this._createQuery(context, fidelity, tokenIds),
-        );
-        if (this._hasPriceHistory(priceHistory)) return;
+        await this._refreshFidelity(context, fidelity, tokenIds, emitUpdates, signal);
+        return;
       } catch {
         if (signal.aborted) return;
       }
@@ -131,6 +133,7 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
     context: TradingMarketPriceHistoryContext,
     fidelity: number,
     tokenIds: string[],
+    emitUpdates: boolean,
     signal: AbortSignal,
   ): Promise<void> {
     const fetchedAt = this._now();
@@ -167,7 +170,7 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
             (pointCountByToken.get(page.tokenId) ?? 0) + points.length,
           );
         }
-        if (changedPoints.length)
+        if (emitUpdates && changedPoints.length)
           this._emitUpdated(context, fidelity, { [page.tokenId]: changedPoints });
 
         if (page.complete) {
@@ -322,6 +325,19 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
         if (!state.lastFetchedAt || state.pointCount <= 0) return true;
         const fetchedAt = new Date(state.lastFetchedAt).getTime();
         return !Number.isFinite(fetchedAt) || now - fetchedAt >= freshnessMs;
+      })
+      .map((state) => state.tokenId);
+  }
+
+  private _incompleteTokenIds(
+    priceHistory: Record<string, PriceHistoryPoint[]>,
+    states: MarketPriceHistorySyncState[],
+  ): string[] {
+    return states
+      .filter((state) => {
+        if (state.error || !state.lastFetchedAt) return true;
+        if (state.pointCount <= 0) return false;
+        return !(priceHistory[state.tokenId] ?? []).length;
       })
       .map((state) => state.tokenId);
   }

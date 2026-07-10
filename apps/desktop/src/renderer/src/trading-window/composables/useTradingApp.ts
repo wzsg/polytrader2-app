@@ -271,7 +271,7 @@ export function useTradingApp() {
 
   function unsubscribeRuntimeForMarket(id: string): void {
     if (!id) return;
-    void window.api.unsubscribeTradingMarket(id);
+    void window.api.tradingMarket.unsubscribe(id);
   }
 
   function applyParams(next: TradingWindowInput): void {
@@ -357,7 +357,7 @@ export function useTradingApp() {
     };
     writeParamsToUrl(params.value);
     if (!marketId.value) return;
-    const result = await window.api.selectTradingMarketToken(
+    const result = await window.api.tradingMarket.selectToken(
       marketId.value,
       tokenId,
       outcome?.label,
@@ -378,7 +378,7 @@ export function useTradingApp() {
   async function handleStrategyRunSelected(runId: string): Promise<void> {
     activeActivityTab.value = 'strategyLogs';
     if (!marketId.value) return;
-    const result = await window.api.selectTradingStrategyRun(marketId.value, runId);
+    const result = await window.api.tradingStrategy.selectRun(marketId.value, runId);
     if (result.ok) {
       strategyState.value = result.data;
       strategyError.value = '';
@@ -568,7 +568,7 @@ export function useTradingApp() {
     runtimeLoading.value = true;
     runtimeError.value = '';
     try {
-      const result = await window.api.subscribeTradingMarket(requestInput, {
+      const result = await window.api.tradingMarket.subscribe(requestInput, {
         loadPriceHistory: false,
       });
       if (seq !== runtimeRequestSeq) return;
@@ -592,7 +592,7 @@ export function useTradingApp() {
     strategyLoading.value = true;
     strategyError.value = '';
     try {
-      const result = await window.api.getTradingStrategyState(marketId.value);
+      const result = await window.api.tradingStrategy.getState(marketId.value);
       if (result.ok) {
         strategyState.value = result.data;
       } else {
@@ -618,7 +618,7 @@ export function useTradingApp() {
     priceHistoryLoading.value = true;
     priceHistoryError.value = '';
     try {
-      const result = await window.api.loadTradingMarketPriceHistory(
+      const result = await window.api.tradingMarket.loadPriceHistory(
         marketId.value,
         range.value,
         range.fidelity,
@@ -661,7 +661,7 @@ export function useTradingApp() {
     const seq = ++defaultMarketTradesRequestSeq;
     defaultMarketTradesInFlight = true;
     try {
-      const result = await window.api.listTradingMarketTrades(marketId.value, {
+      const result = await window.api.tradingMarket.listTrades(marketId.value, {
         marketId: marketId.value,
         conditionId: conditionId.value,
         sortField: 'time',
@@ -686,7 +686,7 @@ export function useTradingApp() {
     walletLoading.value = true;
     walletError.value = '';
     try {
-      const result = await window.api.getTradingAccountData({
+      const result = await window.api.tradingAccount.getData({
         walletId: walletId || undefined,
         conditionId: conditionId.value,
         includeBalance: true,
@@ -708,7 +708,7 @@ export function useTradingApp() {
 
   async function refreshWalletOrders(): Promise<void> {
     if (!conditionId.value || !walletState.value) return;
-    const result = await window.api.getTradingWalletOrders({
+    const result = await window.api.tradingAccount.getOrders({
       walletId: selectedPanelWalletId.value || undefined,
       conditionId: conditionId.value,
     });
@@ -727,7 +727,7 @@ export function useTradingApp() {
 
   async function refreshWalletPositions(): Promise<void> {
     if (!conditionId.value || !walletState.value) return;
-    const result = await window.api.getTradingWalletPositions({
+    const result = await window.api.tradingAccount.getPositions({
       walletId: selectedPanelWalletId.value || undefined,
       conditionId: conditionId.value,
     });
@@ -746,7 +746,7 @@ export function useTradingApp() {
 
   async function refreshWalletTrades(): Promise<void> {
     if (!conditionId.value || !walletState.value) return;
-    const result = await window.api.getTradingWalletTrades({
+    const result = await window.api.tradingAccount.getTrades({
       walletId: selectedPanelWalletId.value || undefined,
       conditionId: conditionId.value,
     });
@@ -791,7 +791,7 @@ export function useTradingApp() {
     walletActionError.value = '';
     cancelingOrderIds.value = [orderId];
     try {
-      const result = await window.api.cancelTradingAccountOrder(orderId, walletId);
+      const result = await window.api.tradingAccount.cancelOrder(orderId, walletId);
       if (!result.ok) {
         walletActionError.value = result.error;
         return;
@@ -811,7 +811,7 @@ export function useTradingApp() {
     walletActionError.value = '';
     cancelingOrderIds.value = exchangeOrderIds;
     try {
-      const result = await window.api.cancelTradingWalletOrders(exchangeOrderIds, walletId);
+      const result = await window.api.tradingAccount.cancelOrders(exchangeOrderIds, walletId);
       if (!result.ok) {
         walletActionError.value = result.error;
         return;
@@ -824,7 +824,7 @@ export function useTradingApp() {
 
   async function deleteFailedOrder(orderId: string, walletId: string): Promise<void> {
     walletActionError.value = '';
-    const result = await window.api.deleteFailedTradingAccountOrder(orderId, walletId);
+    const result = await window.api.tradingAccount.deleteFailedOrder(orderId, walletId);
     if (!result.ok) {
       walletActionError.value = result.error;
       return;
@@ -868,9 +868,9 @@ export function useTradingApp() {
     unsubscribeCloseRequested = window.api.onTradingWindowCloseRequested(() => {
       void requestTradingWindowClose();
     });
-    unsubscribeRuntime = window.api.onTradingMarketEvent(applyRuntimeEvent);
-    unsubscribeTradingStrategy = window.api.onTradingStrategyEvent(applyTradingStrategyEvent);
-    unsubscribeTradingAccount = window.api.onTradingAccountEvent(applyTradingAccountDataEvent);
+    unsubscribeRuntime = window.api.tradingMarket.onEvent(applyRuntimeEvent);
+    unsubscribeTradingStrategy = window.api.tradingStrategy.onEvent(applyTradingStrategyEvent);
+    unsubscribeTradingAccount = window.api.tradingAccount.onEvent(applyTradingAccountDataEvent);
     await ensureRuntime();
   });
 

@@ -14,7 +14,7 @@ import type { SortOrder } from './common.js';
 import type { AccountOrderStatus } from './tradingOrder.js';
 
 export type EventStatusFilter = 'all' | 'active' | 'closed';
-export type SyncState = 'idle' | 'syncing' | 'done' | 'aborted' | 'error';
+export type SyncState = 'idle' | 'syncing' | 'finalizing' | 'done' | 'aborted' | 'error';
 type EventSyncTrigger = 'startup' | 'schedule' | 'manual' | 'retry' | 'locale-change';
 export type AuthProvider = 'google' | 'github';
 export type AuthStatus = 'disabled' | 'signed-out' | 'signed-in' | 'error';
@@ -54,7 +54,9 @@ export interface UserSyncResult {
 export interface SyncStatus {
   state: SyncState;
   page?: number;
-  total?: number;
+  completedEvents?: number;
+  totalEvents?: number;
+  progressPercent?: number;
   error?: string;
 }
 
@@ -72,6 +74,13 @@ export interface SetupState {
   setupCompleted: boolean;
   dataDirectory: string | null;
   defaultDataDirectory: string;
+  localePreference: 'system' | 'en-US' | 'zh-CN';
+  systemLocale: string;
+  encryptionMethod: 'keychain' | 'dpapi' | 'aes-256-gcm' | null;
+  encryptionLocked: boolean;
+  requiresPassword: boolean;
+  availableSpaceBytes: number | null;
+  hasExistingDatabase: boolean;
   cacheStats?: CacheStats;
   syncStatus?: SyncStatus;
 }

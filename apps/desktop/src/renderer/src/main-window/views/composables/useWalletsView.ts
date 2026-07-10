@@ -174,7 +174,7 @@ export function useWalletsView() {
     loading.value = true;
     error.value = '';
     try {
-      const res = await window.api.listPolymarketWallets();
+      const res = await window.api.wallet.list();
       if (!res.ok) throw new Error(res.error);
       accounts.value = res.data;
       if (!form.name) form.isDefault = res.data.length === 0;
@@ -288,14 +288,14 @@ export function useWalletsView() {
 
   async function saveDialogAccount() {
     if (dialogMode.value === 'create') {
-      return window.api.createPolymarketWallet({
+      return window.api.wallet.create({
         name: form.name,
         isDefault: isFirstAccountDefaultLocked.value ? true : form.isDefault,
       });
     }
 
     if (dialogMode.value === 'createHd') {
-      return window.api.createPolymarketWallet({
+      return window.api.wallet.create({
         name: form.name,
         walletKeyMaterialType: 'mnemonic_seed',
         isDefault: isFirstAccountDefaultLocked.value ? true : form.isDefault,
@@ -303,7 +303,7 @@ export function useWalletsView() {
     }
 
     if (dialogMode.value === 'importPrivateKey') {
-      return window.api.importPolymarketWallet({
+      return window.api.wallet.import({
         name: form.name,
         walletKeyMaterialType: 'private_key',
         privateKey: form.privateKey,
@@ -314,7 +314,7 @@ export function useWalletsView() {
     }
 
     if (dialogMode.value === 'importMnemonic') {
-      return window.api.importPolymarketWallet({
+      return window.api.wallet.import({
         name: form.name,
         walletKeyMaterialType: 'mnemonic_seed',
         mnemonic: form.mnemonic,
@@ -326,7 +326,7 @@ export function useWalletsView() {
 
     if (dialogMode.value === 'derive') {
       if (!derivingParentWalletId.value) throw new Error('Select an HD wallet to derive from');
-      return window.api.createDerivedPolymarketWallet({
+      return window.api.wallet.createDerived({
         parentWalletId: derivingParentWalletId.value,
         name: form.name,
         isDefault: isFirstAccountDefaultLocked.value ? true : form.isDefault,
@@ -341,14 +341,14 @@ export function useWalletsView() {
         relayerApiKey: form.relayerApiKey,
         isDefault: form.isDefault,
       };
-      return window.api.updatePolymarketWallet(input);
+      return window.api.wallet.update(input);
     }
 
-    return window.api.importPolymarketWallet({ ...form });
+    return window.api.wallet.import({ ...form });
   }
 
   async function setDefault(id: string): Promise<void> {
-    const res = await window.api.setDefaultPolymarketWallet(id);
+    const res = await window.api.wallet.setDefault(id);
     if (!res.ok) {
       error.value = res.error;
       return;
@@ -358,7 +358,7 @@ export function useWalletsView() {
 
   async function retryInitialization(id: string): Promise<void> {
     error.value = '';
-    const res = await window.api.retryPolymarketWalletInitialization(id);
+    const res = await window.api.wallet.retryInitialization(id);
     if (!res.ok) {
       error.value = res.error;
       return;
@@ -383,7 +383,7 @@ export function useWalletsView() {
     if (!deletingWallet.value) return;
     deleting.value = true;
     deleteConfirmError.value = '';
-    const res = await window.api.deletePolymarketWallet(deletingWallet.value.id);
+    const res = await window.api.wallet.delete(deletingWallet.value.id);
     if (!res.ok) {
       deleteConfirmError.value = res.error;
       deleting.value = false;
@@ -455,7 +455,7 @@ export function useWalletsView() {
 
   onMounted(() => {
     void loadAccounts();
-    unsubscribeWalletEvent = window.api.onPolymarketWalletEvent(() => {
+    unsubscribeWalletEvent = window.api.wallet.onEvent(() => {
       void loadAccounts();
     });
   });

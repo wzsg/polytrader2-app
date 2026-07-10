@@ -120,6 +120,10 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     this._eventSyncScheduler.setLocale(locale);
   }
 
+  public setEventSyncBatchSize(batchSize: number): void {
+    this._eventSyncService.setBatchSize(batchSize);
+  }
+
   public setCategoryConfigLocale(locale: AppLocale): boolean {
     if (this._categoryConfigLocale === locale) return false;
     this._categoryConfigLocale = locale;

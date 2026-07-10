@@ -34,5 +34,19 @@ http://docs.polymarket.com/llms.txt
 - 加载状态不得使用可见文字；需要无障碍说明时，使用本地化后的 `title` / `aria-label`，视觉上仍使用统一旋转图标。
 - 完成涉及文案的修改后，必须用 `rg -n "[\p{Han}]" apps packages -S --glob "*.ts" --glob "*.vue" --glob "!**/shared/i18n/messages.ts" --glob "!**/shared/i18n/autoTranslate.ts"` 检查是否有中文硬编码残留；若存在残留，必须确认它是数据常量、测试样例或其他非用户文案，否则应迁入 i18n 资源。
 
+## Electron 烟测
+
+- 涉及 `better-sqlite3`、SQLite worker、Electron 主进程服务或其他原生依赖的烟测，必须通过桌面端 Electron 运行时执行；不要直接用系统 `node` 或 `pnpm exec tsx` 运行。系统 Node 与 Electron 的 Node ABI 可能不同，直接运行会出现 `NODE_MODULE_VERSION` 不匹配，测试结果也不代表桌面端实际运行环境。
+- 统一使用 `apps/desktop/scripts/run-electron-node.mjs` 启动脚本：在 `apps/desktop/package.json` 增加 `smoke:*` 命令，形式为 `node scripts/run-electron-node.mjs scripts/<name>.mjs`；从仓库根目录运行 `pnpm.cmd --filter @polytrader2/app run smoke:<name>`。
+- 需要测试 SQLite 写入、迁移或数据变换时，脚本必须创建独立临时 `userDataPath`，调用 `initDb({ userDataPath, migrationsFolder })`，并始终在 `finally` 中执行 `closeDb()` 和删除临时目录。不得在性能烟测中写入默认应用数据库。
+- 性能对比必须让各方案使用相同快照、相同 SQLite schema、相同数据量，并分别使用独立临时数据库；报告事件数、关联市场数、批次数、数据体积、下载时间、写入时间和端到端总耗时。
+- 比较“流式下载 + 分批写入”和“完整下载 + 单次写入”时，流式方案应在每页到达后立即 `bulkUpsert`，单次方案应先收集完整快照后只调用一次 `bulkUpsert`。除了总耗时，还要说明完整快照的内存占用、跨 SQLite worker 传输开销、长事务写锁和失败后全量重做风险。
+- 已有事件同步写入基准脚本为 `apps/desktop/scripts/event-sync-write-benchmark.mjs`，运行命令：`pnpm.cmd --filter @polytrader2/app run smoke:event-sync-write`。
+
 注意事项
-1、本项目的sqlite 数据库文件路径为 %USERPROFILE%\AppData\Roaming\polytrader2\polytrader2.db
+1、本项目默认数据目录：
+  - Windows：`%APPDATA%\Polytrader2\data`，通常等价于 `%USERPROFILE%\AppData\Roaming\Polytrader2\data`
+  - macOS：`~/Library/Application Support/Polytrader2/data`
+2、默认 SQLite 数据库文件路径：
+  - Windows：`%APPDATA%\Polytrader2\data\polytrader2.db`
+  - macOS：`~/Library/Application Support/Polytrader2/data/polytrader2.db`

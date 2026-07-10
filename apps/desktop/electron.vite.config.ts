@@ -2,9 +2,8 @@ import { cpSync, existsSync, readFileSync, rmSync } from 'fs';
 import { defineConfig } from 'electron-vite';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
-import { loadEnv } from 'vite';
+import { loadEnv, type Plugin } from 'vite';
 import { resolve } from 'path';
-import type { Plugin } from 'rollup';
 
 const packageJson = JSON.parse(readFileSync(resolve('package.json'), 'utf-8')) as {
   version: string;

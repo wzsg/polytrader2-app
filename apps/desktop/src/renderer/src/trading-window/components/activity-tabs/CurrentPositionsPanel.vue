@@ -271,7 +271,7 @@ async function submitSplitPosition(): Promise<void> {
   splitSubmitting.value = true;
   try {
     const walletId = selectedAccount.value?.id ?? '';
-    const result = await window.api.splitTradingAccountPosition({
+    const result = await window.api.tradingAccount.splitPosition({
       walletId,
       conditionId: props.conditionId,
       amount: splitAmount.value,
@@ -316,7 +316,7 @@ async function submitMergePositions(): Promise<void> {
   mergeSubmitting.value = true;
   try {
     const walletId = selectedAccount.value?.id ?? '';
-    const result = await window.api.mergeTradingWalletPositions({
+    const result = await window.api.tradingAccount.mergePositions({
       walletId,
       conditionId: props.conditionId,
       amount: mergeAmount.value,

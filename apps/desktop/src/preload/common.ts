@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { IpcApi } from '@polytrader/shared';
-import type { MarketTradeSyncStatus, TradingAccountDataEvent } from '@polytrader/shared';
+import type {
+  MarketTradeSyncStatus,
+  PolymarketBridgeWithdrawalEvent,
+  PolymarketWalletEvent,
+  TradingAccountDataEvent,
+} from '@polytrader/shared';
 
 export const windowApi: Pick<
   IpcApi,
@@ -30,6 +35,7 @@ export const preferenceApi: Pick<
   | 'getAppPreferences'
   | 'setLocalePreference'
   | 'setOrderConfirmationThresholdUsd'
+  | 'setEventSyncBatchSize'
   | 'onPreferencesChanged'
 > = {
   getAppPreferences: () => ipcRenderer.invoke('preferences:get'),
@@ -37,6 +43,8 @@ export const preferenceApi: Pick<
     ipcRenderer.invoke('preferences:setLocalePreference', preference),
   setOrderConfirmationThresholdUsd: (thresholdUsd) =>
     ipcRenderer.invoke('preferences:setOrderConfirmationThresholdUsd', thresholdUsd),
+  setEventSyncBatchSize: (batchSize) =>
+    ipcRenderer.invoke('preferences:setEventSyncBatchSize', batchSize),
   onPreferencesChanged: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, preferences: unknown) =>
       callback(preferences as Parameters<typeof callback>[0]);
@@ -72,51 +80,81 @@ export const marketDataApi: Pick<
     ipcRenderer.invoke('api:fetchPriceHistory', tokenId, interval, fidelity),
 };
 
-export const tradingReadApi: Pick<
-  IpcApi,
-  | 'getTradingAccountStatus'
-  | 'getTradingAccountData'
-  | 'getTradingWalletOrders'
-  | 'cancelTradingAccountOrder'
-  | 'cancelTradingWalletOrders'
-  | 'deleteFailedTradingAccountOrder'
-  | 'cancelAllTradingWalletOrders'
-  | 'getTradingWalletTrades'
-  | 'getTradingWalletPositions'
-  | 'splitTradingAccountPosition'
-  | 'mergeTradingWalletPositions'
-  | 'redeemTradingWalletPositions'
-  | 'onTradingAccountEvent'
-  | 'listPolymarketWallets'
-> = {
-  getTradingAccountStatus: (walletId) => ipcRenderer.invoke('trading-account:getStatus', walletId),
-  getTradingAccountData: (query) => ipcRenderer.invoke('trading-account:queryAccount', query),
-  getTradingWalletOrders: (query) => ipcRenderer.invoke('trading-account:queryOrders', query),
-  cancelTradingAccountOrder: (id, walletId) =>
-    ipcRenderer.invoke('trading-account:cancelOrder', id, walletId),
-  cancelTradingWalletOrders: (ids, walletId) =>
-    ipcRenderer.invoke('trading-account:cancelOrders', ids, walletId),
-  deleteFailedTradingAccountOrder: (id, walletId) =>
-    ipcRenderer.invoke('trading-account:deleteFailedOrder', id, walletId),
-  cancelAllTradingWalletOrders: (walletId) =>
-    ipcRenderer.invoke('trading-account:cancelAll', walletId),
-  getTradingWalletTrades: (query) => ipcRenderer.invoke('trading-account:queryTrades', query),
-  getTradingWalletPositions: (query) => ipcRenderer.invoke('trading-account:queryPositions', query),
-  splitTradingAccountPosition: (input) =>
-    ipcRenderer.invoke('trading-account:splitPosition', input),
-  mergeTradingWalletPositions: (input) =>
-    ipcRenderer.invoke('trading-account:mergePositions', input),
-  redeemTradingWalletPositions: (input) =>
-    ipcRenderer.invoke('trading-account:redeemPositions', input),
-  onTradingAccountEvent: (callback) => {
-    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
-      callback(input as TradingAccountDataEvent);
-    ipcRenderer.on('trading-account:event', listener);
-    return () => ipcRenderer.removeListener('trading-account:event', listener);
+export const tradingAccountApi: Pick<IpcApi, 'tradingAccount'> = {
+  tradingAccount: {
+    getStatus: (walletId) => ipcRenderer.invoke('trading-account:getStatus', walletId),
+    getData: (query) => ipcRenderer.invoke('trading-account:queryAccount', query),
+    getOrders: (query) => ipcRenderer.invoke('trading-account:queryOrders', query),
+    cancelOrder: (id, walletId) => ipcRenderer.invoke('trading-account:cancelOrder', id, walletId),
+    cancelOrders: (ids, walletId) =>
+      ipcRenderer.invoke('trading-account:cancelOrders', ids, walletId),
+    deleteFailedOrder: (id, walletId) =>
+      ipcRenderer.invoke('trading-account:deleteFailedOrder', id, walletId),
+    cancelAllOrders: (walletId) => ipcRenderer.invoke('trading-account:cancelAll', walletId),
+    getTrades: (query) => ipcRenderer.invoke('trading-account:queryTrades', query),
+    getPositions: (query) => ipcRenderer.invoke('trading-account:queryPositions', query),
+    placeOrder: (input) => ipcRenderer.invoke('trading-account:placeManualOrder', input),
+    splitPosition: (input) => ipcRenderer.invoke('trading-account:splitPosition', input),
+    mergePositions: (input) => ipcRenderer.invoke('trading-account:mergePositions', input),
+    redeemPositions: (input) => ipcRenderer.invoke('trading-account:redeemPositions', input),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as TradingAccountDataEvent);
+      ipcRenderer.on('trading-account:event', listener);
+      return () => ipcRenderer.removeListener('trading-account:event', listener);
+    },
   },
-  listPolymarketWallets: () => ipcRenderer.invoke('wallets:list'),
 };
 
-export function exposeApi(api: Partial<IpcApi>): void {
+export const walletApi: Pick<IpcApi, 'wallet'> = {
+  wallet: {
+    list: () => ipcRenderer.invoke('wallets:list'),
+    getKeyMaterial: (id) => ipcRenderer.invoke('wallets:getKeyMaterial', id),
+    create: (input) => ipcRenderer.invoke('wallets:create', input),
+    createDerived: (input) => ipcRenderer.invoke('wallets:createDerived', input),
+    import: (input) => ipcRenderer.invoke('wallets:import', input),
+    update: (input) => ipcRenderer.invoke('wallets:update', input),
+    markKeyMaterialBackedUp: (id) => ipcRenderer.invoke('wallets:markKeyMaterialBackedUp', id),
+    retryInitialization: (id) => ipcRenderer.invoke('wallets:retryInitialization', id),
+    setDefault: (id) => ipcRenderer.invoke('wallets:setDefault', id),
+    delete: (id) => ipcRenderer.invoke('wallets:delete', id),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as PolymarketWalletEvent);
+      ipcRenderer.on('wallets:event', listener);
+      return () => ipcRenderer.removeListener('wallets:event', listener);
+    },
+  },
+};
+
+export const walletReadApi = {
+  wallet: {
+    list: () => ipcRenderer.invoke('wallets:list'),
+  },
+} satisfies { wallet: Pick<IpcApi['wallet'], 'list'> };
+
+export const crossChainApi: Pick<IpcApi, 'crossChain'> = {
+  crossChain: {
+    listSupportedAssets: () => ipcRenderer.invoke('bridge:listSupportedAssets'),
+    createDeposit: (input) => ipcRenderer.invoke('bridge:createDeposit', input),
+    quoteTransfer: (input) => ipcRenderer.invoke('bridge:quote', input),
+    withdraw: (input) => ipcRenderer.invoke('bridge:withdraw', input),
+    getTransactionStatus: (address) => ipcRenderer.invoke('bridge:getTransactionStatus', address),
+    listWithdrawals: (walletId, limit) =>
+      ipcRenderer.invoke('bridge:listWithdrawals', walletId, limit),
+    onWithdrawalEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as PolymarketBridgeWithdrawalEvent);
+      ipcRenderer.on('bridge:withdrawal-event', listener);
+      return () => ipcRenderer.removeListener('bridge:withdrawal-event', listener);
+    },
+  },
+};
+
+type IpcApiExposure = Omit<Partial<IpcApi>, 'wallet'> & {
+  wallet?: Partial<IpcApi['wallet']>;
+};
+
+export function exposeApi(api: IpcApiExposure): void {
   contextBridge.exposeInMainWorld('api', api);
 }

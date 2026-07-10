@@ -7,12 +7,14 @@ interface GammaEventKeysetResponse {
 
 interface GammaStreamPage {
   events: GammaEventRaw[];
+  totalEvents?: number;
   nextCursor?: string;
   ids?: string[];
 }
 
 interface GammaStreamPagePayload {
   events?: GammaEventRaw[];
+  totalEvents?: number;
   nextCursor?: string;
   ids?: string[];
 }

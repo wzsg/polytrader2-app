@@ -142,7 +142,7 @@ async function loadAnalysis(options: { silent?: boolean } = {}): Promise<void> {
   if (!options.silent) loading.value = true;
   error.value = '';
   try {
-    const result = await window.api.getTradingMarketTradeAnalysis(props.marketId, buildQuery());
+    const result = await window.api.tradingMarket.getTradeAnalysis(props.marketId, buildQuery());
     if (seq !== requestSeq) return;
     if (!result.ok) {
       error.value = result.error;
@@ -411,7 +411,7 @@ watch(
 watch([range, bucket, timeFrom, timeTo], scheduleReload);
 
 onMounted(() => {
-  unsubscribeUpdates = window.api.onTradingMarketEvent(handleRuntimeUpdate);
+  unsubscribeUpdates = window.api.tradingMarket.onEvent(handleRuntimeUpdate);
   void nextTick(() => {
     initVolumeChart();
     if (volumeChartEl.value) {
