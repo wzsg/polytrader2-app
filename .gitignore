@@ -18,4 +18,5 @@ docs/assets/*
 !docs/assets/screenshots/*.png
 !docs/build-from-source.md
 !docs/build-from-source.zh-CN.md
-scripts/
+scripts/*
+!scripts/resetSetup.mjs
