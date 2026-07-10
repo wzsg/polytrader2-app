@@ -7,6 +7,7 @@ import type {
   TradingWindowInput,
 } from '@polytrader/shared';
 import { getWindowIcon } from './icon.js';
+import { getWindowChromeOptions } from './windowChrome.js';
 
 const tradingWindows = new Map<string, BrowserWindow>();
 const tradingWindowKeys = new WeakMap<BrowserWindow, string>();
@@ -147,7 +148,7 @@ export function openTradingWindow(input: TradingWindowInput): BrowserWindow {
     height: 1050,
     minWidth: 1100,
     minHeight: 680,
-    frame: false,
+    ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
       preload: join(__dirname, '../preload/trading.cjs'),

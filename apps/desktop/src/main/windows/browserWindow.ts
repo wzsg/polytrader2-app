@@ -35,6 +35,7 @@ import {
   type ProviderApproval,
 } from '../browser/provider.js';
 import { getWindowIcon } from './icon.js';
+import { getWindowChromeOptions } from './windowChrome.js';
 
 const DEFAULT_BROWSER_URL = POLYMARKET_WEB_URL;
 const BROWSER_SESSION_PARTITION = 'persist:polytrader2-browser';
@@ -388,7 +389,7 @@ function openBrowserModal(payload: BrowserModalPayload): BrowserWindow {
     parent: browserWindow,
     modal: false,
     show: false,
-    frame: false,
+    ...getWindowChromeOptions(),
     skipTaskbar: true,
     width: 520,
     height: payload.kind === 'provider-request' && payload.request.message ? 520 : 360,
@@ -499,7 +500,7 @@ function openBrowserWindow(): BrowserWindow {
     height: 860,
     minWidth: 960,
     minHeight: 640,
-    frame: false,
+    ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
       preload: join(__dirname, '../preload/browserShell.cjs'),

@@ -1,10 +1,13 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { join } from 'path';
 import { getWindowIcon } from './icon.js';
+import { getWindowChromeOptions } from './windowChrome.js';
 
 let setupWindow: BrowserWindow | null = null;
+let setupWindowCloseConfirmed = false;
 
 function createSetupWindow(): BrowserWindow {
+  setupWindowCloseConfirmed = false;
   setupWindow = new BrowserWindow({
     title: 'Polytrader2 Setup',
     icon: getWindowIcon(),
@@ -12,7 +15,7 @@ function createSetupWindow(): BrowserWindow {
     height: 640,
     minWidth: 820,
     minHeight: 580,
-    frame: false,
+    ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
       preload: join(__dirname, '../preload/setup.cjs'),
@@ -22,6 +25,12 @@ function createSetupWindow(): BrowserWindow {
     },
   });
 
+  setupWindow.on('close', () => {
+    if (setupWindowCloseConfirmed) return;
+
+    setupWindowCloseConfirmed = true;
+    app.quit();
+  });
   setupWindow.on('closed', () => {
     setupWindow = null;
   });
@@ -37,6 +46,7 @@ function createSetupWindow(): BrowserWindow {
 
 function closeSetupWindow(): void {
   if (!setupWindow || setupWindow.isDestroyed()) return;
+  setupWindowCloseConfirmed = true;
   setupWindow.close();
   setupWindow = null;
 }

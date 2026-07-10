@@ -10,6 +10,7 @@ const payload = ref<BrowserModalPayload | null>(null);
 const error = ref('');
 const disconnectingWallet = ref(false);
 const { t } = useI18n();
+const isMac = navigator.userAgent.includes('Macintosh');
 const modalTitle = computed(() => {
   const current = payload.value;
   if (!current) return 'Polytrader2';
@@ -55,10 +56,14 @@ onMounted(async () => {
     <header
       class="app-drag-region border-border bg-sidebar flex h-9 shrink-0 items-center justify-between border-b"
     >
-      <div class="text-muted-light min-w-0 px-3 text-xs font-medium">
+      <div
+        class="text-muted-light min-w-0 pr-3 text-xs font-medium"
+        :class="isMac ? 'pl-20' : 'pl-3'"
+      >
         <span class="block truncate">{{ modalTitle }}</span>
       </div>
       <button
+        v-if="!isMac"
         type="button"
         class="app-no-drag text-muted-light hover:bg-danger hover:text-text inline-flex h-9 w-11 items-center justify-center transition-colors"
         :title="t('common.close')"
