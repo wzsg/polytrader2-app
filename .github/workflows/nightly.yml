@@ -136,7 +136,7 @@ jobs:
           pnpm --filter @polytrader2/app run dist:win:app
 
       - name: Upload Windows nightly assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-nightly-assets
           path: |
@@ -221,7 +221,7 @@ jobs:
         run: pnpm --filter @polytrader2/app run dist:mac:notarized:app
 
       - name: Upload macOS nightly assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos-nightly-assets
           path: |
@@ -239,7 +239,7 @@ jobs:
 
     steps:
       - name: Download nightly assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
           merge-multiple: true
