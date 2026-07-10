@@ -1,8 +1,8 @@
-import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import type { EventListItem, Filters, SortOrder } from '@polytrader/shared';
-import type { SportDisciplineCategory } from '@polytrader/shared';
+import type { SportDisciplineCategory, SportsCategoryConfig } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
-import { clearSportsCategoryMetadataCache, fetchSportsCategoryConfigOnce } from './sportsMetadata';
+import { useSportsCategory } from './useSportsCategory';
 import { useWatchlist } from './useWatchlist';
 
 const PAGE_SIZE = 50;
@@ -46,6 +46,7 @@ const DEFAULT_SPORTS_FILTERS: SportsEventsFilters = {
 
 function useSportsEvents() {
   const { refreshWatchlistEventIds, toggleWatchlist, isInWatchlist } = useWatchlist();
+  const sportsCategory = useSportsCategory();
 
   const filters = reactive({ ...DEFAULT_SPORTS_FILTERS });
   const disciplines = ref<SportDisciplineCategory[]>([]);
@@ -55,22 +56,13 @@ function useSportsEvents() {
   const totalCount = ref(0);
   const activeCount = ref(0);
   const loading = ref(false);
-  const metadataLoading = ref(false);
   const error = ref('');
-  const metadataError = ref('');
+  const visibleCountsError = ref('');
+  const metadataLoading = computed(() => sportsCategory.loading.value);
+  const metadataError = computed(() => sportsCategory.error.value || visibleCountsError.value);
 
   let ready = false;
-
-  const unsubscribeCategoryConfigChanged = window.api.onCategoryConfigChanged((event) => {
-    if (!event.scopes.includes('sports')) return;
-    clearSportsCategoryMetadataCache();
-    if (!ready) return;
-    void loadMetadata().then(() => onFiltersChanged());
-  });
-
-  onScopeDispose(() => {
-    unsubscribeCategoryConfigChanged();
-  });
+  let appliedCategoryConfig: SportsCategoryConfig | null = null;
 
   const availableDisciplines = computed(() =>
     disciplines.value
@@ -94,6 +86,14 @@ function useSportsEvents() {
     translateUiKey('page.indicator', { current: currentPage.value, total: totalPages.value }),
   );
 
+  watch(
+    () => sportsCategory.config.value,
+    (config) => {
+      if (!ready || !config || config === appliedCategoryConfig) return;
+      void loadMetadataForConfig(config).then(() => onFiltersChanged());
+    },
+  );
+
   async function loadPersistedFilters(): Promise<void> {
     const saved = await window.api.loadFilters();
     if (!saved) return;
@@ -110,16 +110,22 @@ function useSportsEvents() {
   }
 
   async function loadMetadata(): Promise<void> {
-    metadataLoading.value = true;
-    metadataError.value = '';
+    const config = await sportsCategory.loadCategory();
+    if (!config) return;
+
+    await loadMetadataForConfig(config);
+  }
+
+  async function loadMetadataForConfig(config: SportsCategoryConfig): Promise<void> {
+    appliedCategoryConfig = config;
+    visibleCountsError.value = '';
+    disciplines.value = config.disciplines;
+    validateSelection();
     try {
-      const config = await fetchSportsCategoryConfigOnce();
       disciplines.value = await loadVisibleEventCounts(config.disciplines);
       validateSelection();
     } catch (err) {
-      metadataError.value = err instanceof Error ? err.message : String(err);
-    } finally {
-      metadataLoading.value = false;
+      visibleCountsError.value = err instanceof Error ? err.message : String(err);
     }
   }
 
@@ -135,13 +141,19 @@ function useSportsEvents() {
     return Promise.all(
       categoryDisciplines.map(async (discipline) => {
         const leagues = await Promise.all(
-          discipline.leagues.map(async (league) => ({
-            ...league,
-            openEventCount: await window.api.countEvents({
-              ...baseParams,
-              sportId: league.id,
-            }),
-          })),
+          discipline.leagues.map(async (league) => {
+            try {
+              return {
+                ...league,
+                openEventCount: await window.api.countEvents({
+                  ...baseParams,
+                  sportId: league.id,
+                }),
+              };
+            } catch {
+              return league;
+            }
+          }),
         );
 
         return {
