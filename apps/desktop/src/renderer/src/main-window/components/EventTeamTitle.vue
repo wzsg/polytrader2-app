@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleHelp } from '@lucide/vue';
 import type { EventTeam } from '@polytrader/shared';
 
 defineProps<{
@@ -23,7 +24,14 @@ function logoClass(size?: 'sm' | 'md'): string {
       <span v-if="index > 0" class="text-muted shrink-0 text-[11px] font-medium" aria-hidden="true">
         vs.
       </span>
-      <img :src="team.logo" :alt="team.name" loading="lazy" :class="logoClass(logoSize)" />
+      <img
+        v-if="team.logo"
+        :src="team.logo"
+        :alt="team.name"
+        loading="lazy"
+        :class="logoClass(logoSize)"
+      />
+      <CircleHelp v-else :size="20" class="text-muted shrink-0" aria-hidden="true" />
       <span class="truncate">{{ team.name }}</span>
     </span>
   </span>

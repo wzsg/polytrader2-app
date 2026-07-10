@@ -576,7 +576,7 @@ class SqliteEventRepository {
     const row = value as Record<string, unknown>;
     const name = String(row.name || '').trim();
     const logo = String(row.logo || '').trim();
-    if (!name || !logo) return null;
+    if (!name) return null;
     const team: {
       name: string;
       logo: string;
