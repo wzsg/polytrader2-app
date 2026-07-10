@@ -48,7 +48,8 @@ app.on('before-quit', () => {
 async function startApp(): Promise<void> {
   prepareElectronApp();
   registerSetupHandlers(ipcMain, {
-    onSetupCompleted: async () => {
+    onSetupCompleted: async (dataDirectory) => {
+      app.setPath('userData', dataDirectory);
       await bootstrapApp({ initialEventSync: false });
       closeSetupWindow();
     },
@@ -60,6 +61,12 @@ async function startApp(): Promise<void> {
     return;
   }
 
+  if (setupState.requiresPassword) {
+    createSetupWindow();
+    return;
+  }
+
   app.setPath('userData', setupState.dataDirectory);
+  await setupService.configureStartupEncryption();
   await bootstrapApp();
 }

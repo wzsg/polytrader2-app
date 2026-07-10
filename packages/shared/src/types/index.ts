@@ -72,6 +72,13 @@ export interface SetupState {
   setupCompleted: boolean;
   dataDirectory: string | null;
   defaultDataDirectory: string;
+  localePreference: 'system' | 'en-US' | 'zh-CN';
+  systemLocale: string;
+  encryptionMethod: 'keychain' | 'dpapi' | 'aes-256-gcm' | null;
+  encryptionLocked: boolean;
+  requiresPassword: boolean;
+  availableSpaceBytes: number | null;
+  hasExistingDatabase: boolean;
   cacheStats?: CacheStats;
   syncStatus?: SyncStatus;
 }

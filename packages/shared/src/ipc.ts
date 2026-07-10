@@ -243,7 +243,15 @@ export interface IpcApi {
   onPreferencesChanged: (callback: (preferences: AppPreferences) => void) => () => void;
   getSetupState: () => Promise<SetupState>;
   chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
-  startInitialSetup: (input: { dataDirectory: string }) => Promise<ApiResult<SetupState>>;
+  validateSetupDataDirectory: (dataDirectory: string) => Promise<ApiResult<SetupState>>;
+  startInitialSetup: (input: {
+    dataDirectory: string;
+    localePreference: AppLocalePreference;
+    encryptionMethod: 'keychain' | 'dpapi' | 'aes-256-gcm';
+    password?: string;
+    confirmPassword?: string;
+  }) => Promise<ApiResult<SetupState>>;
+  unlockInitialSetup: (password: string) => Promise<ApiResult<SetupState>>;
   completeInitialSetup: () => Promise<void>;
   cancelInitialSetup: () => Promise<void>;
   onSetupSyncStatus: (callback: (status: SyncStatus) => void) => () => void;

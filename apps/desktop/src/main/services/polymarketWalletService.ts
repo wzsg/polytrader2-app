@@ -1,20 +1,14 @@
 import { PolymarketApiClient } from '@polytrader/polymarket-api';
 import { createSqlitePolymarketWalletRepository } from '@polytrader/sqlite-repository';
 import { createPolymarketWalletService } from '@polytrader/polymarket-wallet';
-import electron from 'electron';
 import { applicationEventBus } from './applicationEventBus.js';
 import { desktopWorkflowService } from './workflowService.js';
-
-const { safeStorage } = electron;
+import { walletEncryptionService } from './walletEncryptionService.js';
 
 const polymarketApiClient = PolymarketApiClient.getInstance();
 
 const polymarketWalletService = createPolymarketWalletService({
-  safeStorage: {
-    isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
-    encryptString: (value) => safeStorage.encryptString(value),
-    decryptString: (encrypted) => safeStorage.decryptString(encrypted),
-  },
+  secretStore: walletEncryptionService,
   accountCredentialDeriver: polymarketApiClient,
   depositWalletDeployer: polymarketApiClient,
   depositWalletApprover: polymarketApiClient,

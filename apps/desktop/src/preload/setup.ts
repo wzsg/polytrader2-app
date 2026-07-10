@@ -4,9 +4,12 @@ import { exposeApi, windowApi } from './common.js';
 
 const setupApi = {
   getSetupState: () => ipcRenderer.invoke('setup:getState'),
+  validateSetupDataDirectory: (dataDirectory) =>
+    ipcRenderer.invoke('setup:validateDataDirectory', dataDirectory),
   chooseSetupDataDirectory: (defaultPath) =>
     ipcRenderer.invoke('setup:chooseDataDirectory', defaultPath),
   startInitialSetup: (input) => ipcRenderer.invoke('setup:startInitialSetup', input),
+  unlockInitialSetup: (password) => ipcRenderer.invoke('setup:unlockInitialSetup', password),
   completeInitialSetup: () => ipcRenderer.invoke('setup:completeInitialSetup'),
   cancelInitialSetup: () => ipcRenderer.invoke('setup:cancelInitialSetup'),
   onSetupSyncStatus: (callback) => {
