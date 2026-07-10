@@ -71,7 +71,11 @@ jobs:
           Nightly releases are for testing the latest development build and may be less stable than tagged releases.
           EOF
           if gh release view nightly --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release delete-asset nightly '*' --yes --repo "$GITHUB_REPOSITORY" || true
+            gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" \
+              --jq '.assets[].id' | \
+              while read -r asset_id; do
+                gh api "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" -X DELETE
+              done
             gh release edit nightly --title nightly --notes-file "$notes_path" --prerelease --repo "$GITHUB_REPOSITORY"
           else
             gh release create nightly --title nightly --notes-file "$notes_path" --prerelease --repo "$GITHUB_REPOSITORY"
