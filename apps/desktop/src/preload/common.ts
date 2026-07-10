@@ -72,48 +72,33 @@ export const marketDataApi: Pick<
     ipcRenderer.invoke('api:fetchPriceHistory', tokenId, interval, fidelity),
 };
 
-export const tradingReadApi: Pick<
-  IpcApi,
-  | 'getTradingAccountStatus'
-  | 'getTradingAccountData'
-  | 'getTradingWalletOrders'
-  | 'cancelTradingAccountOrder'
-  | 'cancelTradingWalletOrders'
-  | 'deleteFailedTradingAccountOrder'
-  | 'cancelAllTradingWalletOrders'
-  | 'getTradingWalletTrades'
-  | 'getTradingWalletPositions'
-  | 'splitTradingAccountPosition'
-  | 'mergeTradingWalletPositions'
-  | 'redeemTradingWalletPositions'
-  | 'onTradingAccountEvent'
-  | 'listPolymarketWallets'
-> = {
-  getTradingAccountStatus: (walletId) => ipcRenderer.invoke('trading-account:getStatus', walletId),
-  getTradingAccountData: (query) => ipcRenderer.invoke('trading-account:queryAccount', query),
-  getTradingWalletOrders: (query) => ipcRenderer.invoke('trading-account:queryOrders', query),
-  cancelTradingAccountOrder: (id, walletId) =>
-    ipcRenderer.invoke('trading-account:cancelOrder', id, walletId),
-  cancelTradingWalletOrders: (ids, walletId) =>
-    ipcRenderer.invoke('trading-account:cancelOrders', ids, walletId),
-  deleteFailedTradingAccountOrder: (id, walletId) =>
-    ipcRenderer.invoke('trading-account:deleteFailedOrder', id, walletId),
-  cancelAllTradingWalletOrders: (walletId) =>
-    ipcRenderer.invoke('trading-account:cancelAll', walletId),
-  getTradingWalletTrades: (query) => ipcRenderer.invoke('trading-account:queryTrades', query),
-  getTradingWalletPositions: (query) => ipcRenderer.invoke('trading-account:queryPositions', query),
-  splitTradingAccountPosition: (input) =>
-    ipcRenderer.invoke('trading-account:splitPosition', input),
-  mergeTradingWalletPositions: (input) =>
-    ipcRenderer.invoke('trading-account:mergePositions', input),
-  redeemTradingWalletPositions: (input) =>
-    ipcRenderer.invoke('trading-account:redeemPositions', input),
-  onTradingAccountEvent: (callback) => {
-    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
-      callback(input as TradingAccountDataEvent);
-    ipcRenderer.on('trading-account:event', listener);
-    return () => ipcRenderer.removeListener('trading-account:event', listener);
+export const tradingAccountApi: Pick<IpcApi, 'tradingAccount'> = {
+  tradingAccount: {
+    getStatus: (walletId) => ipcRenderer.invoke('trading-account:getStatus', walletId),
+    getData: (query) => ipcRenderer.invoke('trading-account:queryAccount', query),
+    getOrders: (query) => ipcRenderer.invoke('trading-account:queryOrders', query),
+    cancelOrder: (id, walletId) => ipcRenderer.invoke('trading-account:cancelOrder', id, walletId),
+    cancelOrders: (ids, walletId) =>
+      ipcRenderer.invoke('trading-account:cancelOrders', ids, walletId),
+    deleteFailedOrder: (id, walletId) =>
+      ipcRenderer.invoke('trading-account:deleteFailedOrder', id, walletId),
+    cancelAllOrders: (walletId) => ipcRenderer.invoke('trading-account:cancelAll', walletId),
+    getTrades: (query) => ipcRenderer.invoke('trading-account:queryTrades', query),
+    getPositions: (query) => ipcRenderer.invoke('trading-account:queryPositions', query),
+    placeOrder: (input) => ipcRenderer.invoke('trading-account:placeManualOrder', input),
+    splitPosition: (input) => ipcRenderer.invoke('trading-account:splitPosition', input),
+    mergePositions: (input) => ipcRenderer.invoke('trading-account:mergePositions', input),
+    redeemPositions: (input) => ipcRenderer.invoke('trading-account:redeemPositions', input),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as TradingAccountDataEvent);
+      ipcRenderer.on('trading-account:event', listener);
+      return () => ipcRenderer.removeListener('trading-account:event', listener);
+    },
   },
+};
+
+export const walletReadApi: Pick<IpcApi, 'listPolymarketWallets'> = {
   listPolymarketWallets: () => ipcRenderer.invoke('wallets:list'),
 };
 

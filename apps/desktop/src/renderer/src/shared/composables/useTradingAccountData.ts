@@ -36,7 +36,7 @@ function useTradingAccountData<T>(
       return false;
     }
 
-    const res = await window.api.getTradingAccountStatus(walletId);
+    const res = await window.api.tradingAccount.getStatus(walletId);
     if (res.ok) {
       configured.value = Boolean(res.data[statusKey]);
     }

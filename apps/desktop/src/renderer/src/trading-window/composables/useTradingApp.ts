@@ -686,7 +686,7 @@ export function useTradingApp() {
     walletLoading.value = true;
     walletError.value = '';
     try {
-      const result = await window.api.getTradingAccountData({
+      const result = await window.api.tradingAccount.getData({
         walletId: walletId || undefined,
         conditionId: conditionId.value,
         includeBalance: true,
@@ -708,7 +708,7 @@ export function useTradingApp() {
 
   async function refreshWalletOrders(): Promise<void> {
     if (!conditionId.value || !walletState.value) return;
-    const result = await window.api.getTradingWalletOrders({
+    const result = await window.api.tradingAccount.getOrders({
       walletId: selectedPanelWalletId.value || undefined,
       conditionId: conditionId.value,
     });
@@ -727,7 +727,7 @@ export function useTradingApp() {
 
   async function refreshWalletPositions(): Promise<void> {
     if (!conditionId.value || !walletState.value) return;
-    const result = await window.api.getTradingWalletPositions({
+    const result = await window.api.tradingAccount.getPositions({
       walletId: selectedPanelWalletId.value || undefined,
       conditionId: conditionId.value,
     });
@@ -746,7 +746,7 @@ export function useTradingApp() {
 
   async function refreshWalletTrades(): Promise<void> {
     if (!conditionId.value || !walletState.value) return;
-    const result = await window.api.getTradingWalletTrades({
+    const result = await window.api.tradingAccount.getTrades({
       walletId: selectedPanelWalletId.value || undefined,
       conditionId: conditionId.value,
     });
@@ -791,7 +791,7 @@ export function useTradingApp() {
     walletActionError.value = '';
     cancelingOrderIds.value = [orderId];
     try {
-      const result = await window.api.cancelTradingAccountOrder(orderId, walletId);
+      const result = await window.api.tradingAccount.cancelOrder(orderId, walletId);
       if (!result.ok) {
         walletActionError.value = result.error;
         return;
@@ -811,7 +811,7 @@ export function useTradingApp() {
     walletActionError.value = '';
     cancelingOrderIds.value = exchangeOrderIds;
     try {
-      const result = await window.api.cancelTradingWalletOrders(exchangeOrderIds, walletId);
+      const result = await window.api.tradingAccount.cancelOrders(exchangeOrderIds, walletId);
       if (!result.ok) {
         walletActionError.value = result.error;
         return;
@@ -824,7 +824,7 @@ export function useTradingApp() {
 
   async function deleteFailedOrder(orderId: string, walletId: string): Promise<void> {
     walletActionError.value = '';
-    const result = await window.api.deleteFailedTradingAccountOrder(orderId, walletId);
+    const result = await window.api.tradingAccount.deleteFailedOrder(orderId, walletId);
     if (!result.ok) {
       walletActionError.value = result.error;
       return;
@@ -870,7 +870,7 @@ export function useTradingApp() {
     });
     unsubscribeRuntime = window.api.tradingMarket.onEvent(applyRuntimeEvent);
     unsubscribeTradingStrategy = window.api.tradingStrategy.onEvent(applyTradingStrategyEvent);
-    unsubscribeTradingAccount = window.api.onTradingAccountEvent(applyTradingAccountDataEvent);
+    unsubscribeTradingAccount = window.api.tradingAccount.onEvent(applyTradingAccountDataEvent);
     await ensureRuntime();
   });
 

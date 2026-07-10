@@ -261,6 +261,29 @@ interface TradingStrategyIpcApi {
   onEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
 }
 
+interface TradingAccountIpcApi {
+  getStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
+  getData: (query?: TradingAccountDataQuery) => Promise<ApiResult<TradingRuntimeAccountState>>;
+  getOrders: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobOrder[]>>;
+  cancelOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
+  cancelOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
+  deleteFailedOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
+  cancelAllOrders: (walletId: string) => Promise<ApiResult<unknown>>;
+  getTrades: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobTrade[]>>;
+  getPositions: (query?: TradingAccountDataQuery) => Promise<ApiResult<DataPosition[]>>;
+  placeOrder: (input: ManualPlaceOrderInput) => Promise<ApiResult<unknown>>;
+  splitPosition: (
+    input: TradingAccountPositionSplitInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  mergePositions: (
+    input: TradingAccountPositionMergeInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  redeemPositions: (
+    input: TradingAccountPositionRedeemInput,
+  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
+  onEvent: (callback: (event: TradingAccountDataEvent) => void) => () => void;
+}
+
 export interface IpcApi {
   getAuthState: () => Promise<AuthState>;
   signUpWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;
@@ -342,30 +365,7 @@ export interface IpcApi {
     interval?: string,
     fidelity?: number,
   ) => Promise<ApiResult<PriceHistoryPoint[]>>;
-  getTradingAccountStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
-  getTradingAccountData: (
-    query?: TradingAccountDataQuery,
-  ) => Promise<ApiResult<TradingRuntimeAccountState>>;
-  getTradingWalletOrders: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobOrder[]>>;
-  cancelTradingAccountOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
-  cancelTradingWalletOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
-  deleteFailedTradingAccountOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
-  cancelAllTradingWalletOrders: (walletId: string) => Promise<ApiResult<unknown>>;
-  getTradingWalletTrades: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobTrade[]>>;
-  getTradingWalletPositions: (
-    query?: TradingAccountDataQuery,
-  ) => Promise<ApiResult<DataPosition[]>>;
-  placeManualTradingAccountOrder: (input: ManualPlaceOrderInput) => Promise<ApiResult<unknown>>;
-  splitTradingAccountPosition: (
-    input: TradingAccountPositionSplitInput,
-  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
-  mergeTradingWalletPositions: (
-    input: TradingAccountPositionMergeInput,
-  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
-  redeemTradingWalletPositions: (
-    input: TradingAccountPositionRedeemInput,
-  ) => Promise<ApiResult<TradingAccountPositionOperationResult>>;
-  onTradingAccountEvent: (callback: (event: TradingAccountDataEvent) => void) => () => void;
+  tradingAccount: TradingAccountIpcApi;
   onPolymarketWalletEvent: (callback: (event: PolymarketWalletEvent) => void) => () => void;
   listPolymarketWallets: () => Promise<ApiResult<PolymarketWalletSummary[]>>;
   getPolymarketWalletKeyMaterial: (

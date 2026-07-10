@@ -5,7 +5,14 @@ import type {
   PolymarketWalletEvent,
   StrategyBotRuntimeEvent,
 } from '@polytrader/shared';
-import { exposeApi, marketDataApi, preferenceApi, tradingReadApi, windowApi } from './common.js';
+import {
+  exposeApi,
+  marketDataApi,
+  preferenceApi,
+  tradingAccountApi,
+  walletReadApi,
+  windowApi,
+} from './common.js';
 
 const mainWindowApi = {
   getAuthState: () => ipcRenderer.invoke('auth:getState'),
@@ -66,9 +73,8 @@ const mainWindowApi = {
   fetchSportsMetadata: () => ipcRenderer.invoke('api:fetchSportsMetadata'),
   listSportsEvents: (params) => ipcRenderer.invoke('api:listSportsEvents', params),
   ...marketDataApi,
-  ...tradingReadApi,
-  placeManualTradingAccountOrder: (input) =>
-    ipcRenderer.invoke('trading-account:placeManualOrder', input),
+  ...tradingAccountApi,
+  ...walletReadApi,
   onPolymarketWalletEvent: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
       callback(input as PolymarketWalletEvent);

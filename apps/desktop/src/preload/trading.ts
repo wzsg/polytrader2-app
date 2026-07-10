@@ -7,7 +7,14 @@ import type {
   TradingStrategyStateEvent,
   TradingWindowInput,
 } from '@polytrader/shared';
-import { exposeApi, marketDataApi, preferenceApi, tradingReadApi, windowApi } from './common.js';
+import {
+  exposeApi,
+  marketDataApi,
+  preferenceApi,
+  tradingAccountApi,
+  walletReadApi,
+  windowApi,
+} from './common.js';
 
 const tradingWindowApi = {
   // App preferences and window controls.
@@ -19,21 +26,8 @@ const tradingWindowApi = {
   fetchEvent: (eventId) => ipcRenderer.invoke('api:fetchEvent', eventId),
 
   // Account trading read data and manual trading actions.
-  getTradingAccountStatus: tradingReadApi.getTradingAccountStatus,
-  getTradingAccountData: tradingReadApi.getTradingAccountData,
-  getTradingWalletOrders: tradingReadApi.getTradingWalletOrders,
-  getTradingWalletTrades: tradingReadApi.getTradingWalletTrades,
-  getTradingWalletPositions: tradingReadApi.getTradingWalletPositions,
-  cancelTradingAccountOrder: tradingReadApi.cancelTradingAccountOrder,
-  cancelTradingWalletOrders: tradingReadApi.cancelTradingWalletOrders,
-  deleteFailedTradingAccountOrder: tradingReadApi.deleteFailedTradingAccountOrder,
-  splitTradingAccountPosition: tradingReadApi.splitTradingAccountPosition,
-  mergeTradingWalletPositions: tradingReadApi.mergeTradingWalletPositions,
-  redeemTradingWalletPositions: tradingReadApi.redeemTradingWalletPositions,
-  onTradingAccountEvent: tradingReadApi.onTradingAccountEvent,
-  listPolymarketWallets: tradingReadApi.listPolymarketWallets,
-  placeManualTradingAccountOrder: (input) =>
-    ipcRenderer.invoke('trading-account:placeManualOrder', input),
+  ...tradingAccountApi,
+  ...walletReadApi,
 
   // Strategy catalog and bot runtime management.
   listStrategies: () => ipcRenderer.invoke('strategies:list'),
