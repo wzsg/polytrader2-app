@@ -284,6 +284,43 @@ interface TradingAccountIpcApi {
   onEvent: (callback: (event: TradingAccountDataEvent) => void) => () => void;
 }
 
+interface WalletIpcApi {
+  list: () => Promise<ApiResult<PolymarketWalletSummary[]>>;
+  getKeyMaterial: (id: string) => Promise<ApiResult<PolymarketWalletKeyMaterialReveal>>;
+  create: (input: PolymarketWalletCreateInput) => Promise<ApiResult<PolymarketWalletSummary>>;
+  createDerived: (
+    input: PolymarketWalletDerivedInput,
+  ) => Promise<ApiResult<PolymarketWalletSummary>>;
+  import: (input: PolymarketWalletImportInput) => Promise<ApiResult<PolymarketWalletSummary>>;
+  update: (input: PolymarketWalletUpdateInput) => Promise<ApiResult<PolymarketWalletSummary>>;
+  markKeyMaterialBackedUp: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  retryInitialization: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  setDefault: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
+  delete: (id: string) => Promise<ApiResult<void>>;
+  onEvent: (callback: (event: PolymarketWalletEvent) => void) => () => void;
+}
+
+interface CrossChainIpcApi {
+  listSupportedAssets: () => Promise<ApiResult<PolymarketBridgeSupportedAssetsResponse>>;
+  createDeposit: (
+    input: PolymarketBridgeDepositInput,
+  ) => Promise<ApiResult<PolymarketBridgeAddressResponse>>;
+  quoteTransfer: (
+    input: PolymarketBridgeQuoteInput,
+  ) => Promise<ApiResult<PolymarketBridgeQuoteResponse>>;
+  withdraw: (
+    input: PolymarketBridgeWithdrawalInput,
+  ) => Promise<ApiResult<PolymarketBridgeWithdrawalSubmitResult>>;
+  getTransactionStatus: (
+    address: string,
+  ) => Promise<ApiResult<PolymarketBridgeTransactionStatusResponse>>;
+  listWithdrawals: (
+    walletId?: string,
+    limit?: number,
+  ) => Promise<ApiResult<PolymarketBridgeWithdrawalRecord[]>>;
+  onWithdrawalEvent: (callback: (event: PolymarketBridgeWithdrawalEvent) => void) => () => void;
+}
+
 export interface IpcApi {
   getAuthState: () => Promise<AuthState>;
   signUpWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;
@@ -366,51 +403,8 @@ export interface IpcApi {
     fidelity?: number,
   ) => Promise<ApiResult<PriceHistoryPoint[]>>;
   tradingAccount: TradingAccountIpcApi;
-  onPolymarketWalletEvent: (callback: (event: PolymarketWalletEvent) => void) => () => void;
-  listPolymarketWallets: () => Promise<ApiResult<PolymarketWalletSummary[]>>;
-  getPolymarketWalletKeyMaterial: (
-    id: string,
-  ) => Promise<ApiResult<PolymarketWalletKeyMaterialReveal>>;
-  createPolymarketWallet: (
-    input: PolymarketWalletCreateInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  createDerivedPolymarketWallet: (
-    input: PolymarketWalletDerivedInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  importPolymarketWallet: (
-    input: PolymarketWalletImportInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  updatePolymarketWallet: (
-    input: PolymarketWalletUpdateInput,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  markPolymarketWalletKeyMaterialBackedUp: (
-    id: string,
-  ) => Promise<ApiResult<PolymarketWalletSummary>>;
-  retryPolymarketWalletInitialization: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
-  setDefaultPolymarketWallet: (id: string) => Promise<ApiResult<PolymarketWalletSummary>>;
-  deletePolymarketWallet: (id: string) => Promise<ApiResult<void>>;
-  listPolymarketBridgeSupportedAssets: () => Promise<
-    ApiResult<PolymarketBridgeSupportedAssetsResponse>
-  >;
-  createPolymarketBridgeDeposit: (
-    input: PolymarketBridgeDepositInput,
-  ) => Promise<ApiResult<PolymarketBridgeAddressResponse>>;
-  quotePolymarketBridgeTransfer: (
-    input: PolymarketBridgeQuoteInput,
-  ) => Promise<ApiResult<PolymarketBridgeQuoteResponse>>;
-  withdrawPolymarketBridge: (
-    input: PolymarketBridgeWithdrawalInput,
-  ) => Promise<ApiResult<PolymarketBridgeWithdrawalSubmitResult>>;
-  getPolymarketBridgeTransactionStatus: (
-    address: string,
-  ) => Promise<ApiResult<PolymarketBridgeTransactionStatusResponse>>;
-  listPolymarketBridgeWithdrawals: (
-    walletId?: string,
-    limit?: number,
-  ) => Promise<ApiResult<PolymarketBridgeWithdrawalRecord[]>>;
-  onPolymarketBridgeWithdrawalEvent: (
-    callback: (event: PolymarketBridgeWithdrawalEvent) => void,
-  ) => () => void;
+  wallet: WalletIpcApi;
+  crossChain: CrossChainIpcApi;
   listStrategies: () => Promise<ApiResult<StrategyListItem[]>>;
   getStrategy: (id: string) => Promise<ApiResult<StrategyDetail>>;
   createStrategy: (input: StrategyCreateInput) => Promise<ApiResult<StrategyDetail>>;

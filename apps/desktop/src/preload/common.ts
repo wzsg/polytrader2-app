@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { IpcApi } from '@polytrader/shared';
-import type { MarketTradeSyncStatus, TradingAccountDataEvent } from '@polytrader/shared';
+import type {
+  MarketTradeSyncStatus,
+  PolymarketBridgeWithdrawalEvent,
+  PolymarketWalletEvent,
+  TradingAccountDataEvent,
+} from '@polytrader/shared';
 
 export const windowApi: Pick<
   IpcApi,
@@ -98,8 +103,49 @@ export const tradingAccountApi: Pick<IpcApi, 'tradingAccount'> = {
   },
 };
 
-export const walletReadApi: Pick<IpcApi, 'listPolymarketWallets'> = {
-  listPolymarketWallets: () => ipcRenderer.invoke('wallets:list'),
+export const walletApi: Pick<IpcApi, 'wallet'> = {
+  wallet: {
+    list: () => ipcRenderer.invoke('wallets:list'),
+    getKeyMaterial: (id) => ipcRenderer.invoke('wallets:getKeyMaterial', id),
+    create: (input) => ipcRenderer.invoke('wallets:create', input),
+    createDerived: (input) => ipcRenderer.invoke('wallets:createDerived', input),
+    import: (input) => ipcRenderer.invoke('wallets:import', input),
+    update: (input) => ipcRenderer.invoke('wallets:update', input),
+    markKeyMaterialBackedUp: (id) => ipcRenderer.invoke('wallets:markKeyMaterialBackedUp', id),
+    retryInitialization: (id) => ipcRenderer.invoke('wallets:retryInitialization', id),
+    setDefault: (id) => ipcRenderer.invoke('wallets:setDefault', id),
+    delete: (id) => ipcRenderer.invoke('wallets:delete', id),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as PolymarketWalletEvent);
+      ipcRenderer.on('wallets:event', listener);
+      return () => ipcRenderer.removeListener('wallets:event', listener);
+    },
+  },
+};
+
+export const walletReadApi = {
+  wallet: {
+    list: () => ipcRenderer.invoke('wallets:list'),
+  },
+} satisfies { wallet: Pick<IpcApi['wallet'], 'list'> };
+
+export const crossChainApi: Pick<IpcApi, 'crossChain'> = {
+  crossChain: {
+    listSupportedAssets: () => ipcRenderer.invoke('bridge:listSupportedAssets'),
+    createDeposit: (input) => ipcRenderer.invoke('bridge:createDeposit', input),
+    quoteTransfer: (input) => ipcRenderer.invoke('bridge:quote', input),
+    withdraw: (input) => ipcRenderer.invoke('bridge:withdraw', input),
+    getTransactionStatus: (address) => ipcRenderer.invoke('bridge:getTransactionStatus', address),
+    listWithdrawals: (walletId, limit) =>
+      ipcRenderer.invoke('bridge:listWithdrawals', walletId, limit),
+    onWithdrawalEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as PolymarketBridgeWithdrawalEvent);
+      ipcRenderer.on('bridge:withdrawal-event', listener);
+      return () => ipcRenderer.removeListener('bridge:withdrawal-event', listener);
+    },
+  },
 };
 
 export function exposeApi(api: Partial<IpcApi>): void {

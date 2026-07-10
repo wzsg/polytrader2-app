@@ -16,6 +16,10 @@ import {
   windowApi,
 } from './common.js';
 
+type TradingWindowIpcApi = Partial<Omit<IpcApi, 'wallet'>> & {
+  wallet: Pick<IpcApi['wallet'], 'list'>;
+};
+
 const tradingWindowApi = {
   // App preferences and window controls.
   ...preferenceApi,
@@ -117,6 +121,6 @@ const tradingWindowApi = {
       return () => ipcRenderer.removeListener('trading-strategy:event', listener);
     },
   },
-} satisfies Partial<IpcApi>;
+} satisfies TradingWindowIpcApi;
 
-exposeApi(tradingWindowApi);
+exposeApi(tradingWindowApi as Partial<IpcApi>);

@@ -29,7 +29,7 @@ export function usePolymarketWalletSelection() {
     accountsLoading.value = true;
     accountsError.value = '';
     try {
-      const res = await window.api.listPolymarketWallets();
+      const res = await window.api.wallet.list();
       if (!res.ok) {
         accounts.value = [];
         selectedWalletId.value = '';

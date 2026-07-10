@@ -1,16 +1,13 @@
 import { ipcRenderer } from 'electron';
 import type { IpcApi } from '@polytrader/shared';
-import type {
-  PolymarketBridgeWithdrawalEvent,
-  PolymarketWalletEvent,
-  StrategyBotRuntimeEvent,
-} from '@polytrader/shared';
+import type { StrategyBotRuntimeEvent } from '@polytrader/shared';
 import {
+  crossChainApi,
   exposeApi,
   marketDataApi,
   preferenceApi,
   tradingAccountApi,
-  walletReadApi,
+  walletApi,
   windowApi,
 } from './common.js';
 
@@ -74,38 +71,8 @@ const mainWindowApi = {
   listSportsEvents: (params) => ipcRenderer.invoke('api:listSportsEvents', params),
   ...marketDataApi,
   ...tradingAccountApi,
-  ...walletReadApi,
-  onPolymarketWalletEvent: (callback) => {
-    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
-      callback(input as PolymarketWalletEvent);
-    ipcRenderer.on('wallets:event', listener);
-    return () => ipcRenderer.removeListener('wallets:event', listener);
-  },
-  getPolymarketWalletKeyMaterial: (id) => ipcRenderer.invoke('wallets:getKeyMaterial', id),
-  createPolymarketWallet: (input) => ipcRenderer.invoke('wallets:create', input),
-  createDerivedPolymarketWallet: (input) => ipcRenderer.invoke('wallets:createDerived', input),
-  importPolymarketWallet: (input) => ipcRenderer.invoke('wallets:import', input),
-  updatePolymarketWallet: (input) => ipcRenderer.invoke('wallets:update', input),
-  markPolymarketWalletKeyMaterialBackedUp: (id) =>
-    ipcRenderer.invoke('wallets:markKeyMaterialBackedUp', id),
-  retryPolymarketWalletInitialization: (id) =>
-    ipcRenderer.invoke('wallets:retryInitialization', id),
-  setDefaultPolymarketWallet: (id) => ipcRenderer.invoke('wallets:setDefault', id),
-  deletePolymarketWallet: (id) => ipcRenderer.invoke('wallets:delete', id),
-  listPolymarketBridgeSupportedAssets: () => ipcRenderer.invoke('bridge:listSupportedAssets'),
-  createPolymarketBridgeDeposit: (input) => ipcRenderer.invoke('bridge:createDeposit', input),
-  quotePolymarketBridgeTransfer: (input) => ipcRenderer.invoke('bridge:quote', input),
-  withdrawPolymarketBridge: (input) => ipcRenderer.invoke('bridge:withdraw', input),
-  getPolymarketBridgeTransactionStatus: (address) =>
-    ipcRenderer.invoke('bridge:getTransactionStatus', address),
-  listPolymarketBridgeWithdrawals: (walletId, limit) =>
-    ipcRenderer.invoke('bridge:listWithdrawals', walletId, limit),
-  onPolymarketBridgeWithdrawalEvent: (callback) => {
-    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
-      callback(input as PolymarketBridgeWithdrawalEvent);
-    ipcRenderer.on('bridge:withdrawal-event', listener);
-    return () => ipcRenderer.removeListener('bridge:withdrawal-event', listener);
-  },
+  ...walletApi,
+  ...crossChainApi,
   listStrategies: () => ipcRenderer.invoke('strategies:list'),
   getStrategy: (id) => ipcRenderer.invoke('strategies:get', id),
   createStrategy: (input) => ipcRenderer.invoke('strategies:create', input),

@@ -99,8 +99,8 @@ async function load(): Promise<void> {
   qrCodeUrl.value = '';
   try {
     const [assetResult, depositResult] = await Promise.all([
-      window.api.listPolymarketBridgeSupportedAssets(),
-      window.api.createPolymarketBridgeDeposit({ walletId: props.wallet.id }),
+      window.api.crossChain.listSupportedAssets(),
+      window.api.crossChain.createDeposit({ walletId: props.wallet.id }),
     ]);
     if (!assetResult.ok) throw new Error(assetResult.error);
     if (!depositResult.ok) throw new Error(depositResult.error);

@@ -631,7 +631,7 @@ async function confirmKeyMaterialReveal(): Promise<void> {
   keyMaterialLoading.value = true;
   keyMaterialError.value = '';
   try {
-    const res = await window.api.getPolymarketWalletKeyMaterial(account.id);
+    const res = await window.api.wallet.getKeyMaterial(account.id);
     if (!res.ok) throw new Error(res.error);
     keyMaterialReveal.value = res.data;
     keyMaterialConfirmOpen.value = false;
@@ -658,7 +658,7 @@ async function confirmKeyMaterialBackedUp(): Promise<void> {
   keyMaterialBackupSaving.value = true;
   keyMaterialError.value = '';
   try {
-    const res = await window.api.markPolymarketWalletKeyMaterialBackedUp(walletId);
+    const res = await window.api.wallet.markKeyMaterialBackedUp(walletId);
     if (!res.ok) throw new Error(res.error);
     await loadAccounts();
     keyMaterialBackupSaving.value = false;

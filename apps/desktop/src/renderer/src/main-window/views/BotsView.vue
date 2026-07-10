@@ -301,7 +301,7 @@ async function refresh(): Promise<void> {
     const [botRes, strategyRes, accountRes] = await Promise.all([
       window.api.listBots({ limit: 500 }),
       window.api.listStrategies(),
-      window.api.listPolymarketWallets(),
+      window.api.wallet.list(),
     ]);
     if (!botRes.ok) throw new Error(botRes.error);
     bots.value = botRes.data;
