@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Check, Database, FolderOpen, HardDrive, LockKeyhole, Languages } from '@lucide/vue';
-import type { AppLocalePreference, SetupState, SyncStatus } from '@polytrader/shared';
+import type { AppLocale, AppLocalePreference, SetupState, SyncStatus } from '@polytrader/shared';
 import { useI18n } from 'vue-i18n';
 import TitleBar from '../shared/components/TitleBar.vue';
 import LoadingSpinner from '../shared/components/LoadingSpinner.vue';
+import chinaLocaleIcon from '../assets/locale/china.png';
+import usLocaleIcon from '../assets/locale/us.png';
 
 type SetupPhase = 'language' | 'storage' | 'security' | 'sync' | 'complete' | 'error';
 type EncryptionMethod = 'keychain' | 'dpapi' | 'aes-256-gcm';
+type SetupStep = 'language' | 'storage' | 'security' | 'data';
 
 const { t, locale } = useI18n();
 const state = ref<SetupState | null>(null);
 const dataDirectory = ref('');
-const languagePreference = ref<AppLocalePreference>('system');
+const languagePreference = ref<AppLocale>('en-US');
 const encryptionMethod = ref<EncryptionMethod>('aes-256-gcm');
 const password = ref('');
 const confirmPassword = ref('');
@@ -35,6 +38,16 @@ const encryptionOptions = computed<Array<{ value: EncryptionMethod; label: strin
     ? { value: 'keychain' as const, label: t('setup.keychain') }
     : { value: 'dpapi' as const, label: t('setup.dpapi') };
   return [systemOption, { value: 'aes-256-gcm', label: t('setup.aes') }];
+});
+const languageOptions = computed(() => {
+  const systemLanguage = getSystemSetupLanguage();
+  const options = [
+    { value: 'en-US' as const, label: t('setup.english'), icon: usLocaleIcon },
+    { value: 'zh-CN' as const, label: t('setup.chinese'), icon: chinaLocaleIcon },
+  ];
+  return options.sort((left, right) => {
+    return Number(right.value === systemLanguage) - Number(left.value === systemLanguage);
+  });
 });
 const activeStep = computed(() => (phase.value === 'error' ? 'security' : phase.value));
 const primaryLabel = computed(() => {
@@ -71,14 +84,27 @@ function formatBytes(value: number | null): string {
   return `${(value / 1024 ** 3).toFixed(2)} GB`;
 }
 
-function applyLanguage(): void {
+function getSystemSetupLanguage(): AppLocale {
   const systemLocale = state.value?.systemLocale || navigator.language;
-  locale.value =
-    languagePreference.value === 'system'
-      ? systemLocale.toLowerCase().startsWith('zh')
-        ? 'zh-CN'
-        : 'en-US'
-      : languagePreference.value;
+  return systemLocale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en-US';
+}
+
+function resolveSetupLanguagePreference(preference: AppLocalePreference): AppLocale {
+  return preference === 'system' ? getSystemSetupLanguage() : preference;
+}
+
+function applyLanguage(): void {
+  locale.value = languagePreference.value;
+}
+
+function selectLanguage(preference: AppLocale): void {
+  languagePreference.value = preference;
+  applyLanguage();
+}
+
+function isCurrentSetupStep(step: SetupStep): boolean {
+  if (step === 'data') return activeStep.value === 'sync' || activeStep.value === 'complete';
+  return activeStep.value === step;
 }
 
 async function validateDirectory(): Promise<boolean> {
@@ -169,7 +195,7 @@ function previous(): void {
 onMounted(async () => {
   state.value = await window.api.getSetupState();
   dataDirectory.value = state.value.dataDirectory || state.value.defaultDataDirectory;
-  languagePreference.value = state.value.localePreference;
+  languagePreference.value = resolveSetupLanguagePreference(state.value.localePreference);
   encryptionMethod.value = state.value.encryptionMethod || (isMac.value ? 'keychain' : 'dpapi');
   if (isUnlockMode.value) phase.value = 'security';
   else await validateDirectory();
@@ -192,21 +218,36 @@ onUnmounted(() => unsubscribeSyncStatus?.());
       @close="cancelSetup"
     />
     <main class="bg-bg flex min-h-0 flex-1 flex-col">
-      <header class="border-border bg-sidebar/70 shrink-0 border-b px-8 py-5">
-        <div class="text-muted-light mx-auto flex max-w-4xl items-center gap-4 text-xs">
-          <span class="inline-flex items-center gap-2"
+      <header class="border-border bg-sidebar/70 shrink-0 border-b px-8 py-4">
+        <div
+          class="text-muted-light flex items-center justify-center gap-2 text-xs"
+          :aria-label="t('setup.title')"
+        >
+          <span
+            class="inline-flex items-center gap-2 rounded px-3 py-2 transition-colors"
+            :class="isCurrentSetupStep('language') ? 'bg-primary/15 text-primary' : ''"
+            :aria-current="isCurrentSetupStep('language') ? 'step' : undefined"
             ><Languages :size="15" />{{ t('setup.languageStep') }}</span
           >
-          <span>›</span
-          ><span class="inline-flex items-center gap-2"
+          <span class="text-border">›</span
+          ><span
+            class="inline-flex items-center gap-2 rounded px-3 py-2 transition-colors"
+            :class="isCurrentSetupStep('storage') ? 'bg-primary/15 text-primary' : ''"
+            :aria-current="isCurrentSetupStep('storage') ? 'step' : undefined"
             ><HardDrive :size="15" />{{ t('setup.storageStep') }}</span
           >
-          <span>›</span
-          ><span class="inline-flex items-center gap-2"
+          <span class="text-border">›</span
+          ><span
+            class="inline-flex items-center gap-2 rounded px-3 py-2 transition-colors"
+            :class="isCurrentSetupStep('security') ? 'bg-primary/15 text-primary' : ''"
+            :aria-current="isCurrentSetupStep('security') ? 'step' : undefined"
             ><LockKeyhole :size="15" />{{ t('setup.securityStep') }}</span
           >
-          <span>›</span
-          ><span class="inline-flex items-center gap-2"
+          <span class="text-border">›</span
+          ><span
+            class="inline-flex items-center gap-2 rounded px-3 py-2 transition-colors"
+            :class="isCurrentSetupStep('data') ? 'bg-primary/15 text-primary' : ''"
+            :aria-current="isCurrentSetupStep('data') ? 'step' : undefined"
             ><Database :size="15" />{{ t('setup.dataStep') }}</span
           >
         </div>
@@ -228,15 +269,26 @@ onUnmounted(() => unsubscribeSyncStatus?.());
           </template>
           <template v-else-if="activeStep === 'language'">
             <h1 class="text-lg font-semibold text-white">{{ t('setup.language') }}</h1>
-            <select
-              v-model="languagePreference"
-              class="border-border bg-bg text-text mt-6 w-full rounded border px-3 py-2"
-              @change="applyLanguage"
-            >
-              <option value="system">{{ t('setup.systemLanguage') }}</option>
-              <option value="en-US">{{ t('setup.english') }}</option>
-              <option value="zh-CN">{{ t('setup.chinese') }}</option>
-            </select>
+            <div class="mt-6 grid gap-3" role="radiogroup" :aria-label="t('setup.language')">
+              <button
+                v-for="option in languageOptions"
+                :key="option.value"
+                type="button"
+                role="radio"
+                :aria-checked="languagePreference === option.value"
+                class="border-border bg-bg hover:border-primary flex items-center gap-3 rounded border px-4 py-3 text-left transition-colors"
+                :class="languagePreference === option.value ? 'border-primary bg-primary/10' : ''"
+                @click="selectLanguage(option.value)"
+              >
+                <img class="size-10 rounded object-cover" :src="option.icon" alt="" />
+                <span class="text-text text-sm font-medium">{{ option.label }}</span>
+                <Check
+                  v-if="languagePreference === option.value"
+                  class="text-primary ml-auto"
+                  :size="19"
+                />
+              </button>
+            </div>
           </template>
           <template v-else-if="activeStep === 'storage'">
             <h1 class="text-lg font-semibold text-white">{{ t('setup.dataDirectory') }}</h1>
@@ -244,6 +296,7 @@ onUnmounted(() => unsubscribeSyncStatus?.());
             <div class="mt-6 flex gap-3">
               <input
                 v-model="dataDirectory"
+                spellcheck="false"
                 class="border-border bg-bg text-text min-w-0 flex-1 rounded border px-3 py-2"
                 :aria-label="t('setup.dataDirectory')"
                 @change="validateDirectory"
