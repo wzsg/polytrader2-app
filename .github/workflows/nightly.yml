@@ -13,9 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  nightly-windows:
-    name: Build and publish Windows nightly
-    runs-on: windows-latest
+  prepare:
+    name: Prepare nightly release
+    runs-on: ubuntu-latest
 
     outputs:
       commit: ${{ steps.nightly-version.outputs.commit }}
@@ -23,17 +23,74 @@ jobs:
       sha: ${{ steps.nightly-version.outputs.sha }}
       version: ${{ steps.nightly-version.outputs.version }}
 
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
-
     steps:
       - name: Checkout develop
         uses: actions/checkout@v5
         with:
           ref: develop
           fetch-depth: 0
+
+      - name: Set nightly version
+        id: nightly-version
+        shell: bash
+        run: |
+          base_version="$(node -p "require('./apps/desktop/package.json').version.replace(/[-+].*$/, '')")"
+          if [[ ! "$base_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Base package version $base_version is not a valid release version" >&2
+            exit 1
+          fi
+          commit="$(git rev-parse HEAD)"
+          sha="$(git rev-parse --short=7 HEAD)"
+          date="$(date -u '+%Y-%m-%d %H:%M UTC')"
+          version="$base_version-nightly.$(date -u '+%Y%m%d%H%M').$sha"
+          {
+            echo "commit=$commit"
+            echo "date=$date"
+            echo "sha=$sha"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create nightly prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          P2_NIGHTLY_DATE: ${{ steps.nightly-version.outputs.date }}
+          P2_NIGHTLY_SHA: ${{ steps.nightly-version.outputs.sha }}
+          P2_NIGHTLY_VERSION: ${{ steps.nightly-version.outputs.version }}
+        shell: bash
+        run: |
+          git tag -f nightly HEAD
+          git push origin refs/tags/nightly --force
+          notes_path="$RUNNER_TEMP/nightly-release-notes.md"
+          cat > "$notes_path" <<EOF
+          Nightly build from develop.
+
+          - Version: $P2_NIGHTLY_VERSION
+          - Commit: $P2_NIGHTLY_SHA
+          - Built at: $P2_NIGHTLY_DATE
+
+          Nightly releases are for testing the latest development build and may be less stable than tagged releases.
+          EOF
+          if gh release view nightly --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release delete-asset nightly '*' --yes --repo "$GITHUB_REPOSITORY" || true
+            gh release edit nightly --title nightly --notes-file "$notes_path" --prerelease --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create nightly --title nightly --notes-file "$notes_path" --prerelease --repo "$GITHUB_REPOSITORY"
+          fi
+
+  build-windows:
+    name: Build Windows nightly
+    needs: prepare
+    runs-on: windows-latest
+
+    env:
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout nightly commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6.0.9
@@ -50,34 +107,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set nightly package version
-        id: nightly-version
         shell: pwsh
+        env:
+          P2_NIGHTLY_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           $packageJsonPath = 'apps/desktop/package.json'
           $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
-          $baseVersion = [string]$packageJson.version
-          $baseVersion = $baseVersion -replace '[-+].*$', ''
-          if ($baseVersion -notmatch '^\d+\.\d+\.\d+$') {
-            throw "Base package version $baseVersion is not a valid release version"
-          }
-
-          $shortSha = git rev-parse --short=7 HEAD
-          $commit = git rev-parse HEAD
-          $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmm')
-          $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm UTC')
-          $version = "$baseVersion-nightly.$stamp.$shortSha"
-
-          $packageJson.version = $version
+          $packageJson.version = $env:P2_NIGHTLY_VERSION
           $packageJson | ConvertTo-Json -Depth 20 | Set-Content $packageJsonPath -Encoding utf8
-
-          "P2_NIGHTLY_VERSION=$version" >> $env:GITHUB_ENV
-          "P2_NIGHTLY_DATE=$date" >> $env:GITHUB_ENV
-          "P2_NIGHTLY_SHA=$shortSha" >> $env:GITHUB_ENV
-          "commit=$commit" >> $env:GITHUB_OUTPUT
-          "date=$date" >> $env:GITHUB_OUTPUT
-          "sha=$shortSha" >> $env:GITHUB_OUTPUT
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "Nightly version: $version"
 
       - name: Typecheck
         run: pnpm run typecheck
@@ -91,95 +128,37 @@ jobs:
       - name: Build Windows installer
         shell: pwsh
         run: |
-          if (Test-Path dist) {
-            Remove-Item dist -Recurse -Force
-          }
+          if (Test-Path dist) { Remove-Item dist -Recurse -Force }
           pnpm --filter @polytrader2/app run dist:win:app
 
-      - name: Publish nightly prerelease
-        shell: pwsh
-        run: |
-          $repo = $env:GITHUB_REPOSITORY
-          $releaseTag = 'nightly'
-          $releaseTitle = 'nightly'
-          $installer = Get-ChildItem dist -Filter "Polytrader2-Setup-$env:P2_NIGHTLY_VERSION.exe" | Select-Object -First 1
-          $blockmap = Get-ChildItem dist -Filter "Polytrader2-Setup-$env:P2_NIGHTLY_VERSION.exe.blockmap" | Select-Object -First 1
-          $latest = Get-ChildItem dist -Filter 'latest.yml' | Select-Object -First 1
+      - name: Upload Windows nightly assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-nightly-assets
+          path: |
+            dist/Polytrader2-Setup-${{ needs.prepare.outputs.version }}.exe
+            dist/Polytrader2-Setup-${{ needs.prepare.outputs.version }}.exe.blockmap
+            dist/latest.yml
+          if-no-files-found: error
 
-          if (-not $installer) { throw 'Missing nightly installer asset' }
-          if (-not $blockmap) { throw 'Missing nightly blockmap asset' }
-          if (-not $latest) { throw 'Missing nightly latest.yml asset' }
-
-          git tag -f $releaseTag HEAD
-          git push origin "refs/tags/$releaseTag" --force
-
-          $notes = @"
-          Nightly build from develop.
-
-          - Version: $env:P2_NIGHTLY_VERSION
-          - Commit: $env:P2_NIGHTLY_SHA
-          - Built at: $env:P2_NIGHTLY_DATE
-
-          Nightly releases are for testing the latest development build and may be less stable than tagged releases.
-          "@
-          $notesPath = Join-Path $env:RUNNER_TEMP 'nightly-release-notes.md'
-          $notes | Set-Content $notesPath -Encoding utf8
-
-          $releaseExists = $true
-          $releaseJson = gh api "repos/$repo/releases/tags/$releaseTag" 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            $releaseExists = $false
-          }
-
-          if ($releaseExists) {
-            $release = $releaseJson | ConvertFrom-Json
-            foreach ($asset in $release.assets) {
-              gh api "repos/$repo/releases/assets/$($asset.id)" -X DELETE
-            }
-
-            gh release edit $releaseTag `
-              --repo $repo `
-              --title $releaseTitle `
-              --notes-file $notesPath `
-              --prerelease
-
-            gh release upload $releaseTag `
-              $installer.FullName `
-              $blockmap.FullName `
-              $latest.FullName `
-              --repo $repo
-          } else {
-            gh release create $releaseTag `
-              $installer.FullName `
-              $blockmap.FullName `
-              $latest.FullName `
-            --repo $repo `
-            --title $releaseTitle `
-            --notes-file $notesPath `
-            --prerelease
-          }
-
-  nightly-macos:
-    name: Build and publish macOS nightly
-    needs: nightly-windows
+  build-macos:
+    name: Build macOS nightly
+    needs: prepare
     runs-on: macos-14
 
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
       MACOS_NOTARY_API_KEY: ${{ secrets.MACOS_NOTARY_API_KEY }}
       MACOS_NOTARY_API_KEY_ID: ${{ secrets.MACOS_NOTARY_API_KEY_ID }}
       MACOS_NOTARY_ISSUER: ${{ secrets.MACOS_NOTARY_ISSUER }}
-      P2_NIGHTLY_DATE: ${{ needs.nightly-windows.outputs.date }}
-      P2_NIGHTLY_SHA: ${{ needs.nightly-windows.outputs.sha }}
-      P2_NIGHTLY_VERSION: ${{ needs.nightly-windows.outputs.version }}
+      P2_NIGHTLY_VERSION: ${{ needs.prepare.outputs.version }}
 
     steps:
       - name: Checkout nightly commit
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.nightly-windows.outputs.commit }}
+          ref: ${{ needs.prepare.outputs.commit }}
 
       - name: Verify Apple Silicon runner
         shell: bash
@@ -237,14 +216,32 @@ jobs:
       - name: Build and notarize macOS installer
         run: pnpm --filter @polytrader2/app run dist:mac:notarized:app
 
-      - name: Publish macOS nightly assets
+      - name: Upload macOS nightly assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-nightly-assets
+          path: |
+            dist/Polytrader2-${{ needs.prepare.outputs.version }}-mac-arm64.dmg
+            dist/Polytrader2-${{ needs.prepare.outputs.version }}-mac-arm64.dmg.blockmap
+            dist/Polytrader2-${{ needs.prepare.outputs.version }}-mac-arm64.zip
+            dist/Polytrader2-${{ needs.prepare.outputs.version }}-mac-arm64.zip.blockmap
+            dist/latest-mac.yml
+          if-no-files-found: error
+
+  finalize:
+    name: Publish nightly assets
+    needs: [prepare, build-windows, build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download nightly assets
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish nightly assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: |
-          gh release upload nightly \
-            "dist/Polytrader2-${P2_NIGHTLY_VERSION}-mac-arm64.dmg" \
-            "dist/Polytrader2-${P2_NIGHTLY_VERSION}-mac-arm64.dmg.blockmap" \
-            "dist/Polytrader2-${P2_NIGHTLY_VERSION}-mac-arm64.zip" \
-            "dist/Polytrader2-${P2_NIGHTLY_VERSION}-mac-arm64.zip.blockmap" \
-            dist/latest-mac.yml \
-            --clobber \
-            --repo "$GITHUB_REPOSITORY"
+        run: gh release upload nightly artifacts/* --clobber --repo "$GITHUB_REPOSITORY"
