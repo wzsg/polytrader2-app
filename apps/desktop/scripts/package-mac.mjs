@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'fs';
@@ -40,6 +41,7 @@ class MacPackager {
       this.#assertSigningIdentity();
       this.#prepareStage();
       this.#writePackageMetadata();
+      this.#removePackagedSourceArchives();
       this.#prepareStrategyRuntime();
       this.#rebuildNativeModules();
       this.#assertNativeModules();
@@ -106,6 +108,16 @@ class MacPackager {
     if (packageJson.scripts) delete packageJson.scripts.postinstall;
     delete packageJson.packageManager;
     writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+  }
+
+  #removePackagedSourceArchives() {
+    const isolatedVmDir = join(this.#stageDir, 'node_modules', 'isolated-vm');
+    if (!existsSync(isolatedVmDir)) return;
+
+    for (const entry of readdirSync(isolatedVmDir)) {
+      if (!/^isolated-vm-[\d.]+\.tgz$/.test(entry)) continue;
+      rmSync(join(isolatedVmDir, entry), { force: true });
+    }
   }
 
   #prepareStrategyRuntime() {
