@@ -123,4 +123,4 @@ const tradingWindowApi = {
   },
 } satisfies TradingWindowIpcApi;
 
-exposeApi(tradingWindowApi as Partial<IpcApi>);
+exposeApi(tradingWindowApi);

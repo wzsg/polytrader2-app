@@ -148,6 +148,10 @@ export const crossChainApi: Pick<IpcApi, 'crossChain'> = {
   },
 };
 
-export function exposeApi(api: Partial<IpcApi>): void {
+type IpcApiExposure = Omit<Partial<IpcApi>, 'wallet'> & {
+  wallet?: Partial<IpcApi['wallet']>;
+};
+
+export function exposeApi(api: IpcApiExposure): void {
   contextBridge.exposeInMainWorld('api', api);
 }
