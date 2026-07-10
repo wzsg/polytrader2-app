@@ -50,6 +50,10 @@ const workspacePackageAliases = [
     replacement: resolve('../../packages/repositories/duckdb-repository/src/index.ts'),
   },
   {
+    find: '@polytrader/event-bus',
+    replacement: resolve('../../packages/event-bus/src/index.ts'),
+  },
+  {
     find: '@polytrader/kv-store',
     replacement: resolve('../../packages/kv-store/src/index.ts'),
   },
@@ -88,6 +92,10 @@ const workspacePackageAliases = [
   {
     find: '@polytrader/trading-strategy',
     replacement: resolve('../../packages/trading-strategy/src/index.ts'),
+  },
+  {
+    find: '@polytrader/workflow',
+    replacement: resolve('../../packages/workflow/src/index.ts'),
   },
 ];
 
@@ -142,6 +150,7 @@ export default defineConfig({
           '@polytrader/kv-store',
           '@polytrader/sqlite-repository',
           '@polytrader/duckdb-repository',
+          '@polytrader/event-bus',
           '@polytrader/polymarket-api',
           '@polytrader/polymarket-market',
           '@polytrader/polymarket-wallet',
@@ -149,6 +158,7 @@ export default defineConfig({
           '@polytrader/trading-account',
           '@polytrader/trading-market',
           '@polytrader/trading-strategy',
+          '@polytrader/workflow',
         ],
       },
       rollupOptions: {

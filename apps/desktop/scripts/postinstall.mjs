@@ -5,7 +5,7 @@ if (process.env.P2_SKIP_POSTINSTALL_REBUILD === '1') {
 }
 
 const command = process.platform === 'win32' ? 'electron-rebuild.cmd' : 'electron-rebuild';
-const result = spawnSync(command, ['-f', '-o', 'better-sqlite3'], {
+const result = spawnSync(command, ['-f', '-o', 'better-sqlite3', '--parallel'], {
   stdio: 'inherit',
   shell: process.platform === 'win32',
 });
