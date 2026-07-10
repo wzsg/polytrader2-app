@@ -169,10 +169,6 @@ function registerTradingMarketHandlers(ipcMain: IpcMain): void {
     },
   );
   ipcMain.handle(
-    'trading-market:getSnapshot',
-    wrapRuntime((marketId: string) => tradingMarketService.getSnapshot(marketId)),
-  );
-  ipcMain.handle(
     'trading-market:selectToken',
     wrapRuntime((marketId: string, tokenId: string, outcome?: string | null) =>
       requireTradingMarket(marketId).selectToken(tokenId, outcome),

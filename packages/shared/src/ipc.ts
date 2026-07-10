@@ -228,6 +228,39 @@ export interface TradingAccountStatusData {
   positionsConfigured: boolean;
 }
 
+interface TradingMarketIpcApi {
+  subscribe: (
+    input: TradingWindowInput,
+    options?: TradingMarketSubscribeOptions,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  selectToken: (
+    marketId: string,
+    tokenId: string,
+    outcome?: string | null,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  loadPriceHistory: (
+    marketId: string,
+    interval?: string,
+    fidelity?: number,
+  ) => Promise<ApiResult<TradingMarketSnapshot>>;
+  listTrades: (
+    marketId: string,
+    query: MarketTradeQuery,
+  ) => Promise<ApiResult<MarketTradeListResult>>;
+  getTradeAnalysis: (
+    marketId: string,
+    query: MarketTradeAnalysisQuery,
+  ) => Promise<ApiResult<MarketTradeAnalysisResult>>;
+  unsubscribe: (marketId: string) => Promise<void>;
+  onEvent: (callback: (event: TradingMarketEvent) => void) => () => void;
+}
+
+interface TradingStrategyIpcApi {
+  getState: (marketId: string) => Promise<ApiResult<TradingStrategyState>>;
+  selectRun: (marketId: string, runId: string) => Promise<ApiResult<TradingStrategyState>>;
+  onEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
+}
+
 export interface IpcApi {
   getAuthState: () => Promise<AuthState>;
   signUpWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;
@@ -427,38 +460,8 @@ export interface IpcApi {
   updateTradingWindowMarketScope: (marketIds: string[]) => Promise<void>;
   confirmTradingWindowClose: () => Promise<void>;
   onTradingWindowCloseRequested: (callback: () => void) => () => void;
-  subscribeTradingMarket: (
-    input: TradingWindowInput,
-    options?: TradingMarketSubscribeOptions,
-  ) => Promise<ApiResult<TradingMarketSnapshot>>;
-  getTradingMarketSnapshot: (marketId: string) => Promise<ApiResult<TradingMarketSnapshot | null>>;
-  selectTradingMarketToken: (
-    marketId: string,
-    tokenId: string,
-    outcome?: string | null,
-  ) => Promise<ApiResult<TradingMarketSnapshot>>;
-  getTradingStrategyState: (marketId: string) => Promise<ApiResult<TradingStrategyState>>;
-  selectTradingStrategyRun: (
-    marketId: string,
-    runId: string,
-  ) => Promise<ApiResult<TradingStrategyState>>;
-  getTradingStrategyActiveRun: (marketId: string) => Promise<ApiResult<StrategyRunDetail | null>>;
-  onTradingStrategyEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
-  loadTradingMarketPriceHistory: (
-    marketId: string,
-    interval?: string,
-    fidelity?: number,
-  ) => Promise<ApiResult<TradingMarketSnapshot>>;
-  listTradingMarketTrades: (
-    marketId: string,
-    query: MarketTradeQuery,
-  ) => Promise<ApiResult<MarketTradeListResult>>;
-  getTradingMarketTradeAnalysis: (
-    marketId: string,
-    query: MarketTradeAnalysisQuery,
-  ) => Promise<ApiResult<MarketTradeAnalysisResult>>;
-  unsubscribeTradingMarket: (marketId: string) => Promise<void>;
-  onTradingMarketEvent: (callback: (event: TradingMarketEvent) => void) => () => void;
+  tradingMarket: TradingMarketIpcApi;
+  tradingStrategy: TradingStrategyIpcApi;
   openBrowserWindow: () => Promise<void>;
   browserNavigate: (
     url: string,

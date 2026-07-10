@@ -94,36 +94,34 @@ const tradingWindowApi = {
   openBotManagement: () => ipcRenderer.invoke('main-window:open-bots'),
 
   // Trading market snapshots, selections, price history, and trade analysis.
-  subscribeTradingMarket: (input, options) =>
-    ipcRenderer.invoke('trading-market:subscribe', input, options),
-  getTradingMarketSnapshot: (marketId) =>
-    ipcRenderer.invoke('trading-market:getSnapshot', marketId),
-  selectTradingMarketToken: (marketId, tokenId, outcome) =>
-    ipcRenderer.invoke('trading-market:selectToken', marketId, tokenId, outcome),
-  getTradingStrategyState: (marketId) => ipcRenderer.invoke('trading-strategy:getState', marketId),
-  selectTradingStrategyRun: (marketId, runId) =>
-    ipcRenderer.invoke('trading-strategy:selectRun', marketId, runId),
-  getTradingStrategyActiveRun: (marketId) =>
-    ipcRenderer.invoke('trading-strategy:getActiveRun', marketId),
-  onTradingStrategyEvent: (callback) => {
-    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
-      callback(input as TradingStrategyStateEvent);
-    ipcRenderer.on('trading-strategy:event', listener);
-    return () => ipcRenderer.removeListener('trading-strategy:event', listener);
+  tradingMarket: {
+    subscribe: (input, options) => ipcRenderer.invoke('trading-market:subscribe', input, options),
+    selectToken: (marketId, tokenId, outcome) =>
+      ipcRenderer.invoke('trading-market:selectToken', marketId, tokenId, outcome),
+    loadPriceHistory: (marketId, interval, fidelity) =>
+      ipcRenderer.invoke('trading-market:loadPriceHistory', marketId, interval, fidelity),
+    listTrades: (marketId, query) =>
+      ipcRenderer.invoke('trading-market:listMarketTrades', marketId, query),
+    getTradeAnalysis: (marketId, query) =>
+      ipcRenderer.invoke('trading-market:getTradeAnalysis', marketId, query),
+    unsubscribe: (marketId) => ipcRenderer.invoke('trading-market:unsubscribe', marketId),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as TradingMarketEvent);
+      ipcRenderer.on('trading-market:event', listener);
+      return () => ipcRenderer.removeListener('trading-market:event', listener);
+    },
   },
-  loadTradingMarketPriceHistory: (marketId, interval, fidelity) =>
-    ipcRenderer.invoke('trading-market:loadPriceHistory', marketId, interval, fidelity),
-  listTradingMarketTrades: (marketId, query) =>
-    ipcRenderer.invoke('trading-market:listMarketTrades', marketId, query),
-  getTradingMarketTradeAnalysis: (marketId, query) =>
-    ipcRenderer.invoke('trading-market:getTradeAnalysis', marketId, query),
-  unsubscribeTradingMarket: (marketId) =>
-    ipcRenderer.invoke('trading-market:unsubscribe', marketId),
-  onTradingMarketEvent: (callback) => {
-    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
-      callback(input as TradingMarketEvent);
-    ipcRenderer.on('trading-market:event', listener);
-    return () => ipcRenderer.removeListener('trading-market:event', listener);
+  tradingStrategy: {
+    getState: (marketId) => ipcRenderer.invoke('trading-strategy:getState', marketId),
+    selectRun: (marketId, runId) =>
+      ipcRenderer.invoke('trading-strategy:selectRun', marketId, runId),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as TradingStrategyStateEvent);
+      ipcRenderer.on('trading-strategy:event', listener);
+      return () => ipcRenderer.removeListener('trading-strategy:event', listener);
+    },
   },
 } satisfies Partial<IpcApi>;
 
