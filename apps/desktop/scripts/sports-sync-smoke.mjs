@@ -78,29 +78,45 @@ async function main() {
   );
   service.setCategoryConfigLocale('zh-CN');
   const category = await service.fetchSportsCategory();
-  const discipline = category.disciplines?.find((item) => item.leagues?.length);
-  const league = discipline?.leagues?.find((item) => item.openEventCount > 0);
-  if (!discipline || !league) throw new Error('Sports category API did not return an active league');
-  if (!league.shortName) throw new Error('Sports category API did not return a league short name');
 
+  const startTimeAfter = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const baseParams = {
     status: 'active',
     excludeEnded: true,
+    startTimeAfter,
     sortField: 'start_time',
     sortOrder: 'asc',
     limit: 20,
     offset: 0,
   };
-  const [allSports, disciplineSports, leagueSports] = await Promise.all([
-    eventRepository.listEvents({ ...baseParams, requireSportId: true }),
+  const visibleSports = await eventRepository.listEvents({
+    ...baseParams,
+    requireSportId: true,
+    limit: 500,
+  });
+  const allSports = visibleSports.slice(0, baseParams.limit);
+  const allSportsCount = await eventRepository.countEvents({ ...baseParams, requireSportId: true });
+  const visibleSportIds = new Set(visibleSports.map((event) => event.sportId).filter(Boolean));
+  const visibleLeague = category.disciplines
+    ?.flatMap((disciplineItem) =>
+      disciplineItem.leagues.map((leagueItem) => ({ discipline: disciplineItem, league: leagueItem })),
+    )
+    .find(
+      ({ league: leagueItem }) =>
+        visibleSportIds.has(String(leagueItem.id)),
+    );
+  if (!visibleLeague) throw new Error('Sports category API did not return a visible league');
+
+  const { discipline, league } = visibleLeague;
+  if (!league.shortName) throw new Error('Sports category API did not return a league short name');
+  const [disciplineSports, leagueSports] = await Promise.all([
     eventRepository.listEvents({
       ...baseParams,
       sportIds: discipline.leagues.map((item) => String(item.id)),
     }),
     eventRepository.listEvents({ ...baseParams, sportId: String(league.id) }),
   ]);
-  const [allSportsCount, disciplineSportsCount, leagueSportsCount] = await Promise.all([
-    eventRepository.countEvents({ ...baseParams, requireSportId: true }),
+  const [disciplineSportsCount, leagueSportsCount] = await Promise.all([
     eventRepository.countEvents({
       ...baseParams,
       sportIds: discipline.leagues.map((item) => String(item.id)),
@@ -134,6 +150,15 @@ async function main() {
 
   if (!allSportsCount || !disciplineSportsCount || !leagueSportsCount) {
     throw new Error('Sports list or one of its filters returned no events');
+  }
+
+  const cutoff = new Date(startTimeAfter).getTime();
+  const expiredEvent = [...allSports, ...disciplineSports, ...leagueSports].find((event) => {
+    const startTime = event.start_time ? new Date(event.start_time).getTime() : Number.NaN;
+    return Number.isFinite(startTime) && startTime < cutoff;
+  });
+  if (expiredEvent) {
+    throw new Error(`Sports list included an event older than 24 hours: ${expiredEvent.id}`);
   }
 }
 

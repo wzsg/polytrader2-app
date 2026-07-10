@@ -203,6 +203,7 @@ export interface ListEventsParams {
   endDateMax?: string;
   endDateAfter?: string;
   activeEndDateAfter?: string;
+  startTimeAfter?: string;
   status?: EventStatusFilter;
   excludeEnded?: boolean;
   sportId?: string;

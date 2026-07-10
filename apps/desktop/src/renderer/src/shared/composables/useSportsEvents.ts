@@ -9,6 +9,7 @@ import {
 import { useWatchlist } from './useWatchlist';
 
 const PAGE_SIZE = 50;
+const SPORTS_START_TIME_GRACE_MS = 24 * 60 * 60 * 1000;
 const SPORTS_TAG_ID = '1';
 const ESPORTS_TAG_ID = '64';
 
@@ -157,6 +158,7 @@ function useSportsEvents() {
         sportIds: selectedSport.value ? undefined : selectedDisciplineSportIds(),
         requireSportId: selectedSport.value || selectedDiscipline.value ? undefined : true,
         excludeEnded: true,
+        startTimeAfter: new Date(Date.now() - SPORTS_START_TIME_GRACE_MS).toISOString(),
         tagIds: selectedSport.value || selectedDiscipline.value ? undefined : [SPORTS_TAG_ID],
         excludeTagIds:
           selectedSport.value || selectedDiscipline.value ? undefined : [ESPORTS_TAG_ID],

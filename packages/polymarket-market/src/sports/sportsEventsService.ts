@@ -12,6 +12,7 @@ const SPORTS_METADATA_STORE_KEY = 'sports-metadata-visible-v1';
 const SPORTS_METADATA_TTL_MS = 60 * 60 * 1000;
 const SPORTS_TAG_ID = '1';
 const ESPORTS_TAG_ID = '64';
+const SPORTS_START_TIME_GRACE_MS = 24 * 60 * 60 * 1000;
 
 const SPORTS_SORT_FIELDS = new Set([
   'volume24hr',
@@ -151,6 +152,10 @@ class SportsEventsService {
       sportId: sportId || undefined,
       requireSportId: params.scope === 'sports' && !sportId,
       excludeEnded: params.scope === 'sports',
+      startTimeAfter:
+        params.scope === 'sports'
+          ? new Date(Date.now() - SPORTS_START_TIME_GRACE_MS).toISOString()
+          : undefined,
       tagIds: sportId ? undefined : this._resolveTagIds(params),
       excludeTagIds: sportId ? undefined : this._resolveExcludeTagIds(params),
       status: 'active',

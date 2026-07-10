@@ -724,6 +724,12 @@ class SqliteEventRepository {
       values.activeEndDateAfter = activeEndDateAfter;
     }
 
+    const startTimeAfter = this._parseDateTimeFilter(params.startTimeAfter);
+    if (startTimeAfter) {
+      clauses.push('(start_time IS NULL OR datetime(start_time) >= datetime(@startTimeAfter))');
+      values.startTimeAfter = startTimeAfter;
+    }
+
     if (params.status === 'active') {
       clauses.push('active = 1 AND closed = 0');
     } else if (params.status === 'closed') {
