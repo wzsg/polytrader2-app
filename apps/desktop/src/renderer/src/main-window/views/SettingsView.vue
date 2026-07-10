@@ -15,6 +15,8 @@ import {
 } from '@lucide/vue';
 import {
   DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
+  DEFAULT_EVENT_SYNC_BATCH_SIZE,
+  MAX_EVENT_SYNC_BATCH_SIZE,
   LOCAL_MCP_ENDPOINT_URL,
 } from '@polytrader/shared';
 import type { AppLocalePreference } from '@polytrader/shared';
@@ -29,9 +31,11 @@ import type {
 import { formatNum, formatTimestamp } from '@/shared/utils/format';
 import {
   currentLocalePreference,
+  currentEventSyncBatchSize,
   currentOrderConfirmationThresholdUsd,
   currentSystemLocale,
   setLocalePreference,
+  setEventSyncBatchSize,
   setOrderConfirmationThresholdUsd,
 } from '@/shared/i18n';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
@@ -81,6 +85,7 @@ const scheduleLoading = ref(false);
 const scheduleSaving = ref(false);
 const localeSaving = ref(false);
 const tradingSafetySaving = ref(false);
+const eventSyncBatchSizeSaving = ref(false);
 const mcpLoading = ref(false);
 const mcpSaving = ref(false);
 const developerModeLoading = ref(false);
@@ -130,6 +135,12 @@ function clampOrderConfirmationThreshold(value: unknown): number {
   const threshold = Number(value);
   if (!Number.isFinite(threshold)) return DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD;
   return Math.round(Math.max(0, Math.min(100_000, threshold)) * 100) / 100;
+}
+
+function clampEventSyncBatchSize(value: unknown): number {
+  const batchSize = Number(value);
+  if (!Number.isFinite(batchSize)) return DEFAULT_EVENT_SYNC_BATCH_SIZE;
+  return Math.max(0, Math.min(MAX_EVENT_SYNC_BATCH_SIZE, Math.trunc(batchSize)));
 }
 
 async function loadSchedule() {
@@ -261,6 +272,18 @@ async function updateOrderConfirmationThreshold(event: Event) {
     await setOrderConfirmationThresholdUsd(threshold);
   } finally {
     tradingSafetySaving.value = false;
+  }
+}
+
+async function updateEventSyncBatchSize(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const batchSize = clampEventSyncBatchSize(input.value);
+  input.value = String(batchSize);
+  eventSyncBatchSizeSaving.value = true;
+  try {
+    await setEventSyncBatchSize(batchSize);
+  } finally {
+    eventSyncBatchSizeSaving.value = false;
   }
 }
 
@@ -463,6 +486,31 @@ onMounted(async () => {
 
       <section v-if="activeSection === 'data'" class="mb-8">
         <h2 class="mb-3 text-sm font-semibold text-white">{{ t('settings.dataSync') }}</h2>
+        <div class="border-border bg-detail-bg mb-4 rounded-lg border px-5 py-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-white">{{ t('settings.eventSyncBatchSize') }}</p>
+              <p class="text-muted mt-1 text-sm">
+                {{ t('settings.eventSyncBatchSizeDescription') }}
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <input
+                type="number"
+                min="0"
+                :max="MAX_EVENT_SYNC_BATCH_SIZE"
+                step="1"
+                class="border-border bg-bg text-text focus:border-primary h-9 w-28 rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                :value="currentEventSyncBatchSize"
+                :disabled="eventSyncBatchSizeSaving || isSyncing()"
+                :title="t('settings.eventSyncBatchSize')"
+                :aria-label="t('settings.eventSyncBatchSize')"
+                @change="updateEventSyncBatchSize"
+              />
+              <LoadingSpinner v-if="eventSyncBatchSizeSaving" :title="t('common.save')" />
+            </div>
+          </div>
+        </div>
         <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
           <p class="text-muted text-sm">
             {{ t('settings.syncDescription') }}

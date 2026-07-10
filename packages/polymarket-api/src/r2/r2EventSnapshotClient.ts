@@ -13,7 +13,12 @@ import type { R2EventSnapshotLatest } from './types.js';
 
 const DEFAULT_EVENT_SNAPSHOT_LATEST_KEY = 'polymarket-gamma/latest.json';
 const ZH_CN_EVENT_SNAPSHOT_LATEST_KEY = 'polymarket-gamma/latest.zh-CN.json';
-const DEFAULT_EVENT_SNAPSHOT_BATCH_SIZE = 100;
+const DEFAULT_EVENT_SNAPSHOT_BATCH_SIZE = 500;
+
+interface R2SnapshotResponse {
+  response: Response;
+  totalEvents: number;
+}
 
 class R2EventSnapshotClient {
   private readonly _baseUrl: string;
@@ -33,8 +38,10 @@ class R2EventSnapshotClient {
   public async *streamOpenEvents(
     signal: AbortSignal,
     locale: AppLocale = DEFAULT_LOCALE,
+    batchSize = this._batchSize,
   ): AsyncGenerator<GammaStreamPage> {
-    const res = await this.fetchSnapshotResponse(signal, locale);
+    const snapshot = await this.fetchSnapshotResponse(signal, locale);
+    const res = snapshot.response;
     if (!res.body) throw new Error('R2 event snapshot response did not include a body');
 
     const body = Readable.fromWeb(res.body as unknown as NodeReadableStream<Uint8Array>);
@@ -54,6 +61,7 @@ class R2EventSnapshotClient {
 
     signal.addEventListener('abort', abort, { once: true });
     try {
+      const normalizedBatchSize = this.normalizeBatchSize(batchSize);
       let events: GammaEventRaw[] = [];
       let pendingLine: string | null = null;
       for await (const line of lines) {
@@ -68,8 +76,8 @@ class R2EventSnapshotClient {
 
         pendingLine = null;
         events.push(event);
-        if (events.length >= this._batchSize) {
-          yield { events };
+        if (normalizedBatchSize > 0 && events.length >= normalizedBatchSize) {
+          yield { events, totalEvents: snapshot.totalEvents };
           events = [];
         }
       }
@@ -77,7 +85,7 @@ class R2EventSnapshotClient {
       if (pendingLine !== null) {
         events.push(JSON.parse(pendingLine) as GammaEventRaw);
       }
-      if (events.length) yield { events };
+      if (events.length) yield { events, totalEvents: snapshot.totalEvents };
     } finally {
       signal.removeEventListener('abort', abort);
       lines.close();
@@ -86,7 +94,10 @@ class R2EventSnapshotClient {
     }
   }
 
-  private async fetchLatestSnapshotKey(signal: AbortSignal, locale: AppLocale): Promise<string> {
+  private async fetchLatestSnapshot(
+    signal: AbortSignal,
+    locale: AppLocale,
+  ): Promise<{ key: string; totalEvents: number }> {
     const res = await fetch(this.objectUrl(this.latestKeyForLocale(locale)), { signal });
     if (!res.ok) throw await this.createHttpError(res);
 
@@ -95,10 +106,22 @@ class R2EventSnapshotClient {
     if (typeof key !== 'string' || !key.trim()) {
       throw new Error('R2 latest.json did not include a snapshot key');
     }
-    return key;
+    const totalEvents = data.snapshot?.eventCount;
+    if (typeof totalEvents !== 'number' || !Number.isSafeInteger(totalEvents) || totalEvents <= 0) {
+      throw new Error('R2 latest.json did not include a valid snapshot eventCount');
+    }
+    return { key, totalEvents };
   }
 
-  private async fetchSnapshotResponse(signal: AbortSignal, locale: AppLocale): Promise<Response> {
+  private normalizeBatchSize(batchSize: number): number {
+    if (!Number.isFinite(batchSize)) return this._batchSize;
+    return Math.max(0, Math.trunc(batchSize));
+  }
+
+  private async fetchSnapshotResponse(
+    signal: AbortSignal,
+    locale: AppLocale,
+  ): Promise<R2SnapshotResponse> {
     try {
       return await this.fetchSnapshotResponseForLocale(signal, locale);
     } catch (error) {
@@ -110,11 +133,11 @@ class R2EventSnapshotClient {
   private async fetchSnapshotResponseForLocale(
     signal: AbortSignal,
     locale: AppLocale,
-  ): Promise<Response> {
-    const snapshotKey = await this.fetchLatestSnapshotKey(signal, locale);
-    const res = await fetch(this.objectUrl(snapshotKey), { signal });
+  ): Promise<R2SnapshotResponse> {
+    const snapshot = await this.fetchLatestSnapshot(signal, locale);
+    const res = await fetch(this.objectUrl(snapshot.key), { signal });
     if (!res.ok) throw await this.createHttpError(res);
-    return res;
+    return { response: res, totalEvents: snapshot.totalEvents };
   }
 
   private shouldFallbackToDefaultLocale(error: unknown, locale: AppLocale): boolean {

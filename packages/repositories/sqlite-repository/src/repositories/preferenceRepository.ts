@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import {
   DEFAULT_LOCALE_PREFERENCE,
+  DEFAULT_EVENT_SYNC_BATCH_SIZE,
   DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
   type AppLocalePreference,
 } from '@polytrader/shared';
@@ -32,6 +33,7 @@ class SqlitePreferenceRepository {
         id: APP_PREFERENCES_ID,
         localePreference: preference,
         orderConfirmationThresholdUsd: DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
+        eventSyncBatchSize: DEFAULT_EVENT_SYNC_BATCH_SIZE,
         createdAt: updatedAt,
         updatedAt,
       })
@@ -58,6 +60,7 @@ class SqlitePreferenceRepository {
         id: APP_PREFERENCES_ID,
         localePreference: DEFAULT_LOCALE_PREFERENCE,
         orderConfirmationThresholdUsd: thresholdUsd,
+        eventSyncBatchSize: DEFAULT_EVENT_SYNC_BATCH_SIZE,
         createdAt: updatedAt,
         updatedAt,
       })
@@ -74,11 +77,36 @@ class SqlitePreferenceRepository {
     return record;
   }
 
+  public setEventSyncBatchSize(batchSize: number, updatedAt: string): AppPreferenceRecord {
+    getDb()
+      .insert(appPreferences)
+      .values({
+        id: APP_PREFERENCES_ID,
+        localePreference: DEFAULT_LOCALE_PREFERENCE,
+        orderConfirmationThresholdUsd: DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
+        eventSyncBatchSize: batchSize,
+        createdAt: updatedAt,
+        updatedAt,
+      })
+      .onConflictDoUpdate({
+        target: appPreferences.id,
+        set: {
+          eventSyncBatchSize: batchSize,
+          updatedAt,
+        },
+      })
+      .run();
+    const record = this.getAppPreferences();
+    if (!record) throw new Error('App preferences were not saved');
+    return record;
+  }
+
   private _mapPreference(row: AppPreferenceRow): AppPreferenceRecord {
     return {
       id: row.id,
       localePreference: row.localePreference as AppLocalePreference,
       orderConfirmationThresholdUsd: row.orderConfirmationThresholdUsd,
+      eventSyncBatchSize: row.eventSyncBatchSize,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

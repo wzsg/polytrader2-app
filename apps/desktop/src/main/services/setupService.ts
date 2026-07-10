@@ -139,6 +139,7 @@ class SetupService {
       await appPreferencesService.setLocalePreference(settings.localePreference);
       const preferences = await appPreferencesService.getAppPreferences();
       polymarketMarketService.setEventSyncLocale(preferences.locale);
+      polymarketMarketService.setEventSyncBatchSize(preferences.eventSyncBatchSize);
       await polymarketMarketService.runEventSyncWorkflow(
         { locale: preferences.locale, trigger: 'startup' },
         new AbortController().signal,
@@ -161,7 +162,12 @@ class SetupService {
           requiresPassword: false,
           encryptionLocked: validated.data.hasExistingDatabase,
           cacheStats,
-          syncStatus: { state: 'done', total: cacheStats.eventCount },
+          syncStatus: {
+            state: 'done',
+            completedEvents: cacheStats.eventCount,
+            totalEvents: cacheStats.eventCount,
+            progressPercent: 100,
+          },
         }),
       };
     } catch (error) {

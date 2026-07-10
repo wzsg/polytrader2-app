@@ -3,12 +3,17 @@ import type { AppLocale } from '@polytrader/shared';
 
 interface GammaEventPage {
   events: GammaEventRaw[];
+  totalEvents?: number;
   nextCursor?: string;
   ids?: string[];
 }
 
 interface EventSyncClient {
-  streamOpenEvents(signal: AbortSignal, locale: AppLocale): AsyncIterable<GammaEventPage>;
+  streamOpenEvents(
+    signal: AbortSignal,
+    locale: AppLocale,
+    batchSize?: number,
+  ): AsyncIterable<GammaEventPage>;
 }
 
 interface MarketTradeStreamOptions {

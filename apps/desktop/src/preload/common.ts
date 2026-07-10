@@ -35,6 +35,7 @@ export const preferenceApi: Pick<
   | 'getAppPreferences'
   | 'setLocalePreference'
   | 'setOrderConfirmationThresholdUsd'
+  | 'setEventSyncBatchSize'
   | 'onPreferencesChanged'
 > = {
   getAppPreferences: () => ipcRenderer.invoke('preferences:get'),
@@ -42,6 +43,8 @@ export const preferenceApi: Pick<
     ipcRenderer.invoke('preferences:setLocalePreference', preference),
   setOrderConfirmationThresholdUsd: (thresholdUsd) =>
     ipcRenderer.invoke('preferences:setOrderConfirmationThresholdUsd', thresholdUsd),
+  setEventSyncBatchSize: (batchSize) =>
+    ipcRenderer.invoke('preferences:setEventSyncBatchSize', batchSize),
   onPreferencesChanged: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, preferences: unknown) =>
       callback(preferences as Parameters<typeof callback>[0]);

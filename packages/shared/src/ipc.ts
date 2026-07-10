@@ -333,6 +333,7 @@ export interface IpcApi {
   getAppPreferences: () => Promise<AppPreferences>;
   setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
   setOrderConfirmationThresholdUsd: (thresholdUsd: number) => Promise<AppPreferences>;
+  setEventSyncBatchSize: (batchSize: number) => Promise<AppPreferences>;
   onPreferencesChanged: (callback: (preferences: AppPreferences) => void) => () => void;
   getSetupState: () => Promise<SetupState>;
   chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;

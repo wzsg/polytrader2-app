@@ -1,0 +1,1 @@
+ALTER TABLE `app_preferences` ADD `event_sync_batch_size` integer DEFAULT 500 NOT NULL;

@@ -3,6 +3,8 @@ import type { AppPreferenceRepository } from '@polytrader/repository-contract';
 import type { AppLocalePreference, AppPreferences } from '@polytrader/shared';
 import {
   DEFAULT_LOCALE_PREFERENCE,
+  DEFAULT_EVENT_SYNC_BATCH_SIZE,
+  MAX_EVENT_SYNC_BATCH_SIZE,
   DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
   SUPPORTED_LOCALES,
   normalizeLocalePreference,
@@ -29,6 +31,7 @@ class AppPreferencesServiceImpl implements AppPreferencesService {
     return this._buildPreferences(
       normalizeLocalePreference(record?.localePreference) ?? DEFAULT_LOCALE_PREFERENCE,
       record?.orderConfirmationThresholdUsd,
+      record?.eventSyncBatchSize,
     );
   }
 
@@ -41,6 +44,7 @@ class AppPreferencesServiceImpl implements AppPreferencesService {
     const preferences = this._buildPreferences(
       record.localePreference,
       record.orderConfirmationThresholdUsd,
+      record.eventSyncBatchSize,
     );
     if (preferences.localePreference !== previousPreferences.localePreference) {
       this._publishPreferencesChanged(preferences, previousPreferences);
@@ -58,6 +62,7 @@ class AppPreferencesServiceImpl implements AppPreferencesService {
     const preferences = this._buildPreferences(
       record.localePreference,
       record.orderConfirmationThresholdUsd,
+      record.eventSyncBatchSize,
     );
     if (
       preferences.orderConfirmationThresholdUsd !==
@@ -70,9 +75,28 @@ class AppPreferencesServiceImpl implements AppPreferencesService {
     return preferences;
   }
 
+  public async setEventSyncBatchSize(batchSize: number): Promise<AppPreferences> {
+    const normalized = this._normalizeEventSyncBatchSize(batchSize);
+    const previousPreferences = await this.getAppPreferences();
+    const record = await this._repository.setEventSyncBatchSize(
+      normalized,
+      new Date().toISOString(),
+    );
+    const preferences = this._buildPreferences(
+      record.localePreference,
+      record.orderConfirmationThresholdUsd,
+      record.eventSyncBatchSize,
+    );
+    if (preferences.eventSyncBatchSize !== previousPreferences.eventSyncBatchSize) {
+      this._publishPreferencesChanged(preferences, previousPreferences, ['eventSyncBatchSize']);
+    }
+    return preferences;
+  }
+
   private _buildPreferences(
     localePreference: AppLocalePreference,
     orderConfirmationThresholdUsd = DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
+    eventSyncBatchSize = DEFAULT_EVENT_SYNC_BATCH_SIZE,
   ): AppPreferences {
     const systemLocale = this._getSystemLocale() || DEFAULT_LOCALE_PREFERENCE;
     return {
@@ -81,9 +105,16 @@ class AppPreferencesServiceImpl implements AppPreferencesService {
       orderConfirmationThresholdUsd: this._normalizeOrderConfirmationThresholdUsd(
         orderConfirmationThresholdUsd,
       ),
+      eventSyncBatchSize: this._normalizeEventSyncBatchSize(eventSyncBatchSize),
       systemLocale,
       supportedLocales: SUPPORTED_LOCALES,
     };
+  }
+
+  private _normalizeEventSyncBatchSize(value: unknown): number {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return DEFAULT_EVENT_SYNC_BATCH_SIZE;
+    return Math.max(0, Math.min(MAX_EVENT_SYNC_BATCH_SIZE, Math.trunc(numeric)));
   }
 
   private _normalizeOrderConfirmationThresholdUsd(value: unknown): number {
@@ -99,7 +130,9 @@ class AppPreferencesServiceImpl implements AppPreferencesService {
   private _publishPreferencesChanged(
     preferences: AppPreferences,
     previousPreferences: AppPreferences,
-    changedKeys: Array<'localePreference' | 'orderConfirmationThresholdUsd'> = ['localePreference'],
+    changedKeys: Array<
+      'localePreference' | 'orderConfirmationThresholdUsd' | 'eventSyncBatchSize'
+    > = ['localePreference'],
   ): void {
     this._eventBus?.publish('app-preferences:changed', {
       preferences,

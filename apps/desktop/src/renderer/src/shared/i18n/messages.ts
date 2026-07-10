@@ -112,7 +112,8 @@ export const messages = {
       chooseDirectory: 'Choose Folder',
       start: 'Start Setup',
       starting: 'Preparing local storage',
-      syncing: 'Page {page}, fetched {total} events',
+      syncing: 'Syncing {progressPercent}% ({completedEvents}/{totalEvents} events)',
+      finalizing: 'Finalizing event data ({progressPercent}%)',
       synced: 'Downloaded {total} events',
       completed: 'Setup complete',
       finish: 'Finish',
@@ -607,6 +608,9 @@ export const messages = {
       orderConfirmationThreshold: 'Order Confirmation Threshold',
       orderConfirmationThresholdDescription:
         'Orders above this estimated USD amount require sliding to confirm before submission.',
+      eventSyncBatchSize: 'Event Sync Write Batch Size',
+      eventSyncBatchSizeDescription:
+        'Events are written to SQLite in this many rows per transaction. Set 0 to download the full snapshot and write it in one transaction.',
     },
     developer: {
       title: 'Developer Mode',
@@ -654,9 +658,10 @@ export const messages = {
       indicator: 'Page {current} / {total}',
     },
     sync: {
-      syncing: 'Page {page}, fetched {total} events',
-      done: 'Sync complete: {total} events',
-      aborted: 'Sync stopped: fetched {total} events',
+      syncing: 'Syncing {progressPercent}% ({completedEvents}/{totalEvents} events)',
+      finalizing: 'Finalizing event data ({progressPercent}%)',
+      done: 'Sync complete: {totalEvents} events',
+      aborted: 'Sync stopped: processed {completedEvents} events',
       failed: 'Sync failed: {error}',
       eventSyncing: 'Sync event data',
       eventError: 'Event sync failed',
@@ -902,7 +907,8 @@ export const messages = {
       chooseDirectory: '选择文件夹',
       start: '开始初始化',
       starting: '准备本地存储',
-      syncing: '第 {page} 页，已获取 {total} 条事件',
+      syncing: '正在同步 {progressPercent}%（{completedEvents}/{totalEvents} 条事件）',
+      finalizing: '正在完成事件数据处理（{progressPercent}%）',
       synced: '已下载 {total} 条事件',
       completed: '初始化完成',
       finish: '完成',
@@ -1387,6 +1393,9 @@ export const messages = {
       tradingSafety: '交易安全',
       orderConfirmationThreshold: '订单确认阈值',
       orderConfirmationThresholdDescription: '订单预估金额超过此美元数值时，提交前需要滑动确认。',
+      eventSyncBatchSize: '事件同步写入批次大小',
+      eventSyncBatchSizeDescription:
+        '每个 SQLite 事务写入的事件数量。设为 0 时，先下载完整快照，再通过一个事务一次性写入。',
     },
     developer: {
       title: '开发者模式',
@@ -1434,9 +1443,10 @@ export const messages = {
       indicator: '第 {current} / {total} 页',
     },
     sync: {
-      syncing: '第 {page} 页，已获取 {total} 条事件',
-      done: '同步完成：共 {total} 条事件',
-      aborted: '同步已停止：已获取 {total} 条事件',
+      syncing: '正在同步 {progressPercent}%（{completedEvents}/{totalEvents} 条事件）',
+      finalizing: '正在完成事件数据处理（{progressPercent}%）',
+      done: '同步完成：共 {totalEvents} 条事件',
+      aborted: '同步已停止：已处理 {completedEvents} 条事件',
       failed: '同步失败：{error}',
       eventSyncing: '同步事件数据',
       eventError: '同步事件错误',

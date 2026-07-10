@@ -10,7 +10,11 @@ import type {
   SyncScheduleConfig,
   SyncStatus,
 } from '@polytrader/shared';
-import { DEFAULT_LOCALE } from '@polytrader/shared';
+import {
+  DEFAULT_EVENT_SYNC_BATCH_SIZE,
+  DEFAULT_LOCALE,
+  MAX_EVENT_SYNC_BATCH_SIZE,
+} from '@polytrader/shared';
 import type { EventSyncClient } from './types.js';
 
 const DEFAULT_SCHEDULE_CONFIG: SyncScheduleConfig = {
@@ -49,6 +53,7 @@ interface EventSyncServiceOptions {
   eventRepository: EventRepository;
   metaRepository: MetaRepository;
   client: EventSyncClient;
+  batchSize?: number;
 }
 
 type EventSyncEventMap = {
@@ -59,6 +64,7 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
   private readonly _eventRepository: EventRepository;
   private readonly _metaRepository: MetaRepository;
   private readonly _client: EventSyncClient;
+  private _batchSize: number;
   private _isSyncing = false;
 
   public constructor(options: EventSyncServiceOptions) {
@@ -66,6 +72,11 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
     this._eventRepository = options.eventRepository;
     this._metaRepository = options.metaRepository;
     this._client = options.client;
+    this._batchSize = this.normalizeBatchSize(options.batchSize ?? DEFAULT_EVENT_SYNC_BATCH_SIZE);
+  }
+
+  public setBatchSize(batchSize: number): void {
+    this._batchSize = this.normalizeBatchSize(batchSize);
   }
 
   public async run(input: EventSyncWorkflowInput, signal: AbortSignal): Promise<EventSyncResult> {
@@ -73,39 +84,72 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
 
     const result = this.createResult(input);
     const seenEventIds: string[] = [];
+    let totalEvents: number | null = null;
     this._isSyncing = true;
     try {
-      this.emitSyncingStatus(0, 0);
-      for await (const data of this._client.streamOpenEvents(signal, input.locale)) {
+      this.emitSyncingStatus(0, 0, null);
+      for await (const data of this._client.streamOpenEvents(
+        signal,
+        input.locale,
+        this._batchSize,
+      )) {
         const events = data.events || [];
         if (events.length === 0) continue;
+
+        totalEvents = this.resolveTotalEvents(totalEvents, data.totalEvents);
 
         seenEventIds.push(...events.map((event) => String(event.id || '')).filter(Boolean));
         const stats = await this._eventRepository.bulkUpsert(events, input.locale);
         this.applyBulkUpsertStats(result, stats);
         result.pagesFetched++;
         result.eventsFetched += events.length;
-        this.emitSyncingStatus(result.pagesFetched, result.eventsFetched);
+        this.emitSyncingStatus(result.pagesFetched, result.eventsFetched, totalEvents);
       }
 
       if (!seenEventIds.length) {
         throw new Error('Event snapshot did not include any events');
       }
+      if (totalEvents === null || result.eventsFetched !== totalEvents) {
+        throw new Error(
+          `Event snapshot count mismatch: expected ${totalEvents ?? 'unknown'}, received ${result.eventsFetched}`,
+        );
+      }
 
+      this.emitStatus(
+        this.createProgressStatus(
+          'finalizing',
+          result.pagesFetched,
+          result.eventsFetched,
+          totalEvents,
+        ),
+      );
       result.closedMissingEvents =
         await this._eventRepository.markOpenEventsMissingFromSnapshotClosed(seenEventIds);
       await this._metaRepository.setLastSyncTime();
-      this.emitStatus({
-        state: 'done',
-        page: result.pagesFetched,
-        total: result.eventsFetched,
-      });
+      this.emitStatus(
+        this.createProgressStatus('done', result.pagesFetched, result.eventsFetched, totalEvents),
+      );
       return result;
     } catch (err) {
       if (this.isAbortError(err)) {
-        this.emitStatus({ state: 'aborted', total: result.eventsFetched });
+        this.emitStatus(
+          this.createProgressStatus(
+            'aborted',
+            result.pagesFetched,
+            result.eventsFetched,
+            totalEvents,
+          ),
+        );
       } else {
-        this.emitStatus({ state: 'error', error: this.errorMessage(err) });
+        this.emitStatus({
+          ...this.createProgressStatus(
+            'error',
+            result.pagesFetched,
+            result.eventsFetched,
+            totalEvents,
+          ),
+          error: this.errorMessage(err),
+        });
       }
       throw err;
     } finally {
@@ -117,8 +161,44 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
     this.emit('status', status);
   }
 
-  private emitSyncingStatus(page: number, total: number): void {
-    this.emitStatus({ state: 'syncing', page, total });
+  private emitSyncingStatus(
+    page: number,
+    completedEvents: number,
+    totalEvents: number | null,
+  ): void {
+    this.emitStatus(this.createProgressStatus('syncing', page, completedEvents, totalEvents));
+  }
+
+  private createProgressStatus(
+    state: SyncStatus['state'],
+    page: number,
+    completedEvents: number,
+    totalEvents: number | null,
+  ): SyncStatus {
+    const progressPercent =
+      totalEvents === null ? 0 : Math.min(100, Math.floor((completedEvents / totalEvents) * 100));
+    return {
+      state,
+      page,
+      completedEvents,
+      totalEvents: totalEvents ?? undefined,
+      progressPercent,
+    };
+  }
+
+  private resolveTotalEvents(current: number | null, next: number | undefined): number {
+    if (next === undefined || !Number.isSafeInteger(next) || next <= 0) {
+      throw new Error('Event snapshot page did not include a valid totalEvents value');
+    }
+    if (current !== null && current !== next) {
+      throw new Error(`Event snapshot total changed during sync: ${current} -> ${next}`);
+    }
+    return next;
+  }
+
+  private normalizeBatchSize(batchSize: number): number {
+    if (!Number.isFinite(batchSize)) return DEFAULT_EVENT_SYNC_BATCH_SIZE;
+    return Math.max(0, Math.min(MAX_EVENT_SYNC_BATCH_SIZE, Math.trunc(batchSize)));
   }
 
   private createResult(input: EventSyncWorkflowInput): EventSyncResult {

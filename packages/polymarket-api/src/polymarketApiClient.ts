@@ -206,8 +206,9 @@ class PolymarketApiClient {
   public streamOpenEvents(
     signal: AbortSignal,
     locale: AppLocale = 'en-US',
-  ): AsyncGenerator<{ events: GammaEventRaw[] }> {
-    return this._eventSnapshotClient.streamOpenEvents(signal, locale);
+    batchSize?: number,
+  ): AsyncGenerator<{ events: GammaEventRaw[]; totalEvents?: number }> {
+    return this._eventSnapshotClient.streamOpenEvents(signal, locale, batchSize);
   }
 
   public streamEventsByIds(

@@ -66,13 +66,22 @@ const primaryDisabled = computed(() => {
   if (phase.value === 'sync') return true;
   return false;
 });
+const syncProgressPercent = computed(() => {
+  const value = syncStatus.value.progressPercent ?? 0;
+  return Math.min(100, Math.max(0, Math.round(value)));
+});
+const syncProgressDashOffset = computed(() => 326.73 * (1 - syncProgressPercent.value / 100));
 const statusText = computed(() => {
   if (phase.value === 'sync') {
     if (syncStatus.value.state === 'syncing')
       return t('setup.syncing', {
         page: syncStatus.value.page ?? 0,
-        total: syncStatus.value.total ?? 0,
+        completedEvents: syncStatus.value.completedEvents ?? 0,
+        totalEvents: syncStatus.value.totalEvents ?? 0,
+        progressPercent: syncStatus.value.progressPercent ?? 0,
       });
+    if (syncStatus.value.state === 'finalizing')
+      return t('setup.finalizing', { progressPercent: syncStatus.value.progressPercent ?? 100 });
     return t('setup.starting');
   }
   if (phase.value === 'error') return t('setup.failed', { error: errorMessage.value });
@@ -357,13 +366,47 @@ onUnmounted(() => unsubscribeSyncStatus?.());
               </p></template
             >
           </template>
-          <template v-else-if="activeStep === 'sync'"
-            ><div class="flex flex-col items-center">
-              <LoadingSpinner :size="28" :title="t('sync.eventSyncing')" />
-              <h1 class="mt-5 text-lg font-semibold text-white">{{ t('setup.dataStep') }}</h1>
-              <p class="text-muted mt-3 text-sm">{{ statusText }}</p>
-            </div></template
-          >
+          <template v-else-if="activeStep === 'sync'">
+            <div class="flex flex-col items-center">
+              <div
+                class="relative size-40"
+                role="progressbar"
+                :aria-label="t('sync.eventSyncing')"
+                :aria-valuemin="0"
+                :aria-valuemax="100"
+                :aria-valuenow="syncProgressPercent"
+              >
+                <svg class="size-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle
+                    class="stroke-border"
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    fill="none"
+                    stroke-width="8"
+                  />
+                  <circle
+                    class="stroke-primary transition-[stroke-dashoffset] duration-300 ease-out"
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    fill="none"
+                    stroke-width="8"
+                    stroke-linecap="round"
+                    stroke-dasharray="326.73"
+                    :style="{ strokeDashoffset: syncProgressDashOffset }"
+                  />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span class="text-3xl font-semibold text-white tabular-nums">
+                    {{ syncProgressPercent }}%
+                  </span>
+                  <span class="text-muted-light mt-1 text-xs">{{ t('setup.dataStep') }}</span>
+                </div>
+              </div>
+              <p class="text-muted mt-6 text-center text-sm" aria-live="polite">{{ statusText }}</p>
+            </div>
+          </template>
           <template v-else-if="activeStep === 'complete'"
             ><div class="flex flex-col items-center">
               <Check class="text-primary" :size="32" />

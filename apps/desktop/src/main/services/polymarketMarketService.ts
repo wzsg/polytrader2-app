@@ -44,10 +44,14 @@ function broadcastCategoryConfigChanged(locale: AppLocale): void {
 async function syncPolymarketMarketServicePreferences(): Promise<void> {
   const preferences = await appPreferencesService.getAppPreferences();
   polymarketMarketService.setEventSyncLocale(preferences.locale);
+  polymarketMarketService.setEventSyncBatchSize(preferences.eventSyncBatchSize);
   polymarketMarketService.setCategoryConfigLocale(preferences.locale);
 }
 
 applicationEventBus.subscribe('app-preferences:changed', (event) => {
+  if (event.changedKeys.includes('eventSyncBatchSize')) {
+    polymarketMarketService.setEventSyncBatchSize(event.preferences.eventSyncBatchSize);
+  }
   if (!event.changedKeys.includes('localePreference')) return;
   if (event.preferences.locale === event.previousPreferences.locale) return;
 
