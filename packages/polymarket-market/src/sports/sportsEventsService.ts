@@ -150,6 +150,7 @@ class SportsEventsService {
     return {
       sportId: sportId || undefined,
       requireSportId: params.scope === 'sports' && !sportId,
+      excludeEnded: params.scope === 'sports',
       tagIds: sportId ? undefined : this._resolveTagIds(params),
       excludeTagIds: sportId ? undefined : this._resolveExcludeTagIds(params),
       status: 'active',

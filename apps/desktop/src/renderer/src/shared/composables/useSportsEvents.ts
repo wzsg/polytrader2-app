@@ -156,6 +156,7 @@ function useSportsEvents() {
         sportId: selectedSport.value || undefined,
         sportIds: selectedSport.value ? undefined : selectedDisciplineSportIds(),
         requireSportId: selectedSport.value || selectedDiscipline.value ? undefined : true,
+        excludeEnded: true,
         tagIds: selectedSport.value || selectedDiscipline.value ? undefined : [SPORTS_TAG_ID],
         excludeTagIds:
           selectedSport.value || selectedDiscipline.value ? undefined : [ESPORTS_TAG_ID],

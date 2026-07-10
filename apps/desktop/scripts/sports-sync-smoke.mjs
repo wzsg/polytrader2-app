@@ -85,6 +85,7 @@ async function main() {
 
   const baseParams = {
     status: 'active',
+    excludeEnded: true,
     sortField: 'start_time',
     sortOrder: 'asc',
     limit: 20,

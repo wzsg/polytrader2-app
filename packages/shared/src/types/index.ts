@@ -204,6 +204,7 @@ export interface ListEventsParams {
   endDateAfter?: string;
   activeEndDateAfter?: string;
   status?: EventStatusFilter;
+  excludeEnded?: boolean;
   sportId?: string;
   sportIds?: string[];
   requireSportId?: boolean;
@@ -258,6 +259,7 @@ export interface EventListItem {
   liquidity: number;
   active: boolean;
   closed: boolean;
+  ended: boolean;
   market_count: number;
   start_date: string | null;
   start_time: string | null;
@@ -556,6 +558,7 @@ export interface GammaEventRaw {
   liquidity?: number | string;
   active?: boolean;
   closed?: boolean;
+  ended?: boolean;
   startDate?: string | null;
   startTime?: string | null;
   endDate?: string | null;

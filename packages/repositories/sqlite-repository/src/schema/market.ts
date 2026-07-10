@@ -22,6 +22,7 @@ export const events = sqliteTable(
     liquidity: real('liquidity').default(0),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
     closed: integer('closed', { mode: 'boolean' }).notNull().default(false),
+    ended: integer('ended', { mode: 'boolean' }).notNull().default(false),
     marketCount: integer('market_count').default(0),
     startDate: text('start_date'),
     startTime: text('start_time'),
@@ -47,6 +48,13 @@ export const events = sqliteTable(
     index('idx_events_active_closed_parent_start_time').on(
       table.active,
       table.closed,
+      table.parentEventId,
+      table.startTime,
+    ),
+    index('idx_events_active_closed_ended_parent_start_time').on(
+      table.active,
+      table.closed,
+      table.ended,
       table.parentEventId,
       table.startTime,
     ),

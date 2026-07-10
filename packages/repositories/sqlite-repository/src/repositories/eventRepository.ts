@@ -27,6 +27,7 @@ interface EventRow {
   liquidity: number;
   active: number;
   closed: number;
+  ended: number;
   market_count: number;
   start_date: string | null;
   start_time: string | null;
@@ -122,6 +123,7 @@ class SqliteEventRepository {
               liquidity: eventRow.liquidity,
               active: eventRow.active,
               closed: eventRow.closed,
+              ended: eventRow.ended,
               marketCount: eventRow.marketCount,
               startDate: eventRow.startDate,
               startTime: eventRow.startTime,
@@ -446,6 +448,7 @@ class SqliteEventRepository {
       liquidity: Number(event.liquidity) || 0,
       active: event.active !== false,
       closed: event.closed === true,
+      ended: event.ended === true,
       marketCount: countOpenMarkets(eventMarkets),
       startDate: event.startDate || null,
       startTime: event.startTime || null,
@@ -467,13 +470,14 @@ class SqliteEventRepository {
 
     const sqlite = getSqlite();
     const existingEvent = sqlite
-      .prepare('SELECT locale, updated_at, parent_event_id, sport_id, start_time, teams FROM events WHERE id = ?')
+      .prepare('SELECT locale, updated_at, parent_event_id, sport_id, ended, start_time, teams FROM events WHERE id = ?')
       .get(eventRow.id) as
       | {
           locale: string | null;
           updated_at: string | null;
           parent_event_id: string | null;
           sport_id: string | null;
+          ended: number;
           start_time: string | null;
           teams: string | null;
         }
@@ -482,6 +486,7 @@ class SqliteEventRepository {
     if (existingEvent.locale !== eventRow.locale) return false;
     if (existingEvent.parent_event_id !== eventRow.parentEventId) return false;
     if (existingEvent.sport_id !== eventRow.sportId) return false;
+    if ((existingEvent.ended === 1) !== eventRow.ended) return false;
     if (existingEvent.start_time !== eventRow.startTime) return false;
     if (existingEvent.teams !== eventRow.teams) return false;
 
@@ -725,6 +730,10 @@ class SqliteEventRepository {
       clauses.push('closed = 1');
     }
 
+    if (params.excludeEnded === true) {
+      clauses.push('ended = 0');
+    }
+
     if (params.sportId) {
       clauses.push('sport_id = @sportId');
       values.sportId = String(params.sportId);
@@ -843,6 +852,7 @@ class SqliteEventRepository {
       liquidity: row.liquidity,
       active: row.active === 1,
       closed: row.closed === 1,
+      ended: row.ended === 1,
       market_count: row.market_count,
       start_date: row.start_date,
       start_time: row.start_time,
@@ -945,7 +955,7 @@ class SqliteEventRepository {
     if (!where) return '';
     if (!withAlias) return where;
     return where.replace(
-      /(?<!\.)\b(volume24hr|volume|liquidity|market_count|title|slug|active|closed|start_date|start_time|end_date|category|sport_id|featured|parent_event_id)\b/g,
+      /(?<!\.)\b(volume24hr|volume|liquidity|market_count|title|slug|active|closed|ended|start_date|start_time|end_date|category|sport_id|featured|parent_event_id)\b/g,
       'e.$1',
     );
   }
