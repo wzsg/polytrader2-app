@@ -153,7 +153,10 @@ export const messages = {
     sports: {
       sport: 'Sport',
       sportLabel: 'Sport',
+      discipline: 'Discipline',
+      league: 'League',
       allSports: 'All Sports',
+      allLeagues: 'All Leagues',
       allEsports: 'All Esports',
       loadMetadata: 'Load sports metadata',
       loadMetadataFailed: 'Failed to load sports metadata: {error}',
@@ -918,7 +921,10 @@ export const messages = {
     sports: {
       sport: '项目',
       sportLabel: '体育项目',
+      discipline: '门类',
+      league: '联赛',
       allSports: '全部体育',
+      allLeagues: '全部联赛',
       allEsports: '全部电竞',
       loadMetadata: '加载体育元数据',
       loadMetadataFailed: '加载体育元数据失败：{error}',

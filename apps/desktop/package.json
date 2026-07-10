@@ -26,6 +26,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "smoke:crypto-events": "node scripts/run-electron-node.mjs scripts/crypto-events-smoke.mjs",
+    "smoke:sports-sync": "node scripts/run-electron-node.mjs scripts/sports-sync-smoke.mjs",
     "postinstall": "node scripts/postinstall.mjs"
   },
   "type": "module",

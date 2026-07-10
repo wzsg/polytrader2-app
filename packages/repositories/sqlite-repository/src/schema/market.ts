@@ -26,6 +26,7 @@ export const events = sqliteTable(
     startDate: text('start_date'),
     endDate: text('end_date'),
     category: text('category'),
+    sportId: text('sport_id'),
     featured: integer('featured', { mode: 'boolean' }).default(false),
     parentEventId: text('parent_event_id'),
     teams: text('teams'),
@@ -35,6 +36,7 @@ export const events = sqliteTable(
     index('idx_events_volume24hr').on(table.volume24hr),
     index('idx_events_active').on(table.active),
     index('idx_events_parent_event_id').on(table.parentEventId),
+    index('idx_events_sport_id').on(table.sportId),
     index('idx_events_active_closed_parent_end').on(
       table.active,
       table.closed,

@@ -55,6 +55,7 @@ const mainWindowApi = {
   fetchEvent: (eventId) => ipcRenderer.invoke('api:fetchEvent', eventId),
   fetchCryptoCategory: () => ipcRenderer.invoke('api:fetchCryptoCategory'),
   fetchEventCategory: () => ipcRenderer.invoke('api:fetchEventCategory'),
+  fetchSportsCategory: () => ipcRenderer.invoke('api:fetchSportsCategory'),
   onCategoryConfigChanged: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
       callback(input as Parameters<typeof callback>[0]);

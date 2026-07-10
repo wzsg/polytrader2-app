@@ -2,6 +2,7 @@ import {
   type AppLocale,
   type CryptoCategoryConfig,
   type EventCategoryConfig,
+  type SportsCategoryConfig,
 } from '@polytrader/shared';
 import type { MarketServiceCacheStore } from './types.js';
 
@@ -10,6 +11,8 @@ const CRYPTO_CATEGORY_URL = 'https://trading-api.polytrader2.com/api/crypto-cate
 const CRYPTO_CATEGORY_STORE_KEY = 'crypto-category';
 const EVENT_CATEGORY_URL = 'https://trading-api.polytrader2.com/api/event-category';
 const EVENT_CATEGORY_STORE_KEY = 'event-category';
+const SPORTS_CATEGORY_URL = 'https://trading-api.polytrader2.com/api/sports/categories';
+const SPORTS_CATEGORY_STORE_KEY = 'sports-category-v2';
 
 interface MarketCategoryConfigClientOptions {
   configBaseUrl?: string;
@@ -49,6 +52,13 @@ class MarketCategoryConfigClient {
           await this.fetchRemoteConfig(this.resolveLocaleUrl(EVENT_CATEGORY_URL, locale)),
         ),
     );
+  }
+
+  public fetchSportsCategory(locale: AppLocale): Promise<SportsCategoryConfig> {
+    return this.fetchCachedConfig<SportsCategoryConfig>({
+      url: this.resolveLocaleUrl(SPORTS_CATEGORY_URL, locale),
+      storeKey: this.resolveLocaleStoreKey(SPORTS_CATEGORY_STORE_KEY, locale),
+    });
   }
 
   private fetchCachedConfig<T>(definition: ConfigDefinition): Promise<T> {

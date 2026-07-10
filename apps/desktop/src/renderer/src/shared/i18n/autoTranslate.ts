@@ -258,7 +258,10 @@ const exactTerms: Record<string, TranslationTerm> = {
   'crypto.timeframe': { zh: '时间框架', en: 'Timeframe' },
   'sports.sport': { zh: '项目', en: 'Sport' },
   'sports.sportLabel': { zh: '体育项目', en: 'Sport' },
+  'sports.discipline': { zh: '门类', en: 'Discipline' },
+  'sports.league': { zh: '联赛', en: 'League' },
   'sports.allSports': { zh: '全部体育', en: 'All Sports' },
+  'sports.allLeagues': { zh: '全部联赛', en: 'All Leagues' },
   'sports.allEsports': { zh: '全部电竞', en: 'All Esports' },
   'sports.loadMetadata': { zh: '加载体育元数据', en: 'Load sports metadata' },
   'sports.loadMetadataFailed': {

@@ -36,6 +36,10 @@ function registerMarketHandlers(ipcMain: IpcMain): void {
     await syncPolymarketMarketServicePreferences();
     return await polymarketMarketService.fetchEventCategory();
   });
+  ipcMain.handle('api:fetchSportsCategory', async () => {
+    await syncPolymarketMarketServicePreferences();
+    return await polymarketMarketService.fetchSportsCategory();
+  });
   ipcMain.handle('api:fetchSportsMetadata', () => polymarketMarketService.fetchSportsMetadata());
   ipcMain.handle('api:listCryptoEvents', (_event, params) =>
     polymarketMarketService.listCryptoEvents(params),

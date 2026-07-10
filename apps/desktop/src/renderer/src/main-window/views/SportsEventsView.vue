@@ -36,10 +36,13 @@ defineExpose({ reload });
 
 <template>
   <SportsFilterBar
-    :sports="sports.availableSports.value"
+    :disciplines="sports.availableDisciplines.value"
+    :leagues="sports.availableLeagues.value"
+    :selected-discipline="sports.selectedDiscipline.value"
     :selected-sport="sports.selectedSport.value"
     :loading="sports.metadataLoading.value"
     :error="sports.metadataError.value"
+    @select-discipline="sports.setDiscipline"
     @select-sport="sports.setSport"
   />
 
