@@ -926,7 +926,7 @@ export const messages = {
       league: '联赛',
       allSports: '全部',
       allLeagues: '全部',
-      allEsports: '全部电竞',
+      allEsports: '全部',
       startTime: '开赛时间',
       loadMetadata: '加载体育元数据',
       loadMetadataFailed: '加载体育元数据失败：{error}',

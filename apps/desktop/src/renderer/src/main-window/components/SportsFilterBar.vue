@@ -36,6 +36,10 @@ function leagueLabel(item: SportLeagueCategory): string {
   return item.shortName || item.code;
 }
 
+function categoryTitle(label: string, count: number): string {
+  return `${label} (${count})`;
+}
+
 function disciplineButtonClass(code: string): string {
   return props.selectedDiscipline === code
     ? 'border-primary/60 bg-primary/20 text-primary-light'
@@ -68,7 +72,6 @@ function hideBrokenIcon(event: Event): void {
 
     <template v-else>
       <div class="flex min-w-0 items-center gap-2" :aria-label="t('sports.discipline')">
-        <span class="text-muted shrink-0 text-[13px]">{{ t('sports.discipline') }}</span>
         <div
           class="scrollbar-hidden flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pr-2 whitespace-nowrap"
           @wheel="handleHorizontalWheel"
@@ -91,8 +94,8 @@ function hideBrokenIcon(event: Event): void {
             type="button"
             class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border px-2.5 text-sm font-medium transition-colors"
             :class="disciplineButtonClass(item.code)"
-            :title="disciplineTitle(item)"
-            :aria-label="disciplineTitle(item)"
+            :title="categoryTitle(disciplineTitle(item), item.openEventCount)"
+            :aria-label="categoryTitle(disciplineTitle(item), item.openEventCount)"
             :aria-pressed="selectedDiscipline === item.code"
             @click="emit('select-discipline', item.code)"
           >
@@ -109,7 +112,8 @@ function hideBrokenIcon(event: Event): void {
                 @error="hideBrokenIcon"
               />
             </span>
-            {{ disciplineTitle(item) }}
+            <span>{{ disciplineTitle(item) }}</span>
+            <span class="text-xs tabular-nums opacity-75">{{ item.openEventCount }}</span>
           </button>
         </div>
       </div>
@@ -119,7 +123,6 @@ function hideBrokenIcon(event: Event): void {
         class="flex min-w-0 items-center gap-2"
         :aria-label="t('sports.league')"
       >
-        <span class="text-muted shrink-0 text-[13px]">{{ t('sports.league') }}</span>
         <div
           class="scrollbar-hidden flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pr-2 whitespace-nowrap"
           @wheel="handleHorizontalWheel"
@@ -142,8 +145,8 @@ function hideBrokenIcon(event: Event): void {
             type="button"
             class="inline-flex h-8 shrink-0 items-center gap-2 rounded-md border px-2.5 text-sm transition-colors"
             :class="buttonClass(item.id)"
-            :title="leagueTitle(item)"
-            :aria-label="leagueTitle(item)"
+            :title="categoryTitle(leagueTitle(item), item.openEventCount)"
+            :aria-label="categoryTitle(leagueTitle(item), item.openEventCount)"
             :aria-pressed="selectedSport === item.id"
             @click="emit('select-sport', item.id)"
           >
@@ -161,6 +164,7 @@ function hideBrokenIcon(event: Event): void {
               />
             </span>
             <span class="font-medium">{{ leagueLabel(item) }}</span>
+            <span class="text-xs tabular-nums opacity-75">{{ item.openEventCount }}</span>
           </button>
         </div>
       </div>

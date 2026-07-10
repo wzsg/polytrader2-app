@@ -112,7 +112,6 @@ function hideBrokenIcon(event: Event): void {
 
     <template v-else-if="category">
       <div class="flex min-w-0 items-center gap-2" :aria-label="t('filter.coinLabel')">
-        <span class="text-muted shrink-0 text-[13px]">{{ t('filter.coin') }}</span>
         <div
           class="scrollbar-hidden flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pr-2 whitespace-nowrap"
           @wheel="handleHorizontalWheel"
@@ -151,7 +150,6 @@ function hideBrokenIcon(event: Event): void {
 
       <div class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">
         <div class="flex min-w-0 items-center gap-2" :aria-label="t('filter.modeLabel')">
-          <span class="text-muted shrink-0 text-[13px]">{{ t('filter.mode') }}</span>
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
             <button
               v-for="mode in modes"

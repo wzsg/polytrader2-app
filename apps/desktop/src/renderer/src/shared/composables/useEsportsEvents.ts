@@ -59,7 +59,9 @@ function useEsportsEvents() {
   let ready = false;
 
   const availableSports = computed(() =>
-    metadata.value.filter((item) => item.tagIds.includes(ESPORTS_TAG_ID)),
+    metadata.value.filter(
+      (item) => item.tagIds.includes(ESPORTS_TAG_ID) && (item.activeEventCount ?? 0) > 0,
+    ),
   );
 
   const selectedSport = computed(() => filters.esportsSport || '');
@@ -89,13 +91,26 @@ function useEsportsEvents() {
     metadataLoading.value = true;
     metadataError.value = '';
     try {
-      metadata.value = await fetchSportsMetadataOnce();
+      metadata.value = await loadVisibleEventCounts(await fetchSportsMetadataOnce());
       validateSelectedSport();
     } catch (err) {
       metadataError.value = err instanceof Error ? err.message : String(err);
     } finally {
       metadataLoading.value = false;
     }
+  }
+
+  async function loadVisibleEventCounts(
+    items: SportsMetadataItem[],
+  ): Promise<SportsMetadataItem[]> {
+    return Promise.all(
+      items.map(async (item) => ({
+        ...item,
+        activeEventCount: item.tagIds.includes(ESPORTS_TAG_ID)
+          ? await window.api.countEvents({ tagIds: item.tagIds, status: 'active' })
+          : item.activeEventCount,
+      })),
+    );
   }
 
   function validateSelectedSport(): void {

@@ -2,10 +2,7 @@ import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import type { EventListItem, Filters, SortOrder } from '@polytrader/shared';
 import type { SportDisciplineCategory } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
-import {
-  clearSportsCategoryMetadataCache,
-  fetchSportsCategoryConfigOnce,
-} from './sportsMetadata';
+import { clearSportsCategoryMetadataCache, fetchSportsCategoryConfigOnce } from './sportsMetadata';
 import { useWatchlist } from './useWatchlist';
 
 const PAGE_SIZE = 50;
@@ -75,7 +72,14 @@ function useSportsEvents() {
     unsubscribeCategoryConfigChanged();
   });
 
-  const availableDisciplines = computed(() => disciplines.value);
+  const availableDisciplines = computed(() =>
+    disciplines.value
+      .map((discipline) => ({
+        ...discipline,
+        leagues: discipline.leagues.filter((league) => league.openEventCount > 0),
+      }))
+      .filter((discipline) => discipline.leagues.length > 0),
+  );
   const selectedDiscipline = computed(() => filters.sportsDiscipline || '');
   const availableLeagues = computed(() => {
     if (!selectedDiscipline.value) return [];
@@ -110,13 +114,43 @@ function useSportsEvents() {
     metadataError.value = '';
     try {
       const config = await fetchSportsCategoryConfigOnce();
-      disciplines.value = config.disciplines;
+      disciplines.value = await loadVisibleEventCounts(config.disciplines);
       validateSelection();
     } catch (err) {
       metadataError.value = err instanceof Error ? err.message : String(err);
     } finally {
       metadataLoading.value = false;
     }
+  }
+
+  async function loadVisibleEventCounts(
+    categoryDisciplines: SportDisciplineCategory[],
+  ): Promise<SportDisciplineCategory[]> {
+    const baseParams = {
+      status: 'active' as const,
+      excludeEnded: true,
+      startTimeAfter: new Date(Date.now() - SPORTS_START_TIME_GRACE_MS).toISOString(),
+    };
+
+    return Promise.all(
+      categoryDisciplines.map(async (discipline) => {
+        const leagues = await Promise.all(
+          discipline.leagues.map(async (league) => ({
+            ...league,
+            openEventCount: await window.api.countEvents({
+              ...baseParams,
+              sportId: league.id,
+            }),
+          })),
+        );
+
+        return {
+          ...discipline,
+          openEventCount: leagues.reduce((total, league) => total + league.openEventCount, 0),
+          leagues,
+        };
+      }),
+    );
   }
 
   function validateSelection(): void {
@@ -133,7 +167,9 @@ function useSportsEvents() {
     if (!selectedSport.value) return;
 
     if (discipline) {
-      const existsInDiscipline = discipline.leagues.some((league) => league.id === selectedSport.value);
+      const existsInDiscipline = discipline.leagues.some(
+        (league) => league.id === selectedSport.value,
+      );
       if (!existsInDiscipline) filters.sportsSport = '';
       return;
     }

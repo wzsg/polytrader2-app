@@ -25,6 +25,10 @@ function sportTitle(item: SportsMetadataItem): string {
   return sportCodeLabel(item.sport);
 }
 
+function categoryTitle(item: SportsMetadataItem): string {
+  return `${sportTitle(item)} (${item.activeEventCount ?? 0})`;
+}
+
 function buttonClass(sport: string): string {
   return props.selectedSport === sport
     ? 'border-primary/60 bg-primary/20 text-primary-light'
@@ -73,8 +77,8 @@ function hideBrokenIcon(event: Event): void {
             type="button"
             class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border px-2.5 text-sm transition-colors"
             :class="buttonClass(item.sport)"
-            :title="sportTitle(item)"
-            :aria-label="sportTitle(item)"
+            :title="categoryTitle(item)"
+            :aria-label="categoryTitle(item)"
             :aria-pressed="selectedSport === item.sport"
             @click="emit('select-sport', item.sport)"
           >
@@ -92,6 +96,7 @@ function hideBrokenIcon(event: Event): void {
               />
             </span>
             <span class="font-medium">{{ sportTitle(item) }}</span>
+            <span class="text-xs tabular-nums opacity-75">{{ item.activeEventCount ?? 0 }}</span>
           </button>
         </div>
       </div>
