@@ -1,4 +1,5 @@
 import { app } from 'electron';
+import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { dirname, join } from 'path';
@@ -140,10 +141,13 @@ class SetupService {
       const preferences = await appPreferencesService.getAppPreferences();
       polymarketMarketService.setEventSyncLocale(preferences.locale);
       polymarketMarketService.setEventSyncBatchSize(preferences.eventSyncBatchSize);
+      polymarketMarketService.setCategoryConfigLocale(preferences.locale);
+      const categoryWarmupPromise = this._warmCategoryConfigs();
       await polymarketMarketService.runEventSyncWorkflow(
         { locale: preferences.locale, trigger: 'startup' },
         new AbortController().signal,
       );
+      await categoryWarmupPromise;
       const cacheStats = await this._eventRepository.getCacheStats();
       if (cacheStats.eventCount <= 0) {
         return { ok: false, error: 'Event data download completed without cached events' };
@@ -211,6 +215,28 @@ class SetupService {
     this._lastStatus = status;
   }
 
+  private async _warmCategoryConfigs(): Promise<void> {
+    const categories = [
+      {
+        name: 'event',
+        fetch: () => polymarketMarketService.fetchEventCategory(),
+      },
+      {
+        name: 'crypto',
+        fetch: () => polymarketMarketService.fetchCryptoCategory(),
+      },
+      {
+        name: 'sports',
+        fetch: () => polymarketMarketService.fetchSportsCategory(),
+      },
+    ];
+    const results = await Promise.allSettled(categories.map((category) => category.fetch()));
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') return;
+      console.warn(`Failed to warm ${categories[index].name} category config`, result.reason);
+    });
+  }
+
   private _createSettings(input: SetupStartInput, existing: SetupSettings | null): SetupSettings {
     if (input.encryptionMethod === 'aes-256-gcm') {
       if (existing) {
@@ -269,9 +295,12 @@ class SetupService {
     if (!normalized) return { ok: false, error: 'Data directory is required' };
     try {
       await fs.mkdir(normalized, { recursive: true });
-      const probePath = join(normalized, `.polytrader2-write-test-${process.pid}`);
-      await fs.writeFile(probePath, 'ok', 'utf-8');
-      await fs.unlink(probePath);
+      const probePath = join(normalized, `.polytrader2-write-test-${process.pid}-${randomUUID()}`);
+      try {
+        await fs.writeFile(probePath, 'ok', 'utf-8');
+      } finally {
+        await fs.rm(probePath, { force: true });
+      }
       const stats = await fs.statfs(normalized);
       return {
         ok: true,

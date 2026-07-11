@@ -145,18 +145,19 @@ function showEventDetailPanel(event: EventListItem, metadata?: unknown): void {
 
 async function openEventDetail(event: EventListItem, metadata?: unknown): Promise<void> {
   if (activeNav.value === 'crypto') {
-    const single = getSingleOpenMarket(event);
-    if (single) {
-      try {
+    try {
+      const markets = await window.api.listEventMarkets(event.id);
+      const single = getSingleOpenMarket({ markets });
+      if (single) {
         const childEvents = await window.api.listChildEvents(event.id);
         if (!childEvents.length) {
           openTradingWindowForMarket(single, event.id, null, null, metadata);
           return;
         }
-      } catch {
-        showEventDetailPanel(event, metadata);
-        return;
       }
+    } catch {
+      showEventDetailPanel(event, metadata);
+      return;
     }
   }
 
@@ -170,13 +171,14 @@ function getDefaultOpenMarket(
 }
 
 async function openEventTrading(event: EventListItem, metadata?: unknown): Promise<void> {
-  const market = getDefaultOpenMarket(event.markets as Array<DbMarket | Market>);
-  if (market) {
-    openTradingWindowForMarket(market, event.id, null, null, metadata);
-    return;
-  }
-
   try {
+    const markets = await window.api.listEventMarkets(event.id);
+    const market = getDefaultOpenMarket(markets);
+    if (market) {
+      openTradingWindowForMarket(market, event.id, null, null, metadata);
+      return;
+    }
+
     const childEvents = await window.api.listChildEvents(event.id);
     for (const childEvent of childEvents) {
       const childMarket = getDefaultOpenMarket(childEvent.markets as DbMarket[]);

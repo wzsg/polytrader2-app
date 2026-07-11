@@ -43,6 +43,7 @@ const mainWindowApi = {
   listDeveloperWorkflowTasks: (limit) => ipcRenderer.invoke('developer:listWorkflowTasks', limit),
   listEvents: (params) => ipcRenderer.invoke('db:list', params),
   listChildEvents: (parentEventId) => ipcRenderer.invoke('db:listChildren', parentEventId),
+  listEventMarkets: (eventId) => ipcRenderer.invoke('db:listEventMarkets', eventId),
   countEvents: (params) => ipcRenderer.invoke('db:count', params),
   getTotalCount: () => ipcRenderer.invoke('db:total'),
   countEventsByTags: (tagIds) => ipcRenderer.invoke('db:countByTags', tagIds),

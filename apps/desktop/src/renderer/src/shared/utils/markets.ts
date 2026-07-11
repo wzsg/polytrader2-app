@@ -1,4 +1,4 @@
-import type { ApiEvent, DbMarket, EventListItem, Market } from '@polytrader/shared';
+import type { DbMarket, Market } from '@polytrader/shared';
 import { isDisplayableMarket, parseJsonArray } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
 import { formatOutcomeLabel, formatOutcomePrice } from './format.js';
@@ -37,9 +37,9 @@ function openMarkets(markets: Array<DbMarket | Market> | undefined): Array<DbMar
 }
 
 function getSingleOpenMarket(
-  event: EventListItem | ApiEvent | null | undefined,
+  event: { markets: Array<DbMarket | Market> } | null | undefined,
 ): (DbMarket | Market) | null {
-  const open = openMarkets(event?.markets as Array<DbMarket | Market>);
+  const open = openMarkets(event?.markets);
   return open.length === 1 ? open[0] : null;
 }
 

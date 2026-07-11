@@ -279,6 +279,9 @@ export interface EventListItem {
   featured: boolean;
   parentEventId: string | null;
   teams: string | null;
+}
+
+export interface EventDetailItem extends EventListItem {
   markets: DbMarket[] | MarketSummary[];
 }
 
