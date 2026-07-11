@@ -151,7 +151,7 @@ export const messages = {
         'This directory already contains a database. Its encryption method cannot be changed.',
     },
     filter: {
-      searchPlaceholder: 'Title or slug...',
+      searchPlaceholder: 'Title...',
       volume24hGreaterThan: '24h Volume >',
       volume24hLessThan: '24h Volume <',
       totalVolumeGreaterThan: 'Total Volume >',
@@ -957,7 +957,7 @@ export const messages = {
       existingEncryptionLocked: '该目录已包含数据库，不能更改其加密方式。',
     },
     filter: {
-      searchPlaceholder: '标题或 slug...',
+      searchPlaceholder: '标题...',
       volume24hGreaterThan: '24h 成交量 >',
       volume24hLessThan: '24h 成交量 <',
       totalVolumeGreaterThan: '总成交量 >',

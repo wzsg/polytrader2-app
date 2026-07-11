@@ -698,7 +698,7 @@ class SqliteEventRepository {
     const values: Record<string, unknown> = {};
 
     if (params.search) {
-      clauses.push('(title LIKE @search OR slug LIKE @search)');
+      clauses.push('title LIKE @search');
       values.search = `%${params.search}%`;
     }
 
