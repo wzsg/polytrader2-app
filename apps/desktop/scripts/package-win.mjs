@@ -194,7 +194,6 @@ class WindowsPackager {
         provider: 'github',
         owner: 'wzsg',
         repo: 'polytrader2-app',
-        private: true,
         releaseType: 'draft',
       },
       win: {

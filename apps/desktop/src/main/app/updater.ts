@@ -4,7 +4,6 @@ import electronUpdater from 'electron-updater';
 const { autoUpdater } = electronUpdater;
 
 const UPDATE_CHECK_DELAY_MS = 10_000;
-const UPDATE_TOKEN_ENV = 'POLYTRADER_UPDATE_TOKEN';
 
 let updaterInitialized = false;
 
@@ -13,10 +12,6 @@ const updaterLogger = {
   warn: (...args: unknown[]) => console.warn('[updater]', ...args),
   error: (...args: unknown[]) => console.error('[updater]', ...args),
 };
-
-function getUpdateToken(): string {
-  return process.env[UPDATE_TOKEN_ENV]?.trim() ?? '';
-}
 
 function scheduleUpdateCheck(): void {
   setTimeout(() => {
@@ -40,17 +35,10 @@ export function initAutoUpdater(): void {
     return;
   }
 
-  const token = getUpdateToken();
-  if (!token) {
-    updaterLogger.info(`${UPDATE_TOKEN_ENV} is not set; skipping private GitHub release updates`);
-    return;
-  }
-
   autoUpdater.logger = updaterLogger;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowPrerelease = false;
-  autoUpdater.addAuthHeader(`token ${token}`);
 
   autoUpdater.on('error', (err) => {
     updaterLogger.warn('Automatic update failed', err);
