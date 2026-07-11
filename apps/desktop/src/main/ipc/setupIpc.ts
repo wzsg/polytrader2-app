@@ -5,6 +5,7 @@ import { applicationEventBus } from '../services/applicationEventBus.js';
 
 interface RegisterSetupHandlersOptions {
   onSetupCompleted: (dataDirectory: string) => Promise<void>;
+  onDataDirectoryMigration: (dataDirectory: string) => Promise<void>;
 }
 
 let setupHandlersRegistered = false;
@@ -17,6 +18,31 @@ function registerSetupHandlers(ipcMain: IpcMain, options: RegisterSetupHandlersO
   ipcMain.handle('setup:validateDataDirectory', (_event, dataDirectory: string) =>
     setupService.validateDataDirectory(dataDirectory),
   );
+  ipcMain.handle('data-storage:getDirectory', () => setupService.getDataStorageDirectory());
+  ipcMain.handle(
+    'data-storage:chooseDirectory',
+    async (event, defaultPath?: string): Promise<SetupDirectorySelectionResult> => {
+      const window = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+      const result = window
+        ? await dialog.showOpenDialog(window, {
+            title: 'Choose Data Directory',
+            defaultPath,
+            properties: ['openDirectory', 'createDirectory'],
+          })
+        : await dialog.showOpenDialog({
+            title: 'Choose Data Directory',
+            defaultPath,
+            properties: ['openDirectory', 'createDirectory'],
+          });
+      return { canceled: result.canceled, dataDirectory: result.filePaths[0] ?? null };
+    },
+  );
+  ipcMain.handle('data-storage:migrate', async (_event, dataDirectory: string) => {
+    const validation = await setupService.validateDataDirectoryMigration(dataDirectory);
+    if (!validation.ok) return validation;
+    await options.onDataDirectoryMigration(dataDirectory);
+    return { ok: true, data: undefined };
+  });
   ipcMain.handle(
     'setup:chooseDataDirectory',
     async (event, defaultPath?: string): Promise<SetupDirectorySelectionResult> => {

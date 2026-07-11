@@ -45,6 +45,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let storageInitialized = false;
 let ipcHandlersRegistered = false;
 let electronAppPrepared = false;
+let appServicesStopping: Promise<void> | null = null;
 
 function resolveMigrationsFolder(): string {
   const bundled = join(__dirname, 'drizzle');
@@ -131,32 +132,36 @@ function registerAuthProtocol(): void {
   app.setAsDefaultProtocolClient('polytrader2');
 }
 
-function stopAppServices(): void {
-  void mcpServerManager.stop().catch((error) => {
-    console.warn('Failed to stop MCP server manager', error);
-  });
-  tradingAccountService.stop();
-  desktopWorkflowService.stop();
-  void botRuntimeService.stopAll().catch((error) => {
-    console.warn('Failed to stop bot runtime service', error);
-  });
-  tradingMarketService.dispose();
-  tradingStrategyService.dispose();
-  polymarketMarketService.stopAllMarketTradeSync();
-  strategyRunHistoryService.stopAll();
-  void MarketTradeRepositoryFactory.getInstance()
-    .closeMarketTradeRepository()
-    .catch((error: unknown) => {
-      console.warn('Failed to close market trade repository', error);
+function stopAppServices(): Promise<void> {
+  if (appServicesStopping) return appServicesStopping;
+  appServicesStopping = (async () => {
+    await mcpServerManager.stop().catch((error) => {
+      console.warn('Failed to stop MCP server manager', error);
     });
-  void MarketPriceHistoryRepositoryFactory.getInstance()
-    .closeMarketPriceHistoryRepository()
-    .catch((error: unknown) => {
-      console.warn('Failed to close market price history repository', error);
+    tradingAccountService.stop();
+    desktopWorkflowService.stop();
+    await botRuntimeService.stopAll().catch((error) => {
+      console.warn('Failed to stop bot runtime service', error);
     });
-  void closeDb().catch((error: unknown) => {
-    console.warn('Failed to close SQLite DB worker', error);
-  });
+    tradingMarketService.dispose();
+    tradingStrategyService.dispose();
+    polymarketMarketService.stopAllMarketTradeSync();
+    strategyRunHistoryService.stopAll();
+    await MarketTradeRepositoryFactory.getInstance()
+      .closeMarketTradeRepository()
+      .catch((error: unknown) => {
+        console.warn('Failed to close market trade repository', error);
+      });
+    await MarketPriceHistoryRepositoryFactory.getInstance()
+      .closeMarketPriceHistoryRepository()
+      .catch((error: unknown) => {
+        console.warn('Failed to close market price history repository', error);
+      });
+    await closeDb().catch((error: unknown) => {
+      console.warn('Failed to close SQLite DB worker', error);
+    });
+  })();
+  return appServicesStopping;
 }
 
 export { bootstrapApp, stopAppServices };

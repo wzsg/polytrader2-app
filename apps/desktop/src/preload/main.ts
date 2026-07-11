@@ -26,6 +26,10 @@ const mainWindowApi = {
     return () => ipcRenderer.removeListener('auth:changed', listener);
   },
   ...preferenceApi,
+  getDataStorageDirectory: () => ipcRenderer.invoke('data-storage:getDirectory'),
+  chooseDataStorageDirectory: (defaultPath) =>
+    ipcRenderer.invoke('data-storage:chooseDirectory', defaultPath),
+  migrateDataStorage: (dataDirectory) => ipcRenderer.invoke('data-storage:migrate', dataDirectory),
   startSync: () => ipcRenderer.send('sync:start'),
   onSyncStatus: (callback) => {
     ipcRenderer.on('sync:status', (_event, data) => callback(data));

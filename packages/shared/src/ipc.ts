@@ -341,6 +341,9 @@ export interface IpcApi {
   getSetupState: () => Promise<SetupState>;
   chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
   validateSetupDataDirectory: (dataDirectory: string) => Promise<ApiResult<SetupState>>;
+  getDataStorageDirectory: () => Promise<string>;
+  chooseDataStorageDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
+  migrateDataStorage: (dataDirectory: string) => Promise<ApiResult<void>>;
   startInitialSetup: (input: {
     dataDirectory: string;
     localePreference: AppLocalePreference;
