@@ -1,11 +1,13 @@
 import { app, autoUpdater as electronAutoUpdater, type IpcMain } from 'electron';
 import electronUpdater from 'electron-updater';
 import type { AppUpdateState } from '@polytrader/shared';
+import { appLifecycleService } from './appLifecycleService.js';
 import { getMainWindow, prepareMainWindowForUpdateInstallation } from '../windows/mainWindow.js';
 
 const { autoUpdater } = electronUpdater;
 
 const UPDATE_CHECK_DELAY_MS = 10_000;
+const UPDATE_SHUTDOWN_TIMEOUT_MS = 30_000;
 
 const updaterLogger = {
   info: (...args: unknown[]) => console.info('[updater]', ...args),
@@ -82,21 +84,21 @@ class AutoUpdaterService {
     return { ...this._state };
   }
 
-  public installDownloadedUpdate(): boolean {
+  public async installDownloadedUpdate(): Promise<boolean> {
     if (this._state.status !== 'downloaded' || this._installRequested) return false;
     this._installRequested = true;
 
-    setImmediate(() => {
-      try {
-        autoUpdater.quitAndInstall(false, true);
-      } catch (err) {
-        this._installRequested = false;
-        this._setState({ status: 'error', version: null });
-        updaterLogger.error('Failed to start the update installer', err);
-      }
-    });
-
-    return true;
+    try {
+      updaterLogger.info('Stopping app services before starting the update installer');
+      await appLifecycleService.prepareForShutdown(UPDATE_SHUTDOWN_TIMEOUT_MS);
+      updaterLogger.info('App services stopped; starting the update installer');
+      autoUpdater.quitAndInstall(false, true);
+      return true;
+    } catch (err) {
+      this._installRequested = false;
+      updaterLogger.error('Failed to prepare the app for update installation', err);
+      return false;
+    }
   }
 
   private _scheduleUpdateCheck(): void {
