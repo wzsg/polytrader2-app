@@ -226,6 +226,13 @@ export interface ListSportsEventsParams {
   offset?: number;
 }
 
+type AppUpdateStatus = 'idle' | 'checking' | 'downloading' | 'downloaded' | 'error';
+
+interface AppUpdateState {
+  status: AppUpdateStatus;
+  version: string | null;
+}
+
 export interface TradingAccountStatusData {
   credentialsConfigured: boolean;
   positionsConfigured: boolean;
@@ -443,6 +450,9 @@ export interface IpcApi {
     limit?: number,
   ) => Promise<ApiResult<StrategyRunOrderRecord[]>>;
   onStrategyRunEvent: (callback: (event: StrategyRunRuntimeEvent) => void) => () => void;
+  getAppUpdateState: () => Promise<AppUpdateState>;
+  installAppUpdate: () => Promise<boolean>;
+  onAppUpdateStateChanged: (callback: (state: AppUpdateState) => void) => () => void;
   windowMinimize: () => Promise<void>;
   windowMaximize: () => Promise<void>;
   windowClose: () => Promise<void>;
@@ -485,3 +495,5 @@ export interface IpcApi {
   browserModalClose: () => Promise<void>;
   onBrowserNavigationState: (callback: (state: BrowserNavigationState) => void) => () => void;
 }
+
+export type { AppUpdateState, AppUpdateStatus };

@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import type { AuthState, DbMarket, EventListItem, Market } from '@polytrader/shared';
+import type {
+  AppUpdateState,
+  AuthState,
+  DbMarket,
+  EventListItem,
+  Market,
+} from '@polytrader/shared';
+import { Download } from '@lucide/vue';
 import AuthAccountPanel from './components/AuthAccountPanel.vue';
 import CloseConfirmDialog from './components/CloseConfirmDialog.vue';
 import Sidebar from './components/Sidebar.vue';
@@ -41,6 +48,8 @@ const esportsEventsRef = ref<ReloadableListView | null>(null);
 const closeConfirmOpen = ref(false);
 const developerModeEnabled = ref(false);
 const appVersion = `v${__APP_VERSION__}`;
+const appUpdateState = ref<AppUpdateState>({ status: 'idle', version: null });
+const updateInstallRequested = ref(false);
 const authPanelOpen = ref(false);
 const authState = ref<AuthState>({
   configured: false,
@@ -53,6 +62,7 @@ const authState = ref<AuthState>({
 let unsubscribeCloseRequested: (() => void) | null = null;
 let unsubscribeNavigate: (() => void) | null = null;
 let unsubscribeAuth: (() => void) | null = null;
+let unsubscribeAppUpdate: (() => void) | null = null;
 
 const { loadPersistedFilters } = useFilters();
 const selectedEventId = computed(() => selectedEvent.value?.id ?? null);
@@ -65,6 +75,9 @@ const eventPanelVisible = computed(
       activeNav.value === 'crypto' ||
       activeNav.value === 'sports' ||
       activeNav.value === 'esports'),
+);
+const updateReady = computed(
+  () => appUpdateState.value.status === 'downloaded' && !!appUpdateState.value.version,
 );
 
 const { syncState, syncStatus, setupSync, toggleSync } = useSync(async () => {
@@ -222,12 +235,28 @@ async function confirmClose(): Promise<void> {
   await window.api.confirmMainWindowClose();
 }
 
+async function installAppUpdate(): Promise<void> {
+  if (!updateReady.value || updateInstallRequested.value) return;
+  updateInstallRequested.value = true;
+  try {
+    const started = await window.api.installAppUpdate();
+    if (!started) updateInstallRequested.value = false;
+  } catch {
+    updateInstallRequested.value = false;
+  }
+}
+
 onMounted(async () => {
   unsubscribeCloseRequested = window.api.onMainWindowCloseRequested(requestCloseConfirm);
   unsubscribeNavigate = window.api.onMainWindowNavigate((nav) => handleNavChange(nav));
   authState.value = await window.api.getAuthState();
   unsubscribeAuth = window.api.onAuthChanged((state) => {
     authState.value = state;
+  });
+  appUpdateState.value = await window.api.getAppUpdateState();
+  unsubscribeAppUpdate = window.api.onAppUpdateStateChanged((state) => {
+    appUpdateState.value = state;
+    if (state.status !== 'downloaded') updateInstallRequested.value = false;
   });
   developerModeEnabled.value = (await window.api.getDeveloperModeConfig()).enabled;
   setupSync();
@@ -240,12 +269,32 @@ onUnmounted(() => {
   unsubscribeCloseRequested?.();
   unsubscribeNavigate?.();
   unsubscribeAuth?.();
+  unsubscribeAppUpdate?.();
 });
 </script>
 
 <template>
   <div class="flex h-full flex-col">
-    <TitleBar :subtitle="appVersion" :status-text="authStatusText" show-brand-icon />
+    <TitleBar :subtitle="appVersion" :status-text="authStatusText" show-brand-icon>
+      <template #subtitle-action>
+        <button
+          v-if="updateReady"
+          type="button"
+          class="app-no-drag border-primary/50 bg-primary/15 text-primary-light hover:bg-primary/25 inline-flex h-5 items-center gap-1 rounded border px-2 text-[10px] leading-none font-medium transition-colors disabled:cursor-default disabled:opacity-60"
+          :disabled="updateInstallRequested"
+          :title="
+            translateUiKey('update.installTitle', {
+              version: appUpdateState.version,
+            })
+          "
+          @click.stop="installAppUpdate"
+          @dblclick.stop
+        >
+          <Download :size="11" :stroke-width="2" />
+          {{ translateUiKey('update.install') }}
+        </button>
+      </template>
+    </TitleBar>
 
     <div class="flex min-h-0 flex-1">
       <Sidebar

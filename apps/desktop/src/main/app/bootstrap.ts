@@ -7,7 +7,7 @@ import {
   MarketPriceHistoryRepositoryFactory,
   MarketTradeRepositoryFactory,
 } from '@polytrader/duckdb-repository';
-import { initAutoUpdater } from './updater.js';
+import { autoUpdaterService } from './updater.js';
 import { registerAccountHandlers } from '../ipc/walletIpc.js';
 import { registerAuthHandlers } from '../ipc/authIpc.js';
 import { registerBotHandlers } from '../ipc/botIpc.js';
@@ -59,6 +59,7 @@ function resolveSqliteWorkerPath(): string {
 
 function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   if (ipcHandlersRegistered) return;
+  autoUpdaterService.registerIpcHandlers(ipcMain);
   registerAuthHandlers(ipcMain);
   registerDbHandlers(ipcMain);
   registerDeveloperHandlers(ipcMain);
@@ -120,7 +121,7 @@ async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promi
   botRuntimeService.init();
   await mcpServerManager.applySavedConfig();
   createMainWindow();
-  initAutoUpdater();
+  autoUpdaterService.initialize();
   tradingAccountService.start();
 }
 

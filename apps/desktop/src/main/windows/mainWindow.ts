@@ -41,6 +41,13 @@ function confirmMainWindowClose(): void {
   mainWindow.close();
 }
 
+function prepareMainWindowForUpdateInstallation(): void {
+  mainWindowCloseConfirmed = true;
+  closeAllTradingWindows();
+  closeAllStrategyEditorWindows();
+  closeBrowserWindow();
+}
+
 function openBotManagement(): void {
   if (!__STRATEGY_AUTOMATION_ENABLED__) return;
   if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -100,4 +107,5 @@ export {
   focusMainWindow,
   getMainWindow,
   openBotManagement,
+  prepareMainWindowForUpdateInstallation,
 };

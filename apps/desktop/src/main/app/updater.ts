@@ -1,11 +1,11 @@
-import { app, dialog } from 'electron';
+import { app, autoUpdater as electronAutoUpdater, type IpcMain } from 'electron';
 import electronUpdater from 'electron-updater';
+import type { AppUpdateState } from '@polytrader/shared';
+import { getMainWindow, prepareMainWindowForUpdateInstallation } from '../windows/mainWindow.js';
 
 const { autoUpdater } = electronUpdater;
 
 const UPDATE_CHECK_DELAY_MS = 10_000;
-
-let updaterInitialized = false;
 
 const updaterLogger = {
   info: (...args: unknown[]) => console.info('[updater]', ...args),
@@ -13,66 +13,108 @@ const updaterLogger = {
   error: (...args: unknown[]) => console.error('[updater]', ...args),
 };
 
-function scheduleUpdateCheck(): void {
-  setTimeout(() => {
-    void autoUpdater.checkForUpdates().catch((err) => {
-      updaterLogger.warn('Failed to check for updates', err);
+class AutoUpdaterService {
+  private _initialized = false;
+  private _ipcHandlersRegistered = false;
+  private _installRequested = false;
+  private _state: AppUpdateState = { status: 'idle', version: null };
+
+  public registerIpcHandlers(ipcMain: IpcMain): void {
+    if (this._ipcHandlersRegistered) return;
+    this._ipcHandlersRegistered = true;
+
+    ipcMain.handle('app-update:get-state', () => this.getState());
+    ipcMain.handle('app-update:install', () => this.installDownloadedUpdate());
+  }
+
+  public initialize(): void {
+    if (this._initialized) return;
+    this._initialized = true;
+
+    if (!app.isPackaged) {
+      updaterLogger.info('Development mode: skipped automatic update check');
+      return;
+    }
+
+    if (process.platform !== 'win32' && process.platform !== 'darwin') {
+      updaterLogger.info('Automatic update checks are enabled only on Windows and macOS');
+      return;
+    }
+
+    autoUpdater.logger = updaterLogger;
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.allowPrerelease = false;
+
+    electronAutoUpdater.on('before-quit-for-update', () => {
+      prepareMainWindowForUpdateInstallation();
     });
-  }, UPDATE_CHECK_DELAY_MS);
-}
 
-export function initAutoUpdater(): void {
-  if (updaterInitialized) return;
-  updaterInitialized = true;
+    autoUpdater.on('checking-for-update', () => {
+      this._setState({ status: 'checking', version: null });
+    });
 
-  if (!app.isPackaged) {
-    updaterLogger.info('Development mode: skipped automatic update check');
-    return;
+    autoUpdater.on('error', (err) => {
+      this._installRequested = false;
+      this._setState({ status: 'error', version: null });
+      updaterLogger.warn('Automatic update failed', err);
+    });
+
+    autoUpdater.on('update-available', (info) => {
+      this._setState({ status: 'downloading', version: info.version });
+      updaterLogger.info(`Found version ${info.version}; downloading in the background`);
+    });
+
+    autoUpdater.on('update-not-available', (info) => {
+      this._setState({ status: 'idle', version: null });
+      updaterLogger.info(`Current version is up to date: ${info.version}`);
+    });
+
+    autoUpdater.on('update-downloaded', (event) => {
+      this._setState({ status: 'downloaded', version: event.version });
+      updaterLogger.info(`Version ${event.version} is ready to install`);
+    });
+
+    this._scheduleUpdateCheck();
   }
 
-  if (process.platform !== 'win32' && process.platform !== 'darwin') {
-    updaterLogger.info('Automatic update checks are enabled only on Windows and macOS');
-    return;
+  public getState(): AppUpdateState {
+    return { ...this._state };
   }
 
-  autoUpdater.logger = updaterLogger;
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = false;
-  autoUpdater.allowPrerelease = false;
+  public installDownloadedUpdate(): boolean {
+    if (this._state.status !== 'downloaded' || this._installRequested) return false;
+    this._installRequested = true;
 
-  autoUpdater.on('error', (err) => {
-    updaterLogger.warn('Automatic update failed', err);
-  });
+    setImmediate(() => {
+      try {
+        autoUpdater.quitAndInstall(false, true);
+      } catch (err) {
+        this._installRequested = false;
+        this._setState({ status: 'error', version: null });
+        updaterLogger.error('Failed to start the update installer', err);
+      }
+    });
 
-  autoUpdater.on('update-available', (info) => {
-    updaterLogger.info(`Found version ${info.version}; downloading in the background`);
-  });
+    return true;
+  }
 
-  autoUpdater.on('update-not-available', (info) => {
-    updaterLogger.info(`Current version is up to date: ${info.version}`);
-  });
-
-  autoUpdater.on('update-downloaded', (event) => {
-    void dialog
-      .showMessageBox({
-        type: 'info',
-        title: 'Update Downloaded',
-        message: `Polytrader2 ${event.version} has been downloaded`,
-        detail: 'Restart the app to finish installing the update.',
-        buttons: ['Restart and Install', 'Later'],
-        defaultId: 0,
-        cancelId: 1,
-        noLink: true,
-      })
-      .then(({ response }) => {
-        if (response === 0) {
-          autoUpdater.quitAndInstall(false, true);
-        }
-      })
-      .catch((err) => {
-        updaterLogger.warn('Failed to show the update prompt', err);
+  private _scheduleUpdateCheck(): void {
+    setTimeout(() => {
+      void autoUpdater.checkForUpdates().catch((err) => {
+        updaterLogger.warn('Failed to check for updates', err);
       });
-  });
+    }, UPDATE_CHECK_DELAY_MS);
+  }
 
-  scheduleUpdateCheck();
+  private _setState(state: AppUpdateState): void {
+    this._state = state;
+    const mainWindow = getMainWindow();
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
+    mainWindow.webContents.send('app-update:state-changed', this.getState());
+  }
 }
+
+const autoUpdaterService = new AutoUpdaterService();
+
+export { autoUpdaterService };

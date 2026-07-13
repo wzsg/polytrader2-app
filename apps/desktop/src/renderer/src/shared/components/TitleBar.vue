@@ -115,6 +115,7 @@ onUnmounted(() => {
         >
           {{ subtitle }}
         </span>
+        <slot name="subtitle-action" />
         <span
           v-if="statusText"
           class="text-muted-light min-w-0 truncate text-[11px] leading-none"

@@ -57,14 +57,7 @@ class WindowsPackager {
     }
 
     this.#runPnpm(
-      [
-        '--filter',
-        '@polytrader2/app',
-        'deploy',
-        '--legacy',
-        '--prod',
-        this.#stageDir,
-      ],
+      ['--filter', '@polytrader2/app', 'deploy', '--legacy', '--prod', this.#stageDir],
       {
         cwd: this.#repoRoot,
       },
@@ -207,9 +200,8 @@ class WindowsPackager {
         artifactName: '${productName}-Setup-${version}.${ext}',
       },
       nsis: {
-        oneClick: false,
+        oneClick: true,
         perMachine: false,
-        allowToChangeInstallationDirectory: true,
         createDesktopShortcut: true,
         createStartMenuShortcut: true,
         shortcutName: '${productName}',
