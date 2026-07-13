@@ -1,7 +1,8 @@
 import { app } from 'electron';
+import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
-import { dirname, join } from 'path';
+import { basename, dirname, join, relative, resolve } from 'path';
 import type {
   ApiResult,
   AppLocalePreference,
@@ -98,6 +99,61 @@ class SetupService {
     };
   }
 
+  public async getDataStorageDirectory(): Promise<string> {
+    const state = await this.resolveStartupState();
+    return state.dataDirectory ?? app.getPath('userData');
+  }
+
+  public async validateDataDirectoryMigration(dataDirectory: string): Promise<ApiResult<void>> {
+    const sourceDirectory = await this.getDataStorageDirectory();
+    const sourcePath = resolve(sourceDirectory);
+    const targetPath = resolve(String(dataDirectory || '').trim());
+    if (!String(dataDirectory || '').trim())
+      return { ok: false, error: 'Data directory is required' };
+    if (sourcePath === targetPath) return { ok: false, error: 'Choose a different data directory' };
+    if (this._pathsOverlap(sourcePath, targetPath)) {
+      return {
+        ok: false,
+        error: 'The new data directory cannot contain or be inside the current directory',
+      };
+    }
+    const inspected = await this._inspectDataDirectory(targetPath);
+    if (!inspected.ok) return inspected;
+    const entries = await fs.readdir(targetPath);
+    if (entries.length > 0) {
+      return { ok: false, error: 'The new data directory must be empty' };
+    }
+    const dataSizeBytes = await this._directorySize(sourcePath);
+    if (inspected.data.availableSpaceBytes <= dataSizeBytes) {
+      return { ok: false, error: 'The new data directory does not have enough available space' };
+    }
+    return { ok: true, data: undefined };
+  }
+
+  public async migrateDataDirectory(dataDirectory: string): Promise<void> {
+    const validated = await this.validateDataDirectoryMigration(dataDirectory);
+    if (!validated.ok) throw new Error(validated.error);
+    const sourcePath = resolve(await this.getDataStorageDirectory());
+    const targetPath = resolve(dataDirectory.trim());
+    const stagingPath = join(
+      dirname(targetPath),
+      `.${basename(targetPath)}.polytrader2-migration-${randomUUID()}`,
+    );
+    try {
+      await fs.cp(sourcePath, stagingPath, {
+        recursive: true,
+        force: false,
+        errorOnExist: true,
+        preserveTimestamps: true,
+      });
+      await fs.rm(targetPath, { recursive: true, force: true });
+      await fs.rename(stagingPath, targetPath);
+      await this._writeBootstrapConfig({ dataDirectory: targetPath });
+    } finally {
+      await fs.rm(stagingPath, { recursive: true, force: true });
+    }
+  }
+
   public async startInitialSetup(input: SetupStartInput): Promise<ApiResult<SetupState>> {
     if (this._running) return { ok: false, error: 'Initial setup is already running' };
     const validated = await this._inspectDataDirectory(input.dataDirectory);
@@ -140,10 +196,13 @@ class SetupService {
       const preferences = await appPreferencesService.getAppPreferences();
       polymarketMarketService.setEventSyncLocale(preferences.locale);
       polymarketMarketService.setEventSyncBatchSize(preferences.eventSyncBatchSize);
+      polymarketMarketService.setCategoryConfigLocale(preferences.locale);
+      const categoryWarmupPromise = this._warmCategoryConfigs();
       await polymarketMarketService.runEventSyncWorkflow(
         { locale: preferences.locale, trigger: 'startup' },
         new AbortController().signal,
       );
+      await categoryWarmupPromise;
       const cacheStats = await this._eventRepository.getCacheStats();
       if (cacheStats.eventCount <= 0) {
         return { ok: false, error: 'Event data download completed without cached events' };
@@ -211,6 +270,28 @@ class SetupService {
     this._lastStatus = status;
   }
 
+  private async _warmCategoryConfigs(): Promise<void> {
+    const categories = [
+      {
+        name: 'event',
+        fetch: () => polymarketMarketService.fetchEventCategory(),
+      },
+      {
+        name: 'crypto',
+        fetch: () => polymarketMarketService.fetchCryptoCategory(),
+      },
+      {
+        name: 'sports',
+        fetch: () => polymarketMarketService.fetchSportsCategory(),
+      },
+    ];
+    const results = await Promise.allSettled(categories.map((category) => category.fetch()));
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') return;
+      console.warn(`Failed to warm ${categories[index].name} category config`, result.reason);
+    });
+  }
+
   private _createSettings(input: SetupStartInput, existing: SetupSettings | null): SetupSettings {
     if (input.encryptionMethod === 'aes-256-gcm') {
       if (existing) {
@@ -269,9 +350,12 @@ class SetupService {
     if (!normalized) return { ok: false, error: 'Data directory is required' };
     try {
       await fs.mkdir(normalized, { recursive: true });
-      const probePath = join(normalized, `.polytrader2-write-test-${process.pid}`);
-      await fs.writeFile(probePath, 'ok', 'utf-8');
-      await fs.unlink(probePath);
+      const probePath = join(normalized, `.polytrader2-write-test-${process.pid}-${randomUUID()}`);
+      try {
+        await fs.writeFile(probePath, 'ok', 'utf-8');
+      } finally {
+        await fs.rm(probePath, { force: true });
+      }
       const stats = await fs.statfs(normalized);
       return {
         ok: true,
@@ -285,6 +369,34 @@ class SetupService {
     } catch (error) {
       return { ok: false, error: this._errorMessage(error) };
     }
+  }
+
+  private _pathsOverlap(sourcePath: string, targetPath: string): boolean {
+    const sourceToTarget = relative(sourcePath, targetPath);
+    const targetToSource = relative(targetPath, sourcePath);
+    return this._isDescendantPath(sourceToTarget) || this._isDescendantPath(targetToSource);
+  }
+
+  private _isDescendantPath(path: string): boolean {
+    return (
+      path !== '' &&
+      path !== '..' &&
+      !path.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`)
+    );
+  }
+
+  private async _directorySize(directory: string): Promise<number> {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+    let size = 0;
+    for (const entry of entries) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        size += await this._directorySize(path);
+        continue;
+      }
+      if (entry.isFile()) size += (await fs.stat(path)).size;
+    }
+    return size;
   }
 
   private _emptyState(): SetupState {

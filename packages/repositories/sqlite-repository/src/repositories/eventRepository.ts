@@ -6,6 +6,7 @@ import type {
 import type {
   AppLocale,
   DbMarket,
+  EventDetailItem,
   EventListItem,
   GammaEventRaw,
   ListEventsParams,
@@ -238,7 +239,7 @@ class SqliteEventRepository {
     `;
 
     const rows = sqlite.prepare(query).all({ ...values, limit, offset }) as EventRow[];
-    return this._attachMarkets(rows.map((row) => this._rowToEvent(row)));
+    return rows.map((row) => this._rowToEvent(row));
   }
 
   public countEvents(params: ListEventsParams): number {
@@ -253,7 +254,7 @@ class SqliteEventRepository {
     return row.cnt;
   }
 
-  public listChildEvents(parentEventId: string): EventListItem[] {
+  public listChildEvents(parentEventId: string): EventDetailItem[] {
     const id = String(parentEventId || '').trim();
     if (!id) return [];
 
@@ -267,6 +268,16 @@ class SqliteEventRepository {
       )
       .all({ parentEventId: id }) as EventRow[];
     return this._attachMarkets(rows.map((row) => this._rowToEvent(row)));
+  }
+
+  public listEventMarkets(eventId: string): DbMarket[] {
+    const normalizedEventId = String(eventId || '').trim();
+    if (!normalizedEventId) return [];
+
+    const rows = getSqlite()
+      .prepare(`SELECT * FROM markets WHERE event_id = ? ORDER BY group_item_title COLLATE NOCASE`)
+      .all(normalizedEventId) as MarketRow[];
+    return rows.map((row) => this._rowToMarket(row));
   }
 
   public countEventsWithTags(tagIds: string[]): number {
@@ -470,7 +481,9 @@ class SqliteEventRepository {
 
     const sqlite = getSqlite();
     const existingEvent = sqlite
-      .prepare('SELECT locale, updated_at, parent_event_id, sport_id, ended, start_time, teams FROM events WHERE id = ?')
+      .prepare(
+        'SELECT locale, updated_at, parent_event_id, sport_id, ended, start_time, teams FROM events WHERE id = ?',
+      )
       .get(eventRow.id) as
       | {
           locale: string | null;
@@ -685,7 +698,7 @@ class SqliteEventRepository {
     const values: Record<string, unknown> = {};
 
     if (params.search) {
-      clauses.push('(title LIKE @search OR slug LIKE @search)');
+      clauses.push('title LIKE @search');
       values.search = `%${params.search}%`;
     }
 
@@ -868,7 +881,6 @@ class SqliteEventRepository {
       featured: row.featured === 1,
       parentEventId: row.parent_event_id,
       teams: row.teams,
-      markets: [],
     };
   }
 
@@ -929,8 +941,8 @@ class SqliteEventRepository {
     };
   }
 
-  private _attachMarkets(eventList: EventListItem[]): EventListItem[] {
-    if (!eventList.length) return eventList;
+  private _attachMarkets(eventList: EventListItem[]): EventDetailItem[] {
+    if (!eventList.length) return [];
 
     const sqlite = getSqlite();
     const ids = eventList.map((event) => event.id);

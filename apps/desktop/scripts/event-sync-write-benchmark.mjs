@@ -55,6 +55,45 @@ function snapshotSummary(events, batchSize) {
   };
 }
 
+async function measureMainWindowEventListLoad(repository) {
+  const params = {
+    search: '',
+    status: 'active',
+    watchlistOnly: false,
+    sortField: 'volume24hr',
+    sortOrder: 'desc',
+    limit: 50,
+    offset: 0,
+  };
+  const samples = [];
+  for (let iteration = 1; iteration <= 5; iteration += 1) {
+    const startedAt = performance.now();
+    const [events, filteredCount, totalCount, activeCount] = await Promise.all([
+      repository.listEvents(params),
+      repository.countEvents(params),
+      repository.getTotalCount(),
+      repository.countActive(),
+    ]);
+    const elapsedMs = performance.now() - startedAt;
+    const marketStartedAt = performance.now();
+    const onDemandMarkets =
+      iteration === 1 && events[0] ? await repository.listEventMarkets(events[0].id) : [];
+    samples.push({
+      iteration,
+      elapsedMs,
+      events: events.length,
+      markets: events.reduce((total, event) => total + (event.markets?.length ?? 0), 0),
+      jsonMiB: Number((Buffer.byteLength(JSON.stringify(events)) / 1024 / 1024).toFixed(2)),
+      onDemandMarketMs: iteration === 1 ? performance.now() - marketStartedAt : undefined,
+      onDemandMarkets: iteration === 1 ? onDemandMarkets.length : undefined,
+      filteredCount,
+      totalCount,
+      activeCount,
+    });
+  }
+  return samples;
+}
+
 async function withIsolatedDatabase(label, fn) {
   const userDataPath = await mkdtemp(path.join(os.tmpdir(), `polytrader-event-sync-${label}-`));
   try {
@@ -124,12 +163,14 @@ async function profileLiveStreamAndWrite(client, batchSize) {
       writes += 1;
       memory.sample();
     }
+    const eventListLoads = await measureMainWindowEventListLoad(repository);
     return {
       batchSize,
       events,
       writes,
       totalMs: performance.now() - startedAt,
       memory: memory.result(),
+      eventListLoads,
     };
   });
 }
@@ -157,6 +198,11 @@ async function main() {
     console.log(
       `live streamed batch 500: ${liveBatch500.events} events / ${liveBatch500.writes} writes in ${formatMs(liveBatch500.totalMs)}`,
     );
+    for (const load of liveBatch500.eventListLoads) {
+      console.log(
+        `  event list load ${load.iteration}: ${formatMs(load.elapsedMs)}, ${load.events} events / ${load.markets} markets / ${load.jsonMiB} MiB`,
+      );
+    }
     console.log(JSON.stringify(liveBatch500, null, 2));
     return;
   }

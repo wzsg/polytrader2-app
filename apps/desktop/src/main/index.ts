@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { app, dialog, ipcMain } from 'electron';
 import { bootstrapApp, prepareElectronApp, stopAppServices } from './app/bootstrap.js';
 import { loadLocalEnv } from './env.js';
 import { registerSetupHandlers } from './ipc/setupIpc.js';
@@ -52,6 +52,20 @@ async function startApp(): Promise<void> {
       app.setPath('userData', dataDirectory);
       await bootstrapApp({ initialEventSync: false });
       closeSetupWindow();
+    },
+    onDataDirectoryMigration: async (dataDirectory) => {
+      await stopAppServices();
+      try {
+        await setupService.migrateDataDirectory(dataDirectory);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown data migration error';
+        dialog.showErrorBox(
+          'Data migration failed',
+          `${message}\n\nThe app will restart using the current data directory.`,
+        );
+      }
+      app.relaunch();
+      app.exit(0);
     },
   });
 

@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ChevronDown, ChevronRight, ScrollText, X } from '@lucide/vue';
-import type { DbMarket, EventListItem, Market } from '@polytrader/shared';
+import type { DbMarket, EventDetailItem, EventListItem, Market } from '@polytrader/shared';
 import { formatDate, formatNum, formatOutcomePrice } from '@/shared/utils/format';
 import { getMarketOutcomes } from '@/shared/utils/apiEvent';
 import {
@@ -34,7 +34,8 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const { event: detailEvent, loading, error, loadEvent } = useEventDetail();
-const childEvents = ref<EventListItem[]>([]);
+const eventMarkets = ref<DbMarket[]>([]);
+const childEvents = ref<EventDetailItem[]>([]);
 const childEventsLoading = ref(false);
 const childEventsError = ref('');
 const collapsedEventIds = ref(new Set<string>());
@@ -65,7 +66,9 @@ const status = computed(() => (displayEvent.value ? getStatusInfo(displayEvent.v
 const loadingAny = computed(() => loading.value || childEventsLoading.value);
 const errorAny = computed(() => error.value || childEventsError.value);
 const rootMarkets = computed(() =>
-  displayEvent.value ? displayMarkets(displayEvent.value.markets as Array<DbMarket | Market>) : [],
+  detailEvent.value
+    ? displayMarkets(detailEvent.value.markets as Array<DbMarket | Market>)
+    : displayMarkets(eventMarkets.value),
 );
 const childEventGroups = computed(() =>
   childEvents.value.map((event) => ({
@@ -92,13 +95,23 @@ watch(
     if (!eventId) return;
     rulesDialogOpen.value = false;
     childEvents.value = [];
+    eventMarkets.value = [];
     childEventsError.value = '';
     collapsedEventIds.value = new Set();
     void loadEvent(eventId);
+    void loadEventMarkets(eventId);
     void loadChildEvents(eventId);
   },
   { immediate: true },
 );
+
+async function loadEventMarkets(eventId: string): Promise<void> {
+  try {
+    eventMarkets.value = await window.api.listEventMarkets(eventId);
+  } catch {
+    eventMarkets.value = [];
+  }
+}
 
 async function loadChildEvents(eventId: string): Promise<void> {
   childEventsLoading.value = true;

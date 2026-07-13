@@ -11,6 +11,7 @@ import type {
   DbMarket,
   DeveloperOrderRecord,
   EventListItem,
+  EventDetailItem,
   GammaEventRaw,
   ListEventsParams,
   MarketTradeAnalysisQuery,
@@ -54,7 +55,8 @@ interface EventRepository {
   bulkUpsert(rawEvents: GammaEventRaw[], locale: AppLocale): Promise<EventBulkUpsertStats>;
   markOpenEventsMissingFromSnapshotClosed(seenEventIds: string[]): Promise<number>;
   listEvents(params: ListEventsParams): Promise<EventListItem[]>;
-  listChildEvents(parentEventId: string): Promise<EventListItem[]>;
+  listChildEvents(parentEventId: string): Promise<EventDetailItem[]>;
+  listEventMarkets(eventId: string): Promise<DbMarket[]>;
   countEvents(params: ListEventsParams): Promise<number>;
   countEventsWithTags(tagIds: string[]): Promise<number>;
   countActiveWithTags(tagIds: string[]): Promise<number>;

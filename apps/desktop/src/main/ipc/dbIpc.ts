@@ -17,6 +17,9 @@ function registerDbHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('db:listChildren', (_event, parentEventId: string) =>
     eventRepository.listChildEvents(parentEventId),
   );
+  ipcMain.handle('db:listEventMarkets', (_event, eventId: string) =>
+    eventRepository.listEventMarkets(eventId),
+  );
   ipcMain.handle('db:count', (_event, params: ListEventsParams) =>
     eventRepository.countEvents(params),
   );

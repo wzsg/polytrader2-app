@@ -92,6 +92,9 @@ const developerModeLoading = ref(false);
 const developerModeSaving = ref(false);
 const accountSyncing = ref(false);
 const accountSyncError = ref('');
+const dataStorageDirectory = ref('');
+const dataStorageMigrating = ref(false);
+const dataStorageError = ref('');
 const activeSection = ref<SettingsSection>('general');
 const { t } = useI18n();
 
@@ -123,6 +126,10 @@ async function loadStats() {
   } finally {
     loading.value = false;
   }
+}
+
+async function loadDataStorageDirectory() {
+  dataStorageDirectory.value = await window.api.getDataStorageDirectory();
 }
 
 function clampInterval(value: unknown): number {
@@ -253,6 +260,29 @@ async function copyMcpToken() {
   await writeClipboardText(mcpConfig.value.token);
 }
 
+async function copyDataStorageDirectory() {
+  await writeClipboardText(dataStorageDirectory.value);
+}
+
+async function changeDataStorageDirectory() {
+  const selection = await window.api.chooseDataStorageDirectory(dataStorageDirectory.value);
+  if (!selection.dataDirectory) return;
+  const confirmed = window.confirm(
+    t('settings.changeDataStorageConfirm', { path: selection.dataDirectory }),
+  );
+  if (!confirmed) return;
+  dataStorageMigrating.value = true;
+  dataStorageError.value = '';
+  try {
+    const result = await window.api.migrateDataStorage(selection.dataDirectory);
+    if (!result.ok) dataStorageError.value = result.error;
+  } catch {
+    dataStorageError.value = t('settings.dataStorageMigrationFailed');
+  } finally {
+    dataStorageMigrating.value = false;
+  }
+}
+
 async function updateLocalePreference(event: Event) {
   const input = event.target as HTMLSelectElement;
   localeSaving.value = true;
@@ -310,7 +340,13 @@ watch(
 );
 
 onMounted(async () => {
-  await Promise.all([loadStats(), loadSchedule(), loadMcpServer(), loadDeveloperMode()]);
+  await Promise.all([
+    loadStats(),
+    loadDataStorageDirectory(),
+    loadSchedule(),
+    loadMcpServer(),
+    loadDeveloperMode(),
+  ]);
 });
 </script>
 
@@ -436,6 +472,51 @@ onMounted(async () => {
                 :class="{ 'animate-spin': accountSyncing || authState.syncState === 'syncing' }"
               />
               {{ t('auth.syncNow') }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="activeSection === 'data'" class="mb-8">
+        <h2 class="mb-3 text-sm font-semibold text-white">{{ t('settings.dataStorage') }}</h2>
+        <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-white">{{ t('settings.dataDirectory') }}</p>
+              <p class="text-muted mt-1 text-sm">{{ t('settings.dataStorageDescription') }}</p>
+              <p class="mt-2 flex min-w-0 items-center gap-2 font-mono text-xs text-white">
+                <Database :size="14" class="text-muted shrink-0" />
+                <span class="selectable-text break-all" :title="dataStorageDirectory">
+                  {{ dataStorageDirectory || '—' }}
+                </span>
+                <button
+                  type="button"
+                  class="hover:bg-btn-secondary text-muted-light inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  :title="t('settings.copyDataDirectory')"
+                  :aria-label="t('settings.copyDataDirectory')"
+                  :disabled="!dataStorageDirectory || dataStorageMigrating"
+                  @click="copyDataStorageDirectory"
+                >
+                  <Copy :size="14" />
+                </button>
+              </p>
+              <p v-if="dataStorageError" class="mt-2 text-xs text-red-400">
+                {{ dataStorageError }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="dataStorageMigrating || isSyncing()"
+              @click="changeDataStorageDirectory"
+            >
+              <LoadingSpinner
+                v-if="dataStorageMigrating"
+                :size="16"
+                :title="t('settings.migratingDataStorage')"
+              />
+              <Database v-else :size="16" />
+              {{ t('settings.changeDataDirectory') }}
             </button>
           </div>
         </div>

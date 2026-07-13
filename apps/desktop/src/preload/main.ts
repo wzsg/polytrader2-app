@@ -26,6 +26,10 @@ const mainWindowApi = {
     return () => ipcRenderer.removeListener('auth:changed', listener);
   },
   ...preferenceApi,
+  getDataStorageDirectory: () => ipcRenderer.invoke('data-storage:getDirectory'),
+  chooseDataStorageDirectory: (defaultPath) =>
+    ipcRenderer.invoke('data-storage:chooseDirectory', defaultPath),
+  migrateDataStorage: (dataDirectory) => ipcRenderer.invoke('data-storage:migrate', dataDirectory),
   startSync: () => ipcRenderer.send('sync:start'),
   onSyncStatus: (callback) => {
     ipcRenderer.on('sync:status', (_event, data) => callback(data));
@@ -43,6 +47,7 @@ const mainWindowApi = {
   listDeveloperWorkflowTasks: (limit) => ipcRenderer.invoke('developer:listWorkflowTasks', limit),
   listEvents: (params) => ipcRenderer.invoke('db:list', params),
   listChildEvents: (parentEventId) => ipcRenderer.invoke('db:listChildren', parentEventId),
+  listEventMarkets: (eventId) => ipcRenderer.invoke('db:listEventMarkets', eventId),
   countEvents: (params) => ipcRenderer.invoke('db:count', params),
   getTotalCount: () => ipcRenderer.invoke('db:total'),
   countEventsByTags: (tagIds) => ipcRenderer.invoke('db:countByTags', tagIds),

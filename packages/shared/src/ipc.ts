@@ -18,6 +18,7 @@ import type {
   DeveloperModeConfig,
   DeveloperOrderRecord,
   EventCategoryConfig,
+  EventDetailItem,
   EventListItem,
   EventStatusFilter,
   Filters,
@@ -25,6 +26,7 @@ import type {
   ListEventsParams,
   ManualPlaceOrderInput,
   MarketDetailData,
+  DbMarket,
   McpServerAccessLogRecord,
   McpServerConfig,
   McpServerStatus,
@@ -122,6 +124,7 @@ export type {
   DeveloperModeConfig,
   DeveloperOrderRecord,
   EventCategoryConfig,
+  EventDetailItem,
   EventListItem,
   Filters,
   GammaEventRaw,
@@ -338,6 +341,9 @@ export interface IpcApi {
   getSetupState: () => Promise<SetupState>;
   chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
   validateSetupDataDirectory: (dataDirectory: string) => Promise<ApiResult<SetupState>>;
+  getDataStorageDirectory: () => Promise<string>;
+  chooseDataStorageDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
+  migrateDataStorage: (dataDirectory: string) => Promise<ApiResult<void>>;
   startInitialSetup: (input: {
     dataDirectory: string;
     localePreference: AppLocalePreference;
@@ -363,7 +369,8 @@ export interface IpcApi {
   listDeveloperOrderRecords: (limit?: number) => Promise<DeveloperOrderRecord[]>;
   listDeveloperWorkflowTasks: (limit?: number) => Promise<WorkflowTaskRecord[]>;
   listEvents: (params: ListEventsParams) => Promise<EventListItem[]>;
-  listChildEvents: (parentEventId: string) => Promise<EventListItem[]>;
+  listChildEvents: (parentEventId: string) => Promise<EventDetailItem[]>;
+  listEventMarkets: (eventId: string) => Promise<DbMarket[]>;
   countEvents: (params: ListEventsParams) => Promise<number>;
   getTotalCount: () => Promise<number>;
   countEventsByTags: (tagIds: string[]) => Promise<number>;

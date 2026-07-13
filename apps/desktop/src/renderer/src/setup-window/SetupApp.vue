@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Check, Database, FolderOpen, HardDrive, LockKeyhole, Languages } from '@lucide/vue';
+import {
+  Check,
+  Database,
+  FolderOpen,
+  HardDrive,
+  KeyRound,
+  LockKeyhole,
+  Languages,
+  ShieldCheck,
+} from '@lucide/vue';
 import type { AppLocale, AppLocalePreference, SetupState, SyncStatus } from '@polytrader/shared';
 import { useI18n } from 'vue-i18n';
 import TitleBar from '../shared/components/TitleBar.vue';
@@ -20,6 +29,7 @@ const encryptionMethod = ref<EncryptionMethod>('aes-256-gcm');
 const password = ref('');
 const confirmPassword = ref('');
 const phase = ref<SetupPhase>('language');
+const errorStep = ref<'storage' | 'security'>('security');
 const errorMessage = ref('');
 const syncStatus = ref<SyncStatus>({ state: 'idle' });
 const isChoosingDirectory = ref(false);
@@ -33,11 +43,33 @@ const availableSpace = computed(() => state.value?.availableSpaceBytes ?? null);
 const hasEnoughSpace = computed(
   () => availableSpace.value !== null && availableSpace.value > 2 * 1024 ** 3,
 );
-const encryptionOptions = computed<Array<{ value: EncryptionMethod; label: string }>>(() => {
+const encryptionOptions = computed<
+  Array<{
+    value: EncryptionMethod;
+    label: string;
+    description: string;
+    recommended: boolean;
+    icon: typeof ShieldCheck;
+  }>
+>(() => {
   const systemOption = isMac.value
     ? { value: 'keychain' as const, label: t('setup.keychain') }
     : { value: 'dpapi' as const, label: t('setup.dpapi') };
-  return [systemOption, { value: 'aes-256-gcm', label: t('setup.aes') }];
+  return [
+    {
+      ...systemOption,
+      description: t('setup.systemEncryptionDescription'),
+      recommended: true,
+      icon: ShieldCheck,
+    },
+    {
+      value: 'aes-256-gcm',
+      label: t('setup.aes'),
+      description: t('setup.passwordEncryptionDescription'),
+      recommended: false,
+      icon: KeyRound,
+    },
+  ];
 });
 const languageOptions = computed(() => {
   const systemLanguage = getSystemSetupLanguage();
@@ -49,9 +81,10 @@ const languageOptions = computed(() => {
     return Number(right.value === systemLanguage) - Number(left.value === systemLanguage);
   });
 });
-const activeStep = computed(() => (phase.value === 'error' ? 'security' : phase.value));
+const activeStep = computed(() => (phase.value === 'error' ? errorStep.value : phase.value));
 const primaryLabel = computed(() => {
   if (isUnlockMode.value) return t('setup.unlock');
+  if (phase.value === 'error') return t('common.retry');
   if (phase.value === 'security') return t('setup.start');
   if (phase.value === 'complete') return t('setup.finish');
   return t('common.next');
@@ -117,9 +150,11 @@ function isCurrentSetupStep(step: SetupStep): boolean {
 }
 
 async function validateDirectory(): Promise<boolean> {
+  errorMessage.value = '';
   const result = await window.api.validateSetupDataDirectory(dataDirectory.value);
   if (!result.ok) {
     errorMessage.value = result.error;
+    errorStep.value = 'storage';
     phase.value = 'error';
     return false;
   }
@@ -142,6 +177,7 @@ async function chooseDirectory(): Promise<void> {
     }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error);
+    errorStep.value = 'storage';
     phase.value = 'error';
   } finally {
     isChoosingDirectory.value = false;
@@ -165,6 +201,7 @@ async function startSetup(): Promise<void> {
     phase.value = 'complete';
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error);
+    errorStep.value = 'security';
     phase.value = 'error';
   } finally {
     isSubmitting.value = false;
@@ -187,6 +224,10 @@ async function primaryAction(): Promise<void> {
     if (await validateDirectory()) phase.value = 'security';
   } else if (phase.value === 'security') {
     await startSetup();
+  } else if (phase.value === 'error' && errorStep.value === 'storage') {
+    if (await validateDirectory()) phase.value = 'security';
+  } else if (phase.value === 'error') {
+    await startSetup();
   } else if (phase.value === 'complete') {
     await window.api.completeInitialSetup();
   }
@@ -199,6 +240,10 @@ async function cancelSetup(): Promise<void> {
 function previous(): void {
   if (phase.value === 'storage') phase.value = 'language';
   else if (phase.value === 'security') phase.value = 'storage';
+  else if (phase.value === 'error') {
+    phase.value = errorStep.value === 'storage' ? 'language' : 'storage';
+    errorMessage.value = '';
+  }
 }
 
 onMounted(async () => {
@@ -332,17 +377,58 @@ onUnmounted(() => unsubscribeSyncStatus?.());
           <template v-else-if="activeStep === 'security'">
             <h1 class="text-lg font-semibold text-white">{{ t('setup.encryptionMethod') }}</h1>
             <p class="text-muted mt-2 text-sm">{{ t('setup.encryptionHint') }}</p>
-            <select
-              v-model="encryptionMethod"
-              class="border-border bg-bg text-text mt-6 w-full rounded border px-3 py-2"
-              :disabled="state?.encryptionLocked"
+            <div
+              class="mt-6 grid gap-3"
+              role="radiogroup"
+              :aria-label="t('setup.encryptionMethod')"
             >
-              <option v-for="option in encryptionOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
+              <button
+                v-for="option in encryptionOptions"
+                :key="option.value"
+                type="button"
+                role="radio"
+                :aria-checked="encryptionMethod === option.value"
+                :disabled="state?.encryptionLocked"
+                class="border-border bg-bg hover:border-primary flex items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                :class="encryptionMethod === option.value ? 'border-primary bg-primary/10' : ''"
+                @click="encryptionMethod = option.value"
+              >
+                <span
+                  class="border-border bg-surface mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border"
+                  :class="
+                    encryptionMethod === option.value
+                      ? 'border-primary/40 text-primary'
+                      : 'text-muted'
+                  "
+                >
+                  <component :is="option.icon" :size="18" />
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-center gap-2">
+                    <span class="text-text text-sm font-medium">{{ option.label }}</span>
+                    <span
+                      v-if="option.recommended"
+                      class="bg-primary/15 text-primary rounded px-1.5 py-0.5 text-[10px] font-medium"
+                    >
+                      {{ t('setup.recommended') }}
+                    </span>
+                  </span>
+                  <span class="text-muted mt-1 block text-xs leading-5">
+                    {{ option.description }}
+                  </span>
+                </span>
+                <Check
+                  v-if="encryptionMethod === option.value"
+                  class="text-primary mt-1 shrink-0"
+                  :size="18"
+                />
+              </button>
+            </div>
             <p v-if="state?.encryptionLocked" class="text-muted-light mt-3 text-sm">
               {{ t('setup.existingEncryptionLocked') }}
+            </p>
+            <p v-if="errorMessage" class="text-danger mt-3 text-sm" role="alert">
+              {{ errorMessage }}
             </p>
             <template v-if="encryptionMethod === 'aes-256-gcm'"
               ><input
