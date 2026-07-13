@@ -1,4 +1,5 @@
 import { app, dialog, ipcMain } from 'electron';
+import { appLifecycleService } from './app/appLifecycleService.js';
 import { bootstrapApp, prepareElectronApp, stopAppServices } from './app/bootstrap.js';
 import { loadLocalEnv } from './env.js';
 import { registerSetupHandlers } from './ipc/setupIpc.js';
@@ -15,6 +16,9 @@ const singleInstanceLock = app.requestSingleInstanceLock();
 if (!singleInstanceLock) {
   app.quit();
 } else {
+  appLifecycleService.configure(stopAppServices);
+  appLifecycleService.registerQuitHandler();
+
   app.on('second-instance', (_event, argv) => {
     focusMainWindow();
     supabaseAuthService.maybeHandleDeepLinkArgv(argv);
@@ -39,10 +43,6 @@ if (!singleInstanceLock) {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('before-quit', () => {
-  stopAppServices();
 });
 
 async function startApp(): Promise<void> {
