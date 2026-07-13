@@ -566,6 +566,10 @@ export const messages = {
       maximize: 'Maximize',
       restore: 'Restore',
     },
+    update: {
+      install: 'Update',
+      installTitle: 'Install Polytrader2 {version}',
+    },
     settings: {
       navigation: 'Settings navigation',
       tabs: {
@@ -1365,6 +1369,10 @@ export const messages = {
       minimize: '最小化',
       maximize: '最大化',
       restore: '还原',
+    },
+    update: {
+      install: '更新',
+      installTitle: '安装 Polytrader2 {version}',
     },
     settings: {
       navigation: '系统设置导航',

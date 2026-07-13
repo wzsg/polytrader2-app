@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import type { IpcApi } from '@polytrader/shared';
+import type { AppUpdateState, IpcApi } from '@polytrader/shared';
 import type { StrategyBotRuntimeEvent } from '@polytrader/shared';
 import {
   crossChainApi,
@@ -107,6 +107,14 @@ const mainWindowApi = {
   getStrategyRunLogs: (runId, limit) => ipcRenderer.invoke('strategy-runs:getLogs', runId, limit),
   getStrategyRunOrders: (runId, limit) =>
     ipcRenderer.invoke('strategy-runs:getOrders', runId, limit),
+  getAppUpdateState: () => ipcRenderer.invoke('app-update:get-state'),
+  installAppUpdate: () => ipcRenderer.invoke('app-update:install'),
+  onAppUpdateStateChanged: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as AppUpdateState);
+    ipcRenderer.on('app-update:state-changed', listener);
+    return () => ipcRenderer.removeListener('app-update:state-changed', listener);
+  },
   ...windowApi,
   confirmMainWindowClose: () => ipcRenderer.invoke('main-window:confirm-close'),
   openBotManagement: () => ipcRenderer.invoke('main-window:open-bots'),
