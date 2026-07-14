@@ -1,12 +1,17 @@
 import { spawn } from 'node:child_process';
 import { constants } from 'node:fs';
-import { access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { delimiter, extname, join } from 'node:path';
 
 interface CommandResult {
   exitCode: number;
   stdout: string;
   stderr: string;
+}
+
+interface AgentInstallation {
+  path: string;
+  version: string | null;
 }
 
 class AgentCommandRunner {
@@ -27,6 +32,18 @@ class AgentCommandRunner {
       if (await this._isExecutableFile(candidate)) return candidate;
     }
     return null;
+  }
+
+  public async findPreferredInstallation(
+    command: string,
+    knownExecutablePaths: string[],
+    desktopApplicationPaths: string[],
+  ): Promise<AgentInstallation | null> {
+    const desktopApplication = await this._findMacDesktopApplication(desktopApplicationPaths);
+    if (desktopApplication) return desktopApplication;
+    const executablePath = await this.findExecutable(command, knownExecutablePaths);
+    if (!executablePath) return null;
+    return { path: executablePath, version: await this.readVersion(executablePath) };
   }
 
   public async readVersion(executablePath: string): Promise<string | null> {
@@ -88,6 +105,30 @@ class AgentCommandRunner {
       .flatMap((directory) =>
         extensions.map((extension) => join(directory, `${command}${extension}`)),
       );
+  }
+
+  private async _findMacDesktopApplication(
+    applicationPaths: string[],
+  ): Promise<AgentInstallation | null> {
+    if (this._platform !== 'darwin') return null;
+    for (const applicationPath of applicationPaths) {
+      const infoPlistPath = join(applicationPath, 'Contents', 'Info.plist');
+      try {
+        const infoPlist = await readFile(infoPlistPath, 'utf8');
+        const version = this._readBundleVersion(infoPlist);
+        return { path: applicationPath, version };
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  private _readBundleVersion(infoPlist: string): string | null {
+    const match = /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/u.exec(
+      infoPlist,
+    );
+    return match?.[1]?.trim() || null;
   }
 
   private async _isExecutableFile(path: string): Promise<boolean> {

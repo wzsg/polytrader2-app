@@ -27,6 +27,7 @@ class AiAgentIntegrationService {
       new CodexIntegrationAdapter(
         join(homeDirectory, '.codex', 'config.toml'),
         this._knownExecutablePaths('codex', homeDirectory, environment, platform),
+        this._desktopApplicationPaths('Codex.app', homeDirectory, platform),
         commandRunner,
         configWriter,
       ),
@@ -90,6 +91,11 @@ class AiAgentIntegrationService {
           environment,
           platform,
         ),
+        desktopApplicationPaths: this._desktopApplicationPaths(
+          'Claude.app',
+          homeDirectory,
+          platform,
+        ),
         configPath: join(homeDirectory, '.claude.json'),
         rootKey: 'mcpServers',
         transportType: 'http',
@@ -149,6 +155,18 @@ class AiAgentIntegrationService {
       common.unshift('/Applications/Cursor.app/Contents/Resources/app/bin/cursor');
     }
     return common;
+  }
+
+  private _desktopApplicationPaths(
+    applicationName: string,
+    homeDirectory: string,
+    platform: NodeJS.Platform,
+  ): string[] {
+    if (platform !== 'darwin') return [];
+    return [
+      join('/Applications', applicationName),
+      join(homeDirectory, 'Applications', applicationName),
+    ];
   }
 }
 
