@@ -120,7 +120,8 @@ function sendRuntimeSnapshotWhenCryptoReady(
   event: Electron.IpcMainInvokeEvent,
   subscription: TradingMarketSubscription,
 ): void {
-  const current = subscription.market.snapshot().cryptoTick;
+  const snapshot = subscription.market.snapshot();
+  const current = snapshot.cryptoTick ?? snapshot.binanceKline;
   if (!current || current.status !== 'loading') {
     setTimeout(() => sendRuntimeSnapshotEvent(event, subscription), 0);
     return;
@@ -132,8 +133,12 @@ function sendRuntimeSnapshotWhenCryptoReady(
     unsubscribe = null;
   }, 10_000);
   unsubscribe = subscription.onEvent((payload) => {
-    if (payload.eventName !== 'crypto-tick') return;
-    if (payload.event.cryptoTick?.status === 'loading') return;
+    if (payload.eventName !== 'crypto-tick' && payload.eventName !== 'binance-kline') return;
+    const status =
+      payload.eventName === 'crypto-tick'
+        ? payload.event.cryptoTick?.status
+        : payload.event.binanceKline?.status;
+    if (status === 'loading') return;
     clearTimeout(timer);
     unsubscribe?.();
     unsubscribe = null;

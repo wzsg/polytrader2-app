@@ -21,6 +21,7 @@ const TRADING_MARKET_RUNTIME_EVENT_NAMES = [
   'price-history-updated',
   'market-trades-state',
   'crypto-tick',
+  'binance-kline',
 ] as const satisfies readonly TradingMarketRuntimeEventName[];
 
 export { TRADING_MARKET_RUNTIME_EVENT_NAMES };

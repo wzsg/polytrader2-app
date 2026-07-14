@@ -140,6 +140,7 @@ export function useTradingApp() {
     () => runtimeSnapshot.value?.marketTrades.syncStatus ?? null,
   );
   const cryptoTick = computed(() => runtimeSnapshot.value?.cryptoTick ?? null);
+  const binanceKline = computed(() => runtimeSnapshot.value?.binanceKline ?? null);
   const wsStatus = computed(() => runtimeSnapshot.value?.wsStatus ?? 'disconnected');
   const {
     orderBookDepth,
@@ -448,6 +449,9 @@ export function useTradingApp() {
         break;
       case 'crypto-tick':
         next.cryptoTick = event.event.cryptoTick;
+        break;
+      case 'binance-kline':
+        next.binanceKline = event.event.binanceKline;
         break;
       default:
         break;
@@ -950,6 +954,7 @@ export function useTradingApp() {
     cancelingOrderIds,
     deleteFailedOrder,
     conditionId,
+    binanceKline,
     cryptoTick,
     defaultMarketTrades,
     defaultMarketTradesSyncStatus,
