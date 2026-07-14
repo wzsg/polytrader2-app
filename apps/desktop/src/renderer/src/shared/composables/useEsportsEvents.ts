@@ -6,6 +6,7 @@ import { fetchSportsMetadataOnce } from './sportsMetadata';
 import { useWatchlist } from './useWatchlist';
 
 const PAGE_SIZE = 50;
+const ESPORTS_START_TIME_GRACE_MS = 24 * 60 * 60 * 1000;
 const SPORTS_TAG_ID = '1';
 const ESPORTS_TAG_ID = '64';
 
@@ -14,7 +15,7 @@ const ESPORTS_SORT_FIELDS = new Set([
   'volume',
   'liquidity',
   'title',
-  'end_date',
+  'start_time',
   'active',
   'closed',
   'market_count',
@@ -33,7 +34,7 @@ type EsportsEventsFilters = Pick<
 
 const DEFAULT_ESPORTS_FILTERS: EsportsEventsFilters = {
   search: '',
-  sortField: 'end_date',
+  sortField: 'start_time',
   sortOrder: 'asc',
   cryptoCoin: '',
   cryptoMarketMode: '',
@@ -103,11 +104,17 @@ function useEsportsEvents() {
   async function loadVisibleEventCounts(
     items: SportsMetadataItem[],
   ): Promise<SportsMetadataItem[]> {
+    const startTimeAfter = new Date(Date.now() - ESPORTS_START_TIME_GRACE_MS).toISOString();
+
     return Promise.all(
       items.map(async (item) => ({
         ...item,
         activeEventCount: item.tagIds.includes(ESPORTS_TAG_ID)
-          ? await window.api.countEvents({ tagIds: item.tagIds, status: 'active' })
+          ? await window.api.countEvents({
+              tagIds: item.tagIds,
+              status: 'active',
+              startTimeAfter,
+            })
           : item.activeEventCount,
       })),
     );
@@ -128,6 +135,7 @@ function useEsportsEvents() {
         excludeTagIds: resolveQueryExcludeTagIds(),
         search: filters.search,
         status: 'active' as const,
+        startTimeAfter: new Date(Date.now() - ESPORTS_START_TIME_GRACE_MS).toISOString(),
         sortField: filters.sortField,
         sortOrder: filters.sortOrder,
         limit: PAGE_SIZE,
