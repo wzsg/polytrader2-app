@@ -3,6 +3,7 @@ interface PolymarketApiClientOptions {
   dataApiBaseUrl?: string;
   eventSnapshotBaseUrl?: string;
   gammaProxyBaseUrl?: string;
+  tradingApiBaseUrl?: string;
   bridgeApiBaseUrl?: string;
 }
 

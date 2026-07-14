@@ -27,7 +27,9 @@ function resolveMarketTradeRepository(query: MarketTradeAnalysisQuery | MarketTr
 }
 
 function registerMarketHandlers(ipcMain: IpcMain): void {
-  ipcMain.handle('api:fetchEvent', (_event, eventId: string) => apiClient.fetchEventById(eventId));
+  ipcMain.handle('api:fetchEvent', (_event, eventId: string) =>
+    polymarketMarketService.fetchEventDetail(eventId),
+  );
   ipcMain.handle('api:fetchCryptoCategory', async () => {
     await syncPolymarketMarketServicePreferences();
     return await polymarketMarketService.fetchCryptoCategory();

@@ -14,9 +14,11 @@ import type {
   SyncScheduleConfig,
   SyncStatus,
   EventSyncTrigger,
+  GammaEventRaw,
 } from '@polytrader/shared';
 import { DEFAULT_LOCALE } from '@polytrader/shared';
 import type { ApplicationEventBus } from '@polytrader/event-bus';
+import type { PolymarketApiClient } from '@polytrader/polymarket-api';
 import { CryptoEventsService } from './crypto/cryptoEventsService.js';
 import { MarketCategoryConfigClient } from './marketCategoryConfigClient.js';
 import { MarketDetailService } from './marketDetailService.js';
@@ -31,6 +33,7 @@ type PolymarketMarketServiceEventMap = {
 };
 
 class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventMap> {
+  private readonly _apiClient: PolymarketApiClient;
   private readonly _detailService: MarketDetailService;
   private readonly _cryptoEventsService: CryptoEventsService;
   private readonly _sportsEventsService: SportsEventsService;
@@ -39,12 +42,13 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   private readonly _eventSyncScheduler: EventSyncScheduler;
   private readonly _marketTradeSyncService: MarketTradeSyncService;
   private readonly _eventBus: ApplicationEventBus | null;
-  private _categoryConfigLocale: AppLocale;
+  private _locale: AppLocale;
 
   public constructor(options: MarketServiceOptions) {
     super();
+    this._apiClient = options.apiClient;
     this._eventBus = options.eventBus ?? null;
-    this._categoryConfigLocale = DEFAULT_LOCALE;
+    this._locale = DEFAULT_LOCALE;
     this._detailService = new MarketDetailService(options.apiClient);
     this._cryptoEventsService = new CryptoEventsService(options.eventRepository);
     this._sportsEventsService = new SportsEventsService({
@@ -81,6 +85,10 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     return this._detailService.fetchMarketDetail(marketId);
   }
 
+  public fetchEventDetail(eventId: string): Promise<GammaEventRaw> {
+    return this._apiClient.fetchLocalizedEventById(eventId, this._locale);
+  }
+
   public listCryptoEvents(params: ListCryptoEventsParams): Promise<CryptoEventsResult> {
     return this._cryptoEventsService.listCryptoEvents(params);
   }
@@ -90,15 +98,15 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   }
 
   public fetchCryptoCategory(): Promise<CryptoCategoryConfig> {
-    return this._categoryConfigClient.fetchCryptoCategory(this._categoryConfigLocale);
+    return this._categoryConfigClient.fetchCryptoCategory(this._locale);
   }
 
   public fetchEventCategory(): Promise<EventCategoryConfig> {
-    return this._categoryConfigClient.fetchEventCategory(this._categoryConfigLocale);
+    return this._categoryConfigClient.fetchEventCategory(this._locale);
   }
 
   public fetchSportsCategory(): Promise<SportsCategoryConfig> {
-    return this._categoryConfigClient.fetchSportsCategory(this._categoryConfigLocale);
+    return this._categoryConfigClient.fetchSportsCategory(this._locale);
   }
 
   public fetchSportsMetadata(): Promise<SportsMetadataItem[]> {
@@ -125,8 +133,8 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   }
 
   public setCategoryConfigLocale(locale: AppLocale): boolean {
-    if (this._categoryConfigLocale === locale) return false;
-    this._categoryConfigLocale = locale;
+    if (this._locale === locale) return false;
+    this._locale = locale;
     return true;
   }
 
