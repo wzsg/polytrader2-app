@@ -85,7 +85,9 @@ export function useEventCategory() {
     unsubscribeCategoryConfigChanged();
   });
 
-  async function loadCategory(options: { force?: boolean } = {}): Promise<EventCategoryConfig | null> {
+  async function loadCategory(
+    options: { force?: boolean } = {},
+  ): Promise<EventCategoryConfig | null> {
     if (config.value && !options.force) return config.value;
 
     loading.value = true;

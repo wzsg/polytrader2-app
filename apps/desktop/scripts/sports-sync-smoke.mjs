@@ -99,12 +99,12 @@ async function main() {
   const visibleSportIds = new Set(visibleSports.map((event) => event.sportId).filter(Boolean));
   const visibleLeague = category.disciplines
     ?.flatMap((disciplineItem) =>
-      disciplineItem.leagues.map((leagueItem) => ({ discipline: disciplineItem, league: leagueItem })),
+      disciplineItem.leagues.map((leagueItem) => ({
+        discipline: disciplineItem,
+        league: leagueItem,
+      })),
     )
-    .find(
-      ({ league: leagueItem }) =>
-        visibleSportIds.has(String(leagueItem.id)),
-    );
+    .find(({ league: leagueItem }) => visibleSportIds.has(String(leagueItem.id)));
   if (!visibleLeague) throw new Error('Sports category API did not return a visible league');
 
   const { discipline, league } = visibleLeague;

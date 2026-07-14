@@ -100,9 +100,7 @@ class MarketCategoryConfigClient {
   private normalizeEventCategoryIds(ids: Array<string | number> | undefined): number[] | undefined {
     if (!Array.isArray(ids)) return undefined;
 
-    return ids
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id));
+    return ids.map((id) => Number(id)).filter((id) => Number.isFinite(id));
   }
 }
 
