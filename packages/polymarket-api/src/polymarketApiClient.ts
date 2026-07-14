@@ -7,6 +7,7 @@ import { PolymarketAccountImpl } from './account/index.js';
 import { PolymarketBridgeApiClient } from './bridge/index.js';
 import { PolymarketClobApiClient } from './clob/index.js';
 import { PolymarketDataApiClient } from './data/index.js';
+import { LocalizedEventApiClient } from './event-detail/localizedEventApiClient.js';
 import { PolymarketGammaApiClient } from './gamma/index.js';
 import { R2EventSnapshotClient } from './r2/index.js';
 import { PolymarketRelayerApiClient } from './relayer/index.js';
@@ -52,6 +53,7 @@ class PolymarketApiClient {
   private readonly _dataApiClient: PolymarketDataApiClient;
   private readonly _eventSnapshotClient: R2EventSnapshotClient;
   private readonly _gammaClient: PolymarketGammaApiClient;
+  private readonly _localizedEventClient: LocalizedEventApiClient;
   private readonly _polymarketAccounts: Map<string, PolymarketAccount>;
 
   private constructor(options: PolymarketApiClientOptions = {}) {
@@ -60,6 +62,7 @@ class PolymarketApiClient {
     this._dataApiClient = new PolymarketDataApiClient(options.dataApiBaseUrl);
     this._eventSnapshotClient = new R2EventSnapshotClient(options.eventSnapshotBaseUrl);
     this._gammaClient = new PolymarketGammaApiClient(options.gammaProxyBaseUrl);
+    this._localizedEventClient = new LocalizedEventApiClient(options.tradingApiBaseUrl);
     this._polymarketAccounts = new Map();
   }
 
@@ -179,6 +182,10 @@ class PolymarketApiClient {
 
   public fetchEventById(eventId: string): Promise<GammaEventRaw> {
     return this._gammaClient.fetchEventById(eventId);
+  }
+
+  public fetchLocalizedEventById(eventId: string, locale: AppLocale): Promise<GammaEventRaw> {
+    return this._localizedEventClient.fetchEventById(eventId, locale);
   }
 
   public fetchMarketById(marketId: string): Promise<GammaMarketRaw> {
