@@ -64,7 +64,6 @@ jobs:
       P2_WINDOWS_SIGNING_TIMESTAMP_URL: http://time.certum.pl
       P2_WINDOWS_SIGNING_TIMEOUT_MS: 1800000
       P2_WINDOWS_SIGNING_RETRY_DELAY_MS: 15000
-      P2_WINDOWS_SIGN_METRICS_PATH: ${{ runner.temp }}\polytrader2-windows-sign-metrics.json
 
     steps:
       - name: Checkout
@@ -105,7 +104,10 @@ jobs:
 
       - name: Prepare Windows signing metrics
         shell: pwsh
-        run: Remove-Item -LiteralPath $env:P2_WINDOWS_SIGN_METRICS_PATH -Force -ErrorAction SilentlyContinue
+        run: |
+          $metricsPath = Join-Path $env:RUNNER_TEMP 'polytrader2-windows-sign-metrics.json'
+          Remove-Item -LiteralPath $metricsPath -Force -ErrorAction SilentlyContinue
+          "P2_WINDOWS_SIGN_METRICS_PATH=$metricsPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Typecheck
         run: pnpm run typecheck
