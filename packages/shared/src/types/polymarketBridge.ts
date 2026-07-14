@@ -86,12 +86,7 @@ interface PolymarketBridgeQuoteResponse {
 }
 
 type PolymarketBridgeTransactionStatus =
-  | 'DEPOSIT_DETECTED'
-  | 'PROCESSING'
-  | 'ORIGIN_TX_CONFIRMED'
-  | 'SUBMITTED'
-  | 'COMPLETED'
-  | 'FAILED';
+  'DEPOSIT_DETECTED' | 'PROCESSING' | 'ORIGIN_TX_CONFIRMED' | 'SUBMITTED' | 'COMPLETED' | 'FAILED';
 
 interface PolymarketBridgeTransaction {
   fromChainId?: string;
@@ -149,11 +144,7 @@ interface PolymarketBridgeWithdrawalSubmitResult {
 }
 
 type PolymarketBridgeWithdrawalEventType =
-  | 'created'
-  | 'updated'
-  | 'succeeded'
-  | 'failed'
-  | 'timed-out';
+  'created' | 'updated' | 'succeeded' | 'failed' | 'timed-out';
 
 interface PolymarketBridgeWithdrawalEvent {
   type: PolymarketBridgeWithdrawalEventType;

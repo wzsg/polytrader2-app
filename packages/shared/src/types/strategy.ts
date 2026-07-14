@@ -1,11 +1,6 @@
 type StrategyCompileStatus = 'pending' | 'success' | 'failed';
 type StrategyRunStatus =
-  | 'starting'
-  | 'running'
-  | 'stopping'
-  | 'stopped'
-  | 'stopped_with_cancel_error'
-  | 'error';
+  'starting' | 'running' | 'stopping' | 'stopped' | 'stopped_with_cancel_error' | 'error';
 type StrategyBotStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'stopped' | 'error';
 type StrategyLogLevel = 'debug' | 'info' | 'warn' | 'error';
 type StrategyOrderSide = 'BUY' | 'SELL';

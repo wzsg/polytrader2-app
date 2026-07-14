@@ -81,9 +81,7 @@ export type StrategyWorkerEvent = {
 };
 
 export type StrategyWorkerChildMessage =
-  | StrategyWorkerCommandResponse
-  | StrategyWorkerHostCall
-  | StrategyWorkerEvent;
+  StrategyWorkerCommandResponse | StrategyWorkerHostCall | StrategyWorkerEvent;
 
 interface JsonSanitizeOptions {
   maxDepth?: number;

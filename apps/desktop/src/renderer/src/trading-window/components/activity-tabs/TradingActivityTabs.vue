@@ -29,12 +29,7 @@ import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import { useI18n } from 'vue-i18n';
 
 type ActivityTab =
-  | 'orders'
-  | 'positions'
-  | 'walletTrades'
-  | 'bots'
-  | 'strategyLogs'
-  | 'strategyHistory';
+  'orders' | 'positions' | 'walletTrades' | 'bots' | 'strategyLogs' | 'strategyHistory';
 
 const props = defineProps<{
   activeTab: ActivityTab;

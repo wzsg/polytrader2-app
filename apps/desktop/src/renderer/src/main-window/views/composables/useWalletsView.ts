@@ -12,12 +12,7 @@ import {
 import { formatPercent, formatPnl, formatUsd } from '@/shared/utils/format';
 
 type AccountDialogMode =
-  | 'create'
-  | 'createHd'
-  | 'derive'
-  | 'importPrivateKey'
-  | 'importMnemonic'
-  | 'edit';
+  'create' | 'createHd' | 'derive' | 'importPrivateKey' | 'importMnemonic' | 'edit';
 const POLYMARKET_URL = POLYMARKET_REFERRAL_URL;
 
 export function useWalletsView() {

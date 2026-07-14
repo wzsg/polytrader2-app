@@ -22,12 +22,7 @@ import { useTradingPanelLayout } from './useTradingPanelLayout';
 
 export type CenterTab = 'market' | 'trades' | 'analysis' | 'holders';
 export type ActivityTab =
-  | 'orders'
-  | 'positions'
-  | 'walletTrades'
-  | 'bots'
-  | 'strategyLogs'
-  | 'strategyHistory';
+  'orders' | 'positions' | 'walletTrades' | 'bots' | 'strategyLogs' | 'strategyHistory';
 
 export function useTradingApp() {
   const params = ref<TradingWindowInput>(readParamsFromUrl());
