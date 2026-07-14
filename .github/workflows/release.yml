@@ -83,6 +83,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Audit dependencies
+        run: pnpm run audit:security
+
       - name: Set package version
         shell: pwsh
         run: |
@@ -208,6 +211,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm run audit:security
 
       - name: Set package version
         shell: bash

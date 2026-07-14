@@ -110,6 +110,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Audit dependencies
+        run: pnpm run audit:security
+
       - name: Set nightly package version
         shell: pwsh
         env:
@@ -181,6 +184,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm run audit:security
 
       - name: Set nightly package version
         shell: bash

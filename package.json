@@ -23,6 +23,7 @@
     "lint:fix": "turbo run lint:fix --filter=@polytrader2/app",
     "format": "turbo run format --filter=@polytrader2/app",
     "format:check": "turbo run format:check --filter=@polytrader2/app",
+    "audit:security": "pnpm audit --audit-level low",
     "check": "turbo run typecheck lint format:check --filter=@polytrader2/app",
     "db:generate": "pnpm --filter @polytrader2/app run db:generate",
     "db:migrate": "pnpm --filter @polytrader2/app run db:migrate",
