@@ -44,7 +44,7 @@ async function findAvailablePort() {
 
 async function writeFakeCommands(binDirectory) {
   await mkdir(binDirectory, { recursive: true });
-  const commands = ['codex', 'claude', 'opencode', 'cursor'];
+  const commands = ['codex', 'opencode', 'cursor'];
   await Promise.all(
     commands.map((command) =>
       writeFile(join(binDirectory, `${command}.cmd`), `@echo ${command} 1.0.0\r\n`, 'utf8'),
@@ -54,7 +54,11 @@ async function writeFakeCommands(binDirectory) {
 
 async function runAgentConfigSmoke(root) {
   const binDirectory = join(root, 'bin');
+  const localAppData = join(root, 'AppData', 'Local');
+  const appData = join(root, 'AppData', 'Roaming');
   await writeFakeCommands(binDirectory);
+  await mkdir(join(localAppData, 'AnthropicClaude'), { recursive: true });
+  await writeFile(join(localAppData, 'AnthropicClaude', 'claude.exe'), '', 'utf8');
   await mkdir(join(root, '.codex'), { recursive: true });
   await mkdir(join(root, '.config', 'opencode'), { recursive: true });
   await writeFile(join(root, '.codex', 'config.toml'), '# keep-codex-setting\nmodel = "test"\n');
@@ -65,11 +69,17 @@ async function runAgentConfigSmoke(root) {
   const environment = {
     ...process.env,
     PATH: `${binDirectory}${delimiter}${process.env.PATH || ''}`,
+    LOCALAPPDATA: localAppData,
+    APPDATA: appData,
   };
   const service = new AiAgentIntegrationService({
     homeDirectory: root,
     environment,
     platform: 'win32',
+    claudeDesktopBridge: {
+      command: 'C:\\Program Files\\Polytrader2\\Polytrader2.exe',
+      scriptPath: 'C:\\Program Files\\Polytrader2\\resources\\mcp-stdio-bridge.js',
+    },
   });
   const initial = await service.detectAll();
   assert.equal(initial.length, 4);
@@ -94,6 +104,20 @@ async function runAgentConfigSmoke(root) {
     'utf8',
   );
   assert.match(openCodeConfig, /keep-opencode-comment/u);
+  const claudeDesktopConfig = JSON.parse(
+    await readFile(join(appData, 'Claude', 'claude_desktop_config.json'), 'utf8'),
+  );
+  assert.deepEqual(claudeDesktopConfig.mcpServers.polytrader2, {
+    command: 'C:\\Program Files\\Polytrader2\\Polytrader2.exe',
+    args: [
+      'C:\\Program Files\\Polytrader2\\resources\\mcp-stdio-bridge.js',
+      '--endpoint',
+      'http://127.0.0.1:18708/mcp',
+      '--token',
+      'token-claude-desktop',
+    ],
+    env: { ELECTRON_RUN_AS_NODE: '1' },
+  });
 
   const stale = await service.detect('cursor', {
     endpoint: 'http://127.0.0.1:18708/mcp',
@@ -109,6 +133,34 @@ async function runAgentConfigSmoke(root) {
     const removed = await service.remove(status.id, connection);
     assert.equal(removed.configState, 'not-configured');
   }
+}
+
+async function runMacClaudeDesktopDetectionSmoke(root) {
+  const homeDirectory = join(root, 'mac-home');
+  const applicationPath = join(homeDirectory, 'Applications', 'Claude.app');
+  await mkdir(join(applicationPath, 'Contents'), { recursive: true });
+  await writeFile(
+    join(applicationPath, 'Contents', 'Info.plist'),
+    '<plist><dict><key>CFBundleShortVersionString</key><string>1.2.3</string></dict></plist>',
+    'utf8',
+  );
+  const service = new AiAgentIntegrationService({
+    homeDirectory,
+    environment: { PATH: '' },
+    platform: 'darwin',
+    claudeDesktopBridge: {
+      command: '/Applications/Polytrader2.app/Contents/MacOS/Polytrader2',
+      scriptPath: '/Applications/Polytrader2.app/Contents/Resources/mcp-stdio-bridge.js',
+    },
+  });
+  const status = await service.detect('claude-desktop');
+  assert.equal(status.installed, true);
+  assert.equal(status.executablePath, applicationPath);
+  assert.equal(status.version, '1.2.3');
+  assert.equal(
+    status.configPath,
+    join(homeDirectory, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'),
+  );
 }
 
 async function runMcpCredentialSmoke() {
@@ -182,6 +234,7 @@ async function runMcpCredentialSmoke() {
 const root = await mkdtemp(join(tmpdir(), 'polytrader2-ai-agent-smoke-'));
 try {
   await runAgentConfigSmoke(root);
+  await runMacClaudeDesktopDetectionSmoke(root);
   await runMcpCredentialSmoke();
   console.log('AI agent integration smoke test passed');
 } finally {

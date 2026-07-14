@@ -6,7 +6,8 @@
   "scripts": {
     "prepare:workspace-packages": "pnpm --workspace-root run prepare:workspace-packages",
     "dev": "electron-vite dev --remoteDebuggingPort 9222 -- --trace-warnings",
-    "build": "electron-vite build",
+    "build": "electron-vite build && pnpm run build:mcp-stdio-bridge",
+    "build:mcp-stdio-bridge": "tsup --config mcp-stdio-bridge.tsup.config.ts",
     "build:with-deps": "pnpm --workspace-root run build",
     "start": "electron-vite preview",
     "dist:win": "pnpm --workspace-root run build && pnpm run dist:win:app",
@@ -34,6 +35,7 @@
     "smoke:event-sync-write": "node scripts/run-electron-node.mjs scripts/event-sync-write-benchmark.mjs",
     "smoke:event-sync-status": "node scripts/run-electron-node.mjs scripts/event-sync-status-smoke.mjs",
     "smoke:ai-agent-integration": "node scripts/run-electron-node.mjs scripts/ai-agent-integration-smoke.mjs",
+    "smoke:mcp-stdio-bridge": "pnpm run build:mcp-stdio-bridge && node scripts/run-electron-node.mjs scripts/mcp-stdio-bridge-smoke.mjs",
     "smoke:sports-sync": "node scripts/run-electron-node.mjs scripts/sports-sync-smoke.mjs",
     "smoke:tick-size-support": "node scripts/run-electron-node.mjs scripts/tick-size-support-smoke.mjs",
     "postinstall": "node scripts/postinstall.mjs"
@@ -42,6 +44,7 @@
   "packageManager": "pnpm@11.5.0",
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@noble/curves": "1.9.1",
     "@scure/bip32": "1.7.0",
     "@scure/bip39": "1.6.0",

@@ -4,6 +4,7 @@ export type { AppPreferencesService, AppPreferencesServiceOptions } from './type
 export { AiAgentIntegrationService } from './aiAgentIntegrationService.js';
 export type {
   AiAgentIntegrationServiceOptions,
+  ClaudeDesktopBridgeConfig,
   ConfigureAgentOptions,
   McpConnectionConfig,
 } from './aiAgentIntegrationTypes.js';

@@ -46,6 +46,20 @@ class AgentCommandRunner {
     return { path: executablePath, version: await this.readVersion(executablePath) };
   }
 
+  public async findDesktopApplication(
+    applicationPaths: string[],
+  ): Promise<AgentInstallation | null> {
+    const macApplication = await this._findMacDesktopApplication(applicationPaths);
+    if (macApplication) return macApplication;
+    if (this._platform === 'darwin') return null;
+    for (const applicationPath of applicationPaths) {
+      if (await this._isExecutableFile(applicationPath)) {
+        return { path: applicationPath, version: null };
+      }
+    }
+    return null;
+  }
+
   public async readVersion(executablePath: string): Promise<string | null> {
     try {
       const result = await this.run(executablePath, ['--version'], 3_000);

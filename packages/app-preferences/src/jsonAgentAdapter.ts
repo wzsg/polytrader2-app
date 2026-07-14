@@ -12,7 +12,6 @@ interface JsonAgentDefinition {
   displayName: string;
   command: string;
   knownExecutablePaths: string[];
-  desktopApplicationPaths?: string[];
   configPath: string;
   rootKey: string;
   transportType?: string;
@@ -38,13 +37,11 @@ class JsonAgentAdapter implements AiAgentAdapter {
   }
 
   public async detect(connection?: McpConnectionConfig): Promise<AiAgentIntegrationStatus> {
-    const installation = await this._commandRunner.findPreferredInstallation(
+    const executablePath = await this._commandRunner.findExecutable(
       this._definition.command,
       this._definition.knownExecutablePaths,
-      this._definition.desktopApplicationPaths ?? [],
     );
-    const executablePath = installation?.path ?? null;
-    const version = installation?.version ?? null;
+    const version = executablePath ? await this._commandRunner.readVersion(executablePath) : null;
     try {
       const entry = await this._configWriter.readJsonValue(this._definition.configPath, [
         this._definition.rootKey,

@@ -11,7 +11,7 @@ import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 
 const agentIconUrls: Record<AiAgentId, string> = {
   codex: codexIconUrl,
-  'claude-code': claudeIconUrl,
+  'claude-desktop': claudeIconUrl,
   opencode: openCodeIconUrl,
   cursor: cursorIconUrl,
 };

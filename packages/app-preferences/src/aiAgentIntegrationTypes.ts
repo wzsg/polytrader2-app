@@ -9,10 +9,16 @@ interface ConfigureAgentOptions extends McpConnectionConfig {
   replaceExisting?: boolean;
 }
 
+interface ClaudeDesktopBridgeConfig {
+  command: string;
+  scriptPath: string;
+}
+
 interface AiAgentIntegrationServiceOptions {
   homeDirectory?: string;
   environment?: NodeJS.ProcessEnv;
   platform?: NodeJS.Platform;
+  claudeDesktopBridge?: ClaudeDesktopBridgeConfig;
 }
 
 interface AiAgentAdapter {
@@ -25,6 +31,7 @@ interface AiAgentAdapter {
 export type {
   AiAgentAdapter,
   AiAgentIntegrationServiceOptions,
+  ClaudeDesktopBridgeConfig,
   ConfigureAgentOptions,
   McpConnectionConfig,
 };

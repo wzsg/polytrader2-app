@@ -8,8 +8,10 @@
   "include": [
     "drizzle.config.ts",
     "electron.vite.config.*",
+    "mcp-stdio-bridge.tsup.config.ts",
     "src/env.d.ts",
     "src/main/**/*",
+    "src/mcp-stdio-bridge/**/*",
     "src/preload/**/*"
   ]
 }

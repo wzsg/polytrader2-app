@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { AiAgentId, AiAgentIntegrationStatus } from '@polytrader/shared';
 import { AgentCommandRunner } from './agentCommandRunner.js';
+import { ClaudeDesktopIntegrationAdapter } from './claudeDesktopIntegrationAdapter.js';
 import { CodexIntegrationAdapter } from './codexIntegrationAdapter.js';
 import { JsonAgentAdapter, type JsonAgentDefinition } from './jsonAgentAdapter.js';
 import { ManagedConfigWriter } from './managedConfigWriter.js';
@@ -23,11 +24,22 @@ class AiAgentIntegrationService {
     const commandRunner = new AgentCommandRunner(environment, platform);
     const configWriter = new ManagedConfigWriter();
     const definitions = this._jsonDefinitions(homeDirectory, environment, platform);
+    const claudeDesktopBridge = options.claudeDesktopBridge ?? {
+      command: process.execPath,
+      scriptPath: join(process.cwd(), 'out', 'mcp-stdio-bridge', 'mcp-stdio-bridge.js'),
+    };
     const adapters: AiAgentAdapter[] = [
       new CodexIntegrationAdapter(
         join(homeDirectory, '.codex', 'config.toml'),
         this._knownExecutablePaths('codex', homeDirectory, environment, platform),
         this._desktopApplicationPaths('Codex.app', homeDirectory, platform),
+        commandRunner,
+        configWriter,
+      ),
+      new ClaudeDesktopIntegrationAdapter(
+        this._claudeDesktopConfigPath(homeDirectory, environment, platform),
+        this._claudeDesktopApplicationPaths(homeDirectory, environment, platform),
+        claudeDesktopBridge,
         commandRunner,
         configWriter,
       ),
@@ -81,25 +93,6 @@ class AiAgentIntegrationService {
     const openCodeJsonc = join(homeDirectory, '.config', 'opencode', 'opencode.jsonc');
     const openCodeJson = join(homeDirectory, '.config', 'opencode', 'opencode.json');
     return [
-      {
-        id: 'claude-code',
-        displayName: 'Claude Code',
-        command: 'claude',
-        knownExecutablePaths: this._knownExecutablePaths(
-          'claude',
-          homeDirectory,
-          environment,
-          platform,
-        ),
-        desktopApplicationPaths: this._desktopApplicationPaths(
-          'Claude.app',
-          homeDirectory,
-          platform,
-        ),
-        configPath: join(homeDirectory, '.claude.json'),
-        rootKey: 'mcpServers',
-        transportType: 'http',
-      },
       {
         id: 'opencode',
         displayName: 'OpenCode',
@@ -167,6 +160,41 @@ class AiAgentIntegrationService {
       join('/Applications', applicationName),
       join(homeDirectory, 'Applications', applicationName),
     ];
+  }
+
+  private _claudeDesktopApplicationPaths(
+    homeDirectory: string,
+    environment: NodeJS.ProcessEnv,
+    platform: NodeJS.Platform,
+  ): string[] {
+    if (platform === 'darwin') {
+      return this._desktopApplicationPaths('Claude.app', homeDirectory, platform);
+    }
+    if (platform !== 'win32') return [];
+    const localAppData = environment.LOCALAPPDATA || join(homeDirectory, 'AppData', 'Local');
+    return [
+      join(localAppData, 'AnthropicClaude', 'claude.exe'),
+      join(localAppData, 'Programs', 'Claude', 'Claude.exe'),
+      join(localAppData, 'Microsoft', 'WindowsApps', 'Claude.exe'),
+    ];
+  }
+
+  private _claudeDesktopConfigPath(
+    homeDirectory: string,
+    environment: NodeJS.ProcessEnv,
+    platform: NodeJS.Platform,
+  ): string {
+    if (platform === 'darwin') {
+      return join(
+        homeDirectory,
+        'Library',
+        'Application Support',
+        'Claude',
+        'claude_desktop_config.json',
+      );
+    }
+    const appData = environment.APPDATA || join(homeDirectory, 'AppData', 'Roaming');
+    return join(appData, 'Claude', 'claude_desktop_config.json');
   }
 }
 
