@@ -101,6 +101,13 @@ const priceTextClass = computed(() => (side.value === 'BUY' ? 'text-green-400' :
 const canSubmit = computed(() => {
   return Boolean(currentAccountId.value && selectedAccount.value?.credentialsConfigured === true);
 });
+const hasValidOrderInput = computed(() => {
+  if (!tokenId.value) return false;
+  if (orderType.value === 'limit') {
+    return isPositiveFiniteNumber(price.value) && isPositiveFiniteNumber(shares.value);
+  }
+  return isPositiveFiniteNumber(side.value === 'BUY' ? amount.value : shares.value);
+});
 
 const isMarketSell = computed(() => orderType.value === 'market' && side.value === 'SELL');
 const isLimitBuy = computed(() => orderType.value === 'limit' && side.value === 'BUY');
@@ -146,7 +153,9 @@ const orderValidationError = computed(() => {
   });
 });
 const submitError = computed(() => orderValidationError.value || error.value);
-const canPlaceOrder = computed(() => canSubmit.value && !orderValidationError.value);
+const canPlaceOrder = computed(
+  () => canSubmit.value && hasValidOrderInput.value && !orderValidationError.value,
+);
 
 watch(
   () => props.selectedTokenId,
@@ -202,6 +211,12 @@ function createOrderId(): string {
   );
 }
 
+function isPositiveFiniteNumber(value: string): boolean {
+  if (!value.trim()) return false;
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0;
+}
+
 function buildInput(orderId: string): ManualPlaceOrderInput {
   const tickSize = Number(selectedOrderBook.value?.tickSize);
   const normalizedTickSize = Number.isFinite(tickSize) && tickSize > 0 ? tickSize : undefined;
@@ -236,9 +251,8 @@ function buildInput(orderId: string): ManualPlaceOrderInput {
 }
 
 async function submitOrder(): Promise<void> {
-  if (!canSubmit.value || submitting.value) return;
+  if (!canPlaceOrder.value || submitting.value) return;
   error.value = '';
-  if (orderValidationError.value) return;
   submitting.value = true;
 
   try {
