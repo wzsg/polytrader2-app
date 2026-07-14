@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Check, Copy, LoaderCircle, X } from '@lucide/vue';
+import { LoaderCircle, X } from '@lucide/vue';
 import type {
   PolymarketBridgeSupportedAsset,
   PolymarketBridgeWithdrawalRecord,
-  PolymarketBridgeWithdrawalStatus,
   PolymarketWalletSummary,
 } from '@polytrader/shared';
 import IconSelect from '@/shared/components/IconSelect.vue';
@@ -34,8 +33,9 @@ const loading = ref(false);
 const submitting = ref(false);
 const error = ref('');
 const result = ref<PolymarketBridgeWithdrawalRecord | null>(null);
-const copied = ref(false);
 let unsubscribeWithdrawalEvent: (() => void) | null = null;
+
+type WithdrawalResult = 'succeeded' | 'failed' | 'timed_out';
 
 const chains = computed(() => {
   const byChainId = new Map<string, PolymarketBridgeSupportedAsset>();
@@ -75,6 +75,21 @@ const selectedTokenAddressModel = computed({
   set: (tokenAddress: string) => selectToken(tokenAddress),
 });
 
+const withdrawalResult = computed<WithdrawalResult | null>(() => {
+  const status = result.value?.status;
+  if (status === 'succeeded' || status === 'failed' || status === 'timed_out') return status;
+  return null;
+});
+
+const processing = computed(() => Boolean(result.value && !withdrawalResult.value));
+
+const withdrawalResultMessage = computed(() => {
+  if (withdrawalResult.value === 'succeeded') return t('bridge.withdrawalResult.succeeded');
+  if (withdrawalResult.value === 'failed') return t('bridge.withdrawalResult.failed');
+  if (withdrawalResult.value === 'timed_out') return t('bridge.withdrawalResult.timedOut');
+  return '';
+});
+
 watch(
   () => props.open,
   (open) => {
@@ -102,7 +117,6 @@ async function load(): Promise<void> {
   submitting.value = false;
   error.value = '';
   result.value = null;
-  copied.value = false;
   try {
     const res = await window.api.crossChain.listSupportedAssets();
     if (!res.ok) throw new Error(res.error);
@@ -156,22 +170,11 @@ async function submit(): Promise<void> {
     });
     if (!res.ok) throw new Error(res.error);
     result.value = res.data.withdrawal;
-    emit('submitted');
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
   } finally {
     submitting.value = false;
   }
-}
-
-async function copyBridgeAddress(): Promise<void> {
-  const address = result.value?.bridgeAddress;
-  if (!address) return;
-  await navigator.clipboard.writeText(address);
-  copied.value = true;
-  window.setTimeout(() => {
-    copied.value = false;
-  }, 1200);
 }
 
 function chainLabel(asset: PolymarketBridgeSupportedAsset): string {
@@ -180,10 +183,6 @@ function chainLabel(asset: PolymarketBridgeSupportedAsset): string {
 
 function tokenLabel(asset: PolymarketBridgeSupportedAsset): string {
   return asset.token.symbol ?? asset.token.name ?? asset.token.address;
-}
-
-function withdrawalStatusLabel(status: PolymarketBridgeWithdrawalStatus): string {
-  return t(`bridge.withdrawalStatus.${status}`);
 }
 </script>
 
@@ -218,11 +217,28 @@ function withdrawalStatusLabel(status: PolymarketBridgeWithdrawalStatus): string
 
         <form class="space-y-4 px-5 py-4" @submit.prevent="submit">
           <div
-            v-if="loading"
+            v-if="loading || submitting || processing"
             class="flex h-44 items-center justify-center"
-            :title="t('bridge.loadWithdrawal')"
+            :title="loading ? t('bridge.loadWithdrawal') : t('bridge.processingWithdrawal')"
           >
             <LoaderCircle :size="24" class="text-primary animate-spin" />
+          </div>
+          <div
+            v-else-if="withdrawalResult"
+            class="flex h-44 flex-col items-center justify-center gap-3 text-center"
+          >
+            <p
+              class="text-base font-medium"
+              :class="withdrawalResult === 'succeeded' ? 'text-green-400' : 'text-red-300'"
+            >
+              {{ withdrawalResultMessage }}
+            </p>
+            <p
+              v-if="withdrawalResult !== 'succeeded' && result?.errorMessage"
+              class="max-w-sm text-sm text-red-300"
+            >
+              {{ result.errorMessage }}
+            </p>
           </div>
           <template v-else>
             <p
@@ -275,67 +291,25 @@ function withdrawalStatusLabel(status: PolymarketBridgeWithdrawalStatus): string
                     })
               }}
             </p>
-
-            <div v-if="result" class="space-y-2 text-center text-xs">
-              <div class="text-muted-light">{{ t('bridge.withdrawalStatusLabel') }}</div>
-              <div class="text-text">{{ withdrawalStatusLabel(result.status) }}</div>
-              <div v-if="result.bridgeAddress" class="text-muted-light pt-1">
-                {{ t('bridge.bridgeAddress') }}
-              </div>
-              <div class="flex w-full justify-center">
-                <code
-                  v-if="result.bridgeAddress"
-                  class="selectable-text bg-bg text-text inline-block max-w-full rounded-md p-3 text-center break-all"
-                >
-                  {{ result.bridgeAddress }}
-                </code>
-              </div>
-              <div v-if="result.relayerTransactionId" class="text-muted-light pt-1">
-                {{ t('bridge.relayerTransaction') }}
-              </div>
-              <code
-                v-if="result.relayerTransactionId"
-                class="selectable-text text-text block break-all"
-              >
-                {{ result.relayerTransactionId }}
-              </code>
-              <p v-if="result.errorMessage" class="text-red-300">{{ result.errorMessage }}</p>
-            </div>
           </template>
         </form>
 
         <footer class="border-border flex justify-end gap-2 border-t px-5 py-4">
           <button
-            v-if="result?.bridgeAddress"
-            type="button"
-            class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-9 items-center gap-2 rounded-md border px-4 text-sm transition-colors"
-            @click="copyBridgeAddress"
-          >
-            <Check v-if="copied" :size="15" />
-            <Copy v-else :size="15" />
-            {{ copied ? t('common.copied') : t('common.copy') }}
-          </button>
-          <button
             type="button"
             class="bg-btn-secondary hover:bg-btn-secondary-hover text-text inline-flex h-9 items-center rounded-md px-4 text-sm transition-colors"
-            :disabled="submitting"
             @click="emit('close')"
           >
             {{ t('common.close') }}
           </button>
           <button
+            v-if="!loading && !submitting && !processing && !withdrawalResult"
             type="button"
             class="bg-primary hover:bg-primary-hover inline-flex h-9 min-w-24 items-center justify-center rounded-md px-4 text-sm font-medium text-white transition-colors disabled:opacity-60"
-            :disabled="loading || submitting || !selectedAsset || !amount || !recipientAddr"
+            :disabled="!selectedAsset || !amount || !recipientAddr"
             @click="submit"
           >
-            <LoaderCircle
-              v-if="submitting"
-              :size="16"
-              class="animate-spin"
-              :title="t('bridge.submitWithdrawal')"
-            />
-            <span v-else>{{ t('common.confirm') }}</span>
+            {{ t('common.confirm') }}
           </button>
         </footer>
       </section>
