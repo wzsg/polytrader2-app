@@ -153,7 +153,7 @@ class TradingMarketRuntimeImpl
       orderBooks:
         this._marketDetail?.outcomes.map((outcome) => ({
           tokenId: outcome.tokenId,
-          label: outcome.label,
+          label: outcome.displayLabel,
           bids: [],
           asks: [],
           tickSize: null,
@@ -333,7 +333,7 @@ class TradingMarketRuntimeImpl
     const seq = this._nextSeq('gammaEvent');
     this._setStatus('gammaEvent', 'loading');
     try {
-      const event = await this._options.apiClient.fetchEventById(this._eventId);
+      const event = await this._options.apiClient.fetchEventDetail(this._eventId);
       if (!this._isCurrent('gammaEvent', seq)) return;
       this._event = event;
       this._setStatus('gammaEvent', 'ready');

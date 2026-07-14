@@ -1,6 +1,7 @@
-import { normalizeMarket, outcomesLabel } from '@polytrader/shared';
+import { normalizeMarket, outcomesLabel, parseJsonArray } from '@polytrader/shared';
 import type { PolymarketApiClient } from '@polytrader/polymarket-api';
 import type {
+  AppLocale,
   HolderApiGroup,
   HolderGroup,
   Market,
@@ -15,10 +16,10 @@ class MarketDetailService {
     this._apiClient = apiClient;
   }
 
-  public async fetchMarketDetail(marketId: string): Promise<MarketDetailData> {
-    const raw = await this._apiClient.fetchMarketById(marketId);
+  public async fetchMarketDetail(marketId: string, locale: AppLocale): Promise<MarketDetailData> {
+    const raw = await this._apiClient.fetchLocalizedMarketById(marketId, locale);
     const market = normalizeMarket(raw);
-    const outcomes = this.getMarketOutcomes(market);
+    const outcomes = this.getMarketOutcomes(market, parseJsonArray(raw.outcomesJson));
 
     const holderGroups = await (market.conditionId
       ? this._apiClient.fetchMarketHolders(market.conditionId).catch(() => [] as unknown[])
@@ -31,10 +32,11 @@ class MarketDetailService {
     };
   }
 
-  private getMarketOutcomes(market: Market): MarketOutcome[] {
+  private getMarketOutcomes(market: Market, displayOutcomes: unknown[]): MarketOutcome[] {
     return market.clobTokenIds.map((tokenId, index) => ({
       tokenId,
       label: outcomesLabel(market.outcomes[index], index),
+      displayLabel: outcomesLabel(displayOutcomes[index] ?? market.outcomes[index], index),
       price: market.outcomePrices[index] ?? null,
       tickSize: market.orderPriceMinTickSize,
       minOrderSize: market.orderMinSize,
@@ -46,9 +48,9 @@ class MarketDetailService {
       (holderGroups || []).map((group) => [String(group.token), group.holders || []]),
     );
 
-    return outcomes.map(({ tokenId, label }) => ({
+    return outcomes.map(({ tokenId, displayLabel }) => ({
       tokenId,
-      label,
+      label: displayLabel,
       holders: holdersByToken.get(tokenId) || [],
     }));
   }

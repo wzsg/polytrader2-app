@@ -339,6 +339,7 @@ export interface EventTeam {
 export interface MarketOutcome {
   tokenId: string;
   label: string;
+  displayLabel: string;
   price: unknown;
   tickSize: string | null;
   minOrderSize: string | null;
