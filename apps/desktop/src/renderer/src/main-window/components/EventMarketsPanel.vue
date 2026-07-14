@@ -14,6 +14,7 @@ import {
 import { findTeamForMarket, parseEventTeams } from '@/shared/utils/teams';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import { useEventDetail } from '@/shared/composables/useEventDetail';
+import { createRequestId } from '@/shared/utils/request';
 import EventRulesDialog from './EventRulesDialog.vue';
 import EventTeamTitle from './EventTeamTitle.vue';
 
@@ -59,6 +60,7 @@ const panelWidth = ref(readPanelWidth());
 let resizingPanel = false;
 let resizeStartX = 0;
 let resizeStartWidth = 0;
+let activeRequestId = '';
 
 const displayEvent = computed(() => detailEvent.value ?? props.event);
 const displayTeams = computed(() => parseEventTeams(displayEvent.value?.teams));
@@ -93,40 +95,61 @@ watch(
   () => props.event?.id,
   (eventId) => {
     if (!eventId) return;
+    const requestId = createRequestId();
+    activeRequestId = requestId;
     rulesDialogOpen.value = false;
     childEvents.value = [];
     eventMarkets.value = [];
     childEventsError.value = '';
     collapsedEventIds.value = new Set();
-    void loadEvent(eventId);
-    void loadEventMarkets(eventId);
-    void loadChildEvents(eventId);
+    void loadEvent(eventId, requestId);
+    void loadEventMarkets(eventId, requestId);
+    void loadChildEvents(eventId, requestId);
   },
   { immediate: true },
 );
 
-async function loadEventMarkets(eventId: string): Promise<void> {
+async function loadEventMarkets(eventId: string, requestId: string): Promise<void> {
   try {
-    eventMarkets.value = await window.api.listEventMarkets(eventId);
+    const response = await window.api.listEventMarkets({ requestId, data: { eventId } });
+    if (response.requestId !== activeRequestId) return;
+    eventMarkets.value = response.data;
   } catch {
+    if (requestId !== activeRequestId) return;
     eventMarkets.value = [];
   }
 }
 
-async function loadChildEvents(eventId: string): Promise<void> {
+async function loadChildEvents(eventId: string, requestId: string): Promise<void> {
   childEventsLoading.value = true;
   childEventsError.value = '';
   try {
-    const events = await window.api.listChildEvents(eventId);
+    const response = await window.api.listChildEvents({
+      requestId,
+      data: { parentEventId: eventId },
+    });
+    if (response.requestId !== activeRequestId) return;
+    const events = response.data;
     childEvents.value = events;
     collapsedEventIds.value = new Set(events.map((event) => event.id));
   } catch (err) {
+    if (requestId !== activeRequestId) return;
     childEvents.value = [];
     collapsedEventIds.value = new Set();
     childEventsError.value = err instanceof Error ? err.message : String(err);
   } finally {
-    childEventsLoading.value = false;
+    if (requestId === activeRequestId) childEventsLoading.value = false;
   }
+}
+
+function retryLoadingEvent(): void {
+  const eventId = props.event?.id;
+  if (!eventId) return;
+  const requestId = createRequestId();
+  activeRequestId = requestId;
+  void loadEvent(eventId, requestId);
+  void loadEventMarkets(eventId, requestId);
+  void loadChildEvents(eventId, requestId);
 }
 
 function startPanelWidthResize(event: MouseEvent): void {
@@ -298,10 +321,7 @@ function marketIcon(
         v-if="props.event"
         type="button"
         class="bg-primary hover:bg-primary-hover rounded-md px-3 py-2 text-sm text-white transition-colors"
-        @click="
-          loadEvent(props.event.id);
-          loadChildEvents(props.event.id);
-        "
+        @click="retryLoadingEvent"
       >
         {{ t('common.retry') }}
       </button>

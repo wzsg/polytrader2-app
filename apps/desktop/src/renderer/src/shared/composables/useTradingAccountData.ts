@@ -5,6 +5,7 @@ import type {
   TradingAccountScopedData,
 } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
+import { createRequestId } from '../utils/request';
 
 type TradingAccountDataRefreshOptions = {
   silent?: boolean;
@@ -50,7 +51,7 @@ function useTradingAccountData<T>(
 
   async function refresh(refreshOptions: TradingAccountDataRefreshOptions = {}): Promise<void> {
     const version = ++refreshVersion;
-    const query = getQuery();
+    const query = { ...getQuery(), requestId: createRequestId() };
     if (!refreshOptions.silent) loading.value = true;
     error.value = '';
     try {
@@ -67,7 +68,13 @@ function useTradingAccountData<T>(
         items.value = [];
         return;
       }
-      if (res.data.walletId !== (query.walletId ?? null) || res.data.conditionId !== null) return;
+      if (
+        res.data.requestId !== query.requestId ||
+        res.data.walletId !== (query.walletId ?? null) ||
+        res.data.conditionId !== null
+      ) {
+        return;
+      }
       items.value = Array.isArray(res.data.items) ? res.data.items : [];
     } catch (err) {
       if (version !== refreshVersion) return;

@@ -6,7 +6,7 @@ import {
   syncPolymarketMarketServicePreferences,
 } from '../services/polymarketMarketService.js';
 import { wrap } from './result.js';
-import type { MarketTradeAnalysisQuery, MarketTradeQuery } from '@polytrader/shared';
+import type { IpcRequest, MarketTradeAnalysisQuery, MarketTradeQuery } from '@polytrader/shared';
 
 const apiClient = PolymarketApiClient.getInstance();
 
@@ -27,9 +27,10 @@ function resolveMarketTradeRepository(query: MarketTradeAnalysisQuery | MarketTr
 }
 
 function registerMarketHandlers(ipcMain: IpcMain): void {
-  ipcMain.handle('api:fetchEvent', (_event, eventId: string) =>
-    polymarketMarketService.fetchEventDetail(eventId),
-  );
+  ipcMain.handle('api:fetchEvent', async (_event, request: IpcRequest<{ eventId: string }>) => ({
+    requestId: request.requestId,
+    data: await polymarketMarketService.fetchEventDetail(request.data.eventId),
+  }));
   ipcMain.handle('api:fetchCryptoCategory', async () => {
     await syncPolymarketMarketServicePreferences();
     return await polymarketMarketService.fetchCryptoCategory();

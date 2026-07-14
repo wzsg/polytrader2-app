@@ -901,12 +901,24 @@ export interface TradingRuntimeAccountState {
 }
 
 interface TradingAccountScopedData<T> {
+  requestId: string;
   walletId: string | null;
   conditionId: string | null;
   items: T[];
 }
 
+interface IpcRequest<T> {
+  requestId: string;
+  data: T;
+}
+
+interface IpcResponse<T> {
+  requestId: string;
+  data: T;
+}
+
 interface TradingAccountDataQuery {
+  requestId?: string;
   walletId?: string;
   conditionId?: string;
   includeBalance?: boolean;
@@ -1320,6 +1332,8 @@ export type {
   BinanceKlineVenue,
   BinanceTradeTick,
   EventSyncTrigger,
+  IpcRequest,
+  IpcResponse,
   TradingAccountDataEvent,
   TradingAccountDataQuery,
   TradingAccountScopedData,

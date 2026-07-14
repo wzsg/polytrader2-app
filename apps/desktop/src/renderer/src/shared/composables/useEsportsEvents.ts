@@ -4,6 +4,7 @@ import type { SportsMetadataItem } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
 import { fetchSportsMetadataOnce } from './sportsMetadata';
 import { useWatchlist } from './useWatchlist';
+import { createRequestId } from '../utils/request';
 
 const PAGE_SIZE = 50;
 const ESPORTS_START_TIME_GRACE_MS = 24 * 60 * 60 * 1000;
@@ -58,6 +59,7 @@ function useEsportsEvents() {
   const metadataError = ref('');
 
   let ready = false;
+  let activeRequestId = '';
 
   const availableSports = computed(() =>
     metadata.value.filter(
@@ -127,6 +129,8 @@ function useEsportsEvents() {
   }
 
   async function loadEvents(): Promise<void> {
+    const requestId = createRequestId();
+    activeRequestId = requestId;
     loading.value = true;
     error.value = '';
     try {
@@ -145,14 +149,16 @@ function useEsportsEvents() {
         window.api.listEvents(params),
         window.api.countEvents(params),
       ]);
+      if (requestId !== activeRequestId) return;
       pageEvents.value = events;
       filteredCount.value = count;
       totalCount.value = count;
       activeCount.value = count;
     } catch (err) {
+      if (requestId !== activeRequestId) return;
       error.value = err instanceof Error ? err.message : String(err);
     } finally {
-      loading.value = false;
+      if (requestId === activeRequestId) loading.value = false;
     }
   }
 

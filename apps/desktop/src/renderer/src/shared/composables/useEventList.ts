@@ -4,6 +4,7 @@ import type { EventListItem } from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
 import { filtersToQuery } from './useFilters';
 import { useWatchlist } from './useWatchlist';
+import { createRequestId } from '../utils/request';
 
 const PAGE_SIZE = 50;
 
@@ -28,6 +29,7 @@ export function useEventList(
   const activeCount = ref(0);
   const loading = ref(false);
   const error = ref('');
+  let activeRequestId = '';
 
   const totalPages = computed(() => Math.max(1, Math.ceil(filteredCount.value / PAGE_SIZE)));
   const pageInfo = computed(() =>
@@ -35,6 +37,8 @@ export function useEventList(
   );
 
   async function loadEvents(): Promise<void> {
+    const requestId = createRequestId();
+    activeRequestId = requestId;
     loading.value = true;
     error.value = '';
     try {
@@ -56,6 +60,7 @@ export function useEventList(
           window.api.countWatchlist(),
           window.api.countActive(),
         ]);
+        if (requestId !== activeRequestId) return;
         pageEvents.value = events;
         filteredCount.value = filtered;
         totalCount.value = total;
@@ -67,15 +72,17 @@ export function useEventList(
           window.api.getTotalCount(),
           window.api.countActive(),
         ]);
+        if (requestId !== activeRequestId) return;
         pageEvents.value = events;
         filteredCount.value = filtered;
         totalCount.value = total;
         activeCount.value = active;
       }
     } catch (err) {
+      if (requestId !== activeRequestId) return;
       error.value = err instanceof Error ? err.message : String(err);
     } finally {
-      loading.value = false;
+      if (requestId === activeRequestId) loading.value = false;
     }
   }
 

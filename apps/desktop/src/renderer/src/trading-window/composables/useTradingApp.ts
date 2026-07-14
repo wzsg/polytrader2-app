@@ -17,6 +17,7 @@ import type {
 import { translateUiKey } from '@/shared/i18n';
 import { displayMarkets, getMarketIcon, isDisplayableMarket } from '@/shared/utils/markets';
 import { getMarketTitle, normalizeApiEvent } from '@/shared/utils/apiEvent';
+import { createRequestId } from '@/shared/utils/request';
 import { resolvePriceHistoryRange, type PriceHistoryRange } from './usePriceHistoryRange';
 import { useTradingOrderBookSummary } from './useTradingOrderBookSummary';
 import { useTradingPanelLayout } from './useTradingPanelLayout';
@@ -31,6 +32,11 @@ type WalletDataScope = {
 };
 
 type WalletDataType = 'orders' | 'positions' | 'trades';
+
+type WalletDataRequest = {
+  requestId: string;
+  scope: WalletDataScope;
+};
 
 export function useTradingApp() {
   const params = ref<TradingWindowInput>(readParamsFromUrl());
@@ -645,11 +651,19 @@ export function useTradingApp() {
     );
   }
 
-  function isMatchingWalletDataScope<T>(
+  function createWalletDataRequest(scope: WalletDataScope): WalletDataRequest {
+    return { requestId: createRequestId(), scope };
+  }
+
+  function isMatchingWalletDataResponse<T>(
     data: TradingAccountScopedData<T>,
-    scope: WalletDataScope,
+    request: WalletDataRequest,
   ): boolean {
-    return data.walletId === scope.walletId && data.conditionId === scope.conditionId;
+    return (
+      data.requestId === request.requestId &&
+      data.walletId === request.scope.walletId &&
+      data.conditionId === request.scope.conditionId
+    );
   }
 
   async function refreshStrategyState(): Promise<void> {
@@ -794,7 +808,9 @@ export function useTradingApp() {
     const scope = getWalletDataScope();
     if (!scope || !walletState.value) return;
     const version = nextWalletDataRefreshVersion('orders', scope);
+    const request = createWalletDataRequest(scope);
     const result = await window.api.tradingAccount.getOrders({
+      requestId: request.requestId,
       walletId: scope.walletId,
       conditionId: scope.conditionId,
     });
@@ -803,7 +819,7 @@ export function useTradingApp() {
       walletError.value = result.error;
       return;
     }
-    if (!isMatchingWalletDataScope(result.data, scope)) return;
+    if (!isMatchingWalletDataResponse(result.data, request)) return;
     const current = walletState.value;
     if (!current) return;
     walletState.value = {
@@ -818,7 +834,9 @@ export function useTradingApp() {
     const scope = getWalletDataScope();
     if (!scope || !walletState.value) return;
     const version = nextWalletDataRefreshVersion('positions', scope);
+    const request = createWalletDataRequest(scope);
     const result = await window.api.tradingAccount.getPositions({
+      requestId: request.requestId,
       walletId: scope.walletId,
       conditionId: scope.conditionId,
     });
@@ -827,7 +845,7 @@ export function useTradingApp() {
       walletError.value = result.error;
       return;
     }
-    if (!isMatchingWalletDataScope(result.data, scope)) return;
+    if (!isMatchingWalletDataResponse(result.data, request)) return;
     const current = walletState.value;
     if (!current) return;
     walletState.value = {
@@ -842,7 +860,9 @@ export function useTradingApp() {
     const scope = getWalletDataScope();
     if (!scope || !walletState.value) return;
     const version = nextWalletDataRefreshVersion('trades', scope);
+    const request = createWalletDataRequest(scope);
     const result = await window.api.tradingAccount.getTrades({
+      requestId: request.requestId,
       walletId: scope.walletId,
       conditionId: scope.conditionId,
     });
@@ -851,7 +871,7 @@ export function useTradingApp() {
       walletError.value = result.error;
       return;
     }
-    if (!isMatchingWalletDataScope(result.data, scope)) return;
+    if (!isMatchingWalletDataResponse(result.data, request)) return;
     const current = walletState.value;
     if (!current) return;
     walletState.value = {

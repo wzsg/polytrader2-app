@@ -35,6 +35,7 @@ function registerTradingAccountHandlers(ipcMain: IpcMain): void {
     wrap(async (query?: TradingAccountDataQuery) => {
       const normalized = normalizeTradingAccountDataQuery(query);
       return {
+        requestId: normalized.requestId ?? '',
         walletId: normalized.walletId ?? null,
         conditionId: normalized.conditionId ?? null,
         items: await tradingAccountService.queryOrders(normalized),
@@ -77,6 +78,7 @@ function registerTradingAccountHandlers(ipcMain: IpcMain): void {
     wrap(async (query?: TradingAccountDataQuery) => {
       const normalized = normalizeTradingAccountDataQuery(query);
       return {
+        requestId: normalized.requestId ?? '',
         walletId: normalized.walletId ?? null,
         conditionId: normalized.conditionId ?? null,
         items: await tradingAccountService.queryTrades(normalized),
@@ -88,6 +90,7 @@ function registerTradingAccountHandlers(ipcMain: IpcMain): void {
     wrap(async (query?: TradingAccountDataQuery) => {
       const normalized = normalizeTradingAccountDataQuery(query);
       return {
+        requestId: normalized.requestId ?? '',
         walletId: normalized.walletId ?? null,
         conditionId: normalized.conditionId ?? null,
         items: await tradingAccountService.queryPositions(normalized),
@@ -189,6 +192,7 @@ function normalizeTradingAccountDataQuery(
   query: TradingAccountDataQuery | undefined,
 ): TradingAccountDataQuery {
   const normalized: TradingAccountDataQuery = {
+    requestId: normalizeString(query?.requestId),
     walletId: normalizeString(query?.walletId),
     limit: normalizeNumber(query?.limit),
     offset: normalizeNumber(query?.offset),

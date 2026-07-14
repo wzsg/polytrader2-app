@@ -31,6 +31,7 @@ import { useWatchlist } from '../shared/composables/useWatchlist';
 import { translateUiKey } from '../shared/i18n';
 import { displayMarkets, getSingleOpenMarket } from '../shared/utils/markets';
 import { getMarketOutcomes } from '../shared/utils/apiEvent';
+import { createRequestId } from '../shared/utils/request';
 
 interface ReloadableListView {
   reload: () => Promise<void>;
@@ -62,6 +63,8 @@ const authState = ref<AuthState>({
   error: null,
 });
 let unsubscribeCloseRequested: (() => void) | null = null;
+let eventDetailRequestId = '';
+let eventTradingRequestId = '';
 let unsubscribeNavigate: (() => void) | null = null;
 let unsubscribeAuth: (() => void) | null = null;
 let unsubscribeAppUpdate: (() => void) | null = null;
@@ -164,13 +167,23 @@ function showEventDetailPanel(event: EventListItem, metadata?: unknown): void {
 }
 
 async function openEventDetail(event: EventListItem, metadata?: unknown): Promise<void> {
+  const requestId = createRequestId();
+  eventDetailRequestId = requestId;
   if (activeNav.value === 'crypto') {
     try {
-      const markets = await window.api.listEventMarkets(event.id);
-      const single = getSingleOpenMarket({ markets });
+      const marketsResponse = await window.api.listEventMarkets({
+        requestId,
+        data: { eventId: event.id },
+      });
+      if (marketsResponse.requestId !== eventDetailRequestId) return;
+      const single = getSingleOpenMarket({ markets: marketsResponse.data });
       if (single) {
-        const childEvents = await window.api.listChildEvents(event.id);
-        if (!childEvents.length) {
+        const childrenResponse = await window.api.listChildEvents({
+          requestId,
+          data: { parentEventId: event.id },
+        });
+        if (childrenResponse.requestId !== eventDetailRequestId) return;
+        if (!childrenResponse.data.length) {
           openTradingWindowForMarket(single, event.id, null, null, metadata);
           return;
         }
@@ -191,16 +204,26 @@ function getDefaultOpenMarket(
 }
 
 async function openEventTrading(event: EventListItem, metadata?: unknown): Promise<void> {
+  const requestId = createRequestId();
+  eventTradingRequestId = requestId;
   try {
-    const markets = await window.api.listEventMarkets(event.id);
-    const market = getDefaultOpenMarket(markets);
+    const marketsResponse = await window.api.listEventMarkets({
+      requestId,
+      data: { eventId: event.id },
+    });
+    if (marketsResponse.requestId !== eventTradingRequestId) return;
+    const market = getDefaultOpenMarket(marketsResponse.data);
     if (market) {
       openTradingWindowForMarket(market, event.id, null, null, metadata);
       return;
     }
 
-    const childEvents = await window.api.listChildEvents(event.id);
-    for (const childEvent of childEvents) {
+    const childrenResponse = await window.api.listChildEvents({
+      requestId,
+      data: { parentEventId: event.id },
+    });
+    if (childrenResponse.requestId !== eventTradingRequestId) return;
+    for (const childEvent of childrenResponse.data) {
       const childMarket = getDefaultOpenMarket(childEvent.markets as DbMarket[]);
       if (!childMarket) continue;
       openTradingWindowForMarket(childMarket, childEvent.id, null, null, metadata);

@@ -23,6 +23,8 @@ import type {
   EventStatusFilter,
   Filters,
   GammaEventRaw,
+  IpcRequest,
+  IpcResponse,
   ListEventsParams,
   ManualPlaceOrderInput,
   MarketDetailData,
@@ -394,8 +396,10 @@ export interface IpcApi {
   listDeveloperOrderRecords: (limit?: number) => Promise<DeveloperOrderRecord[]>;
   listDeveloperWorkflowTasks: (limit?: number) => Promise<WorkflowTaskRecord[]>;
   listEvents: (params: ListEventsParams) => Promise<EventListItem[]>;
-  listChildEvents: (parentEventId: string) => Promise<EventDetailItem[]>;
-  listEventMarkets: (eventId: string) => Promise<DbMarket[]>;
+  listChildEvents: (
+    request: IpcRequest<{ parentEventId: string }>,
+  ) => Promise<IpcResponse<EventDetailItem[]>>;
+  listEventMarkets: (request: IpcRequest<{ eventId: string }>) => Promise<IpcResponse<DbMarket[]>>;
   countEvents: (params: ListEventsParams) => Promise<number>;
   getTotalCount: () => Promise<number>;
   countEventsByTags: (tagIds: string[]) => Promise<number>;
@@ -409,7 +413,7 @@ export interface IpcApi {
   countOpenWatchlistEvents: () => Promise<number>;
   loadFilters: () => Promise<Partial<Filters> | null>;
   saveFilters: (data: Partial<Filters>) => Promise<void>;
-  fetchEvent: (eventId: string) => Promise<GammaEventRaw>;
+  fetchEvent: (request: IpcRequest<{ eventId: string }>) => Promise<IpcResponse<GammaEventRaw>>;
   fetchCryptoCategory: () => Promise<CryptoCategoryConfig>;
   fetchEventCategory: () => Promise<EventCategoryConfig>;
   fetchSportsCategory: () => Promise<SportsCategoryConfig>;
