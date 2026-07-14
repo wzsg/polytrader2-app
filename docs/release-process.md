@@ -4,7 +4,7 @@
 
 ## 环境约定
 
-- 项目目录：`C:\Users\ykzha\Projects\fb-test2`
+- 下文命令均在仓库根目录执行。
 - 主开发分支：`develop`
 - 受保护主分支：`master`
 - GitHub 仓库：`wzsg/polytrader2-app`
@@ -25,8 +25,8 @@
 
 切到 `develop` 并确认本地代码干净：
 
-```powershell
-cd C:\Users\ykzha\Projects\fb-test2
+```text
+cd <repository-root>
 git switch develop
 git pull --ff-only
 git status --short --branch
@@ -34,38 +34,21 @@ git status --short --branch
 
 从 GitHub 查询最新的正式版本，不要根据本文档中的示例版本号判断当前版本：
 
-```powershell
-$latestTag = gh release list `
-  --exclude-drafts `
-  --exclude-pre-releases `
-  --limit 1 `
-  --json tagName `
-  --jq '.[0].tagName'
-
-if (-not $latestTag) {
-  throw 'Cannot determine the latest stable release from GitHub.'
-}
-
-Write-Output "Latest stable release: $latestTag"
+```text
+gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName'
 ```
 
-根据 `$latestTag` 和语义化版本规则选择下一个版本。修复和小改进通常递增 `PATCH`；向后兼容的新功能递增 `MINOR`；不兼容变更递增 `MAJOR`。再设置本次发布变量，例如：
+根据查询到的最新 tag 和语义化版本规则选择下一个版本。修复和小改进通常递增 `PATCH`；向后兼容的新功能递增 `MINOR`；不兼容变更递增 `MAJOR`。下文以 `v1.2.4` 为例。
 
-```powershell
-$releaseTag = 'v1.2.4'
-$releaseVersion = $releaseTag.TrimStart('v')
-Write-Output "Release tag: $releaseTag"
-```
-
-发布前还必须确认 `$releaseTag` 尚未存在于远程 tag 或 GitHub Release 中，不能覆盖已经成功发布的正式版本。
+发布前还必须确认待发布 tag 尚未存在于远程 tag 或 GitHub Release 中，不能覆盖已经成功发布的正式版本。
 
 运行本地基础校验：
 
-```powershell
-pnpm.cmd install --frozen-lockfile
-pnpm.cmd run typecheck
-pnpm.cmd run lint
-pnpm.cmd run build
+```text
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm run lint
+pnpm run build
 ```
 
 如果要提前验证 Windows 安装包，可以参考：
@@ -78,7 +61,7 @@ docs/windows-installer-vm-smoke-test.md
 
 正式发布前，应先把准备发布的变更通过 Pull Request 合并到 `master`。合并后在本地同步 `master`：
 
-```powershell
+```text
 git switch master
 git pull --ff-only origin master
 git status --short --branch
@@ -86,28 +69,28 @@ git status --short --branch
 
 确认 `master` 指向要发布的提交：
 
-```powershell
+```text
 git log -1 --oneline
 ```
 
 ## 3. 创建正式发布 tag
 
-使用发布前检查中设置的 `$releaseTag` 创建对应 tag：
+使用待发布 tag 创建对应 tag（以下以 `v1.2.4` 为例）：
 
-```powershell
-git tag $releaseTag
+```text
+git tag v1.2.4
 ```
 
 确认 tag 指向当前 `master` 的最新提交：
 
-```powershell
-git show --stat $releaseTag
+```text
+git show --stat v1.2.4
 ```
 
 推送 tag 到远程：
 
-```powershell
-git push origin $releaseTag
+```text
+git push origin v1.2.4
 ```
 
 推送后会触发 GitHub Actions 的 `Release` workflow。
@@ -116,19 +99,19 @@ git push origin $releaseTag
 
 查看最近的发布 workflow：
 
-```powershell
+```text
 gh run list --workflow "Release" --limit 5
 ```
 
 查看某次运行详情：
 
-```powershell
+```text
 gh run view <run-id>
 ```
 
 如果失败，查看失败日志：
 
-```powershell
+```text
 gh run view <run-id> --log-failed
 ```
 
@@ -138,14 +121,14 @@ gh run view <run-id> --log-failed
 
 打开 GitHub Releases 页面：
 
-```powershell
-gh release view $releaseTag --web
+```text
+gh release view v1.2.4 --web
 ```
 
 工作流成功后重点确认：
 
-- Release tag 与 `$releaseTag` 一致。
-- 安装包文件名包含 `$releaseVersion`，例如 `Polytrader2-Setup-$releaseVersion.exe`。
+- Release tag 与待发布 tag 一致。
+- 安装包文件名包含版本号，例如 `Polytrader2-Setup-1.2.4.exe`。
 - Release 已公开、不是 prerelease，并且已标记为 Latest。
 - Windows 资产至少包含 `latest.yml`、`.exe` 和 `.exe.blockmap`。
 - macOS 资产至少包含 `latest-mac.yml`、`.dmg`、`.dmg.blockmap`、`.zip` 和 `.zip.blockmap`。
@@ -170,7 +153,7 @@ docs/windows-installer-vm-smoke-test.md
 
 如果发布过程中对 `master` 做了补充提交，发布完成后应把 `master` 合回 `develop`：
 
-```powershell
+```text
 git switch develop
 git pull --ff-only origin develop
 git merge --ff-only origin/master
@@ -190,11 +173,11 @@ git push origin develop
 
 命令如下：
 
-```powershell
-git push origin ":refs/tags/$releaseTag"
-git tag -d $releaseTag
-git tag $releaseTag
-git push origin $releaseTag
+```text
+git push origin :refs/tags/v1.2.4
+git tag -d v1.2.4
+git tag v1.2.4
+git push origin v1.2.4
 ```
 
 如果失败的 draft release 已经创建，需要在 GitHub Releases 页面删除旧 draft 后再重跑，避免产物混淆。成功的正式 release 不应通过复用 tag 的方式覆盖。
@@ -222,26 +205,25 @@ v1.2.3-beta.1
 
 发布一个正式版本：
 
-```powershell
-cd C:\Users\ykzha\Projects\fb-test2
-$latestTag = gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName'
-$releaseTag = 'v1.2.4'
+```text
+cd <repository-root>
+gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName'
 git switch master
 git pull --ff-only origin master
-git tag $releaseTag
-git push origin $releaseTag
+git tag v1.2.4
+git push origin v1.2.4
 gh run list --workflow "Release" --limit 5
 ```
 
 查看 release：
 
-```powershell
-gh release view $releaseTag --web
+```text
+gh release view v1.2.4 --web
 ```
 
 查看 tag 指向：
 
-```powershell
-git rev-parse $releaseTag
-git log -1 --oneline $releaseTag
+```text
+git rev-parse v1.2.4
+git log -1 --oneline v1.2.4
 ```
