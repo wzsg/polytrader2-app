@@ -2,6 +2,7 @@ import type { IpcMain } from 'electron';
 import type { EventSyncTrigger, SyncScheduleConfig } from '@polytrader/shared';
 import { polymarketMarketService } from '../services/polymarketMarketService.js';
 import { appPreferencesService } from '../services/appPreferencesService.js';
+import { setEventListCacheIntervalMinutes } from '../services/eventListCache.js';
 
 interface RegisterSyncHandlersOptions {
   initialTrigger: EventSyncTrigger | null;
@@ -22,6 +23,7 @@ function registerSyncHandlers(ipcMain: IpcMain, options: RegisterSyncHandlersOpt
   ipcMain.handle('sync:schedule:set', async (_event, config: Partial<SyncScheduleConfig>) => {
     const next = await polymarketMarketService.writeSyncScheduleConfig(config);
     await polymarketMarketService.applySyncScheduleConfig(next, 'manual');
+    setEventListCacheIntervalMinutes(next.intervalMinutes);
     return next;
   });
 }
@@ -30,7 +32,9 @@ async function initializeEventSyncSchedule(initialTrigger: EventSyncTrigger | nu
   const preferences = await appPreferencesService.getAppPreferences();
   polymarketMarketService.setEventSyncLocale(preferences.locale);
   polymarketMarketService.setEventSyncBatchSize(preferences.eventSyncBatchSize);
-  await polymarketMarketService.applySyncScheduleConfig(undefined, initialTrigger);
+  const config = await polymarketMarketService.readSyncScheduleConfig();
+  setEventListCacheIntervalMinutes(config.intervalMinutes);
+  await polymarketMarketService.applySyncScheduleConfig(config, initialTrigger);
 }
 
 export { registerSyncHandlers };

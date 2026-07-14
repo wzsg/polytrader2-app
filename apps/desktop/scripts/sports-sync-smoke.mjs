@@ -9,7 +9,7 @@ import {
 } from '@polytrader/sqlite-repository';
 import { PolymarketApiClient } from '@polytrader/polymarket-api';
 import { PolymarketMarketService } from '@polytrader/polymarket-market';
-import { KvStore } from '@polytrader/kv-store';
+import { FileCacheStore } from '@polytrader/cache-store';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..', '..', '..');
@@ -60,7 +60,7 @@ async function main() {
 
   const eventRepository = createSqliteEventRepository();
   const metaRepository = createSqliteMetaRepository();
-  const cacheStore = new KvStore({ storeFile: 'sports-sync-smoke-kv.json' });
+  const cacheStore = new FileCacheStore({ storeFile: 'sports-sync-smoke-cache.json' });
   await cacheStore.initialize(options.userDataPath);
   const apiClient = PolymarketApiClient.getInstance();
   const service = new PolymarketMarketService({

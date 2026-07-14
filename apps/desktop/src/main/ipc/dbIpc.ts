@@ -6,13 +6,18 @@ import {
 } from '@polytrader/sqlite-repository';
 import * as filtersStore from '../filters.js';
 import { supabaseAuthService } from '../services/supabaseAuthService.js';
+import { eventListCache, getEventListCacheTtlMs } from '../services/eventListCache.js';
 
 const eventRepository = createSqliteEventRepository();
 const watchlistRepository = createSqliteWatchlistRepository();
 
 function registerDbHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('db:list', (_event, params: ListEventsParams) =>
-    eventRepository.listEvents(params),
+    eventListCache.getOrSetValue(
+      `events:list:${JSON.stringify(params)}`,
+      getEventListCacheTtlMs(),
+      async () => eventRepository.listEvents(params),
+    ),
   );
   ipcMain.handle(
     'db:listChildren',
@@ -29,9 +34,17 @@ function registerDbHandlers(ipcMain: IpcMain): void {
     }),
   );
   ipcMain.handle('db:count', (_event, params: ListEventsParams) =>
-    eventRepository.countEvents(params),
+    eventListCache.getOrSetValue(
+      `events:count:${JSON.stringify(params)}`,
+      getEventListCacheTtlMs(),
+      async () => eventRepository.countEvents(params),
+    ),
   );
-  ipcMain.handle('db:total', () => eventRepository.getTotalCount());
+  ipcMain.handle('db:total', () =>
+    eventListCache.getOrSetValue('events:total', getEventListCacheTtlMs(), async () =>
+      eventRepository.getTotalCount(),
+    ),
+  );
   ipcMain.handle('db:countByTags', (_event, tagIds: string[]) =>
     eventRepository.countEventsWithTags(tagIds),
   );
@@ -39,7 +52,11 @@ function registerDbHandlers(ipcMain: IpcMain): void {
     eventRepository.countActiveWithTags(tagIds),
   );
   ipcMain.handle('db:cacheStats', () => eventRepository.getCacheStats());
-  ipcMain.handle('db:active', () => eventRepository.countActive());
+  ipcMain.handle('db:active', () =>
+    eventListCache.getOrSetValue('events:active', getEventListCacheTtlMs(), async () =>
+      eventRepository.countActive(),
+    ),
+  );
   ipcMain.handle('watchlist:list', () => watchlistRepository.getWatchlistEventIds());
   ipcMain.handle('watchlist:add', async (_event, eventId: string) => {
     const result = await watchlistRepository.addToWatchlist(eventId);

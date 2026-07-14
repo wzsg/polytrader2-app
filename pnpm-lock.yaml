@@ -101,15 +101,15 @@ importers:
       '@polytrader/bot-vm':
         specifier: workspace:*
         version: link:../bot-vm
+      '@polytrader/cache-store':
+        specifier: workspace:*
+        version: link:../../packages/cache-store
       '@polytrader/duckdb-repository':
         specifier: workspace:*
         version: link:../../packages/repositories/duckdb-repository
       '@polytrader/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
-      '@polytrader/kv-store':
-        specifier: workspace:*
-        version: link:../../packages/kv-store
       '@polytrader/mcp-server':
         specifier: workspace:*
         version: link:../../packages/mcp-server
@@ -235,6 +235,12 @@ importers:
         specifier: ^25.9.3
         version: 25.9.3
 
+  packages/cache-store:
+    dependencies:
+      lowdb:
+        specifier: ^7.0.1
+        version: 7.0.1
+
   packages/contracts/bot-runtime-contract: {}
 
   packages/contracts/repository-contract:
@@ -252,12 +258,6 @@ importers:
       '@types/node':
         specifier: ^25.9.3
         version: 25.9.3
-
-  packages/kv-store:
-    dependencies:
-      lowdb:
-        specifier: ^7.0.1
-        version: 7.0.1
 
   packages/mcp-server:
     dependencies:

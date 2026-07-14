@@ -38,6 +38,8 @@ interface SportsEventsServiceOptions {
   apiClient: SportsEventsClient;
   repository: SportsEventsRepository;
   cacheStore: MarketServiceCacheStore;
+  listCacheStore: MarketServiceCacheStore;
+  listCacheTtlMsProvider: () => number;
   metadataTtlMs?: number;
 }
 
@@ -45,12 +47,16 @@ class SportsEventsService {
   private readonly _apiClient: SportsEventsClient;
   private readonly _repository: SportsEventsRepository;
   private readonly _cacheStore: MarketServiceCacheStore;
+  private readonly _listCacheStore: MarketServiceCacheStore;
+  private readonly _listCacheTtlMsProvider: () => number;
   private readonly _metadataTtlMs: number;
 
   public constructor(options: SportsEventsServiceOptions) {
     this._apiClient = options.apiClient;
     this._repository = options.repository;
     this._cacheStore = options.cacheStore;
+    this._listCacheStore = options.listCacheStore;
+    this._listCacheTtlMsProvider = options.listCacheTtlMsProvider;
     this._metadataTtlMs = options.metadataTtlMs ?? SPORTS_METADATA_TTL_MS;
   }
 
@@ -63,6 +69,14 @@ class SportsEventsService {
   }
 
   public async listSportsEvents(params: ListSportsEventsParams): Promise<SportsEventsResult> {
+    return await this._listCacheStore.getOrSetValue(
+      `sports-events:${JSON.stringify(params)}`,
+      this._listCacheTtlMsProvider(),
+      async () => await this._loadSportsEvents(params),
+    );
+  }
+
+  private async _loadSportsEvents(params: ListSportsEventsParams): Promise<SportsEventsResult> {
     const localParams = this._buildLocalParams(params);
     const [events, total] = await Promise.all([
       this._repository.listEvents(localParams),

@@ -8,7 +8,7 @@ import {
   createSqliteMetaRepository,
   initDb,
 } from '@polytrader/sqlite-repository';
-import { KvStore } from '@polytrader/kv-store';
+import { FileCacheStore } from '@polytrader/cache-store';
 import { PolymarketMarketService } from '@polytrader/polymarket-market';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -247,7 +247,7 @@ async function main() {
 
   const eventRepository = createSqliteEventRepository();
   const metaRepository = createSqliteMetaRepository();
-  const cacheStore = new KvStore({ storeFile: 'crypto-events-smoke-kv.json' });
+  const cacheStore = new FileCacheStore({ storeFile: 'crypto-events-smoke-cache.json' });
   await cacheStore.initialize(options.userDataPath);
   if (options.coldConfigCache) {
     await cacheStore.deleteValue('crypto-category');

@@ -4,6 +4,7 @@ import type {
   ListEventsParams,
 } from '@polytrader/shared';
 import type { EventRepository } from '@polytrader/repository-contract';
+import type { MarketServiceCacheStore } from '../types.js';
 
 const CRYPTO_SORT_FIELDS = new Set([
   'volume24hr',
@@ -19,14 +20,32 @@ const CRYPTO_SORT_FIELDS = new Set([
 
 type CryptoEventsRepository = Pick<EventRepository, 'listEvents' | 'countEvents'>;
 
+interface CryptoEventsServiceOptions {
+  repository: CryptoEventsRepository;
+  cacheStore: MarketServiceCacheStore;
+  cacheTtlMsProvider: () => number;
+}
+
 class CryptoEventsService {
   private readonly _repository: CryptoEventsRepository;
+  private readonly _cacheStore: MarketServiceCacheStore;
+  private readonly _cacheTtlMsProvider: () => number;
 
-  public constructor(repository: CryptoEventsRepository) {
-    this._repository = repository;
+  public constructor(options: CryptoEventsServiceOptions) {
+    this._repository = options.repository;
+    this._cacheStore = options.cacheStore;
+    this._cacheTtlMsProvider = options.cacheTtlMsProvider;
   }
 
   public async listCryptoEvents(params: ListCryptoEventsParams): Promise<CryptoEventsResult> {
+    return await this._cacheStore.getOrSetValue(
+      `crypto-events:${JSON.stringify(params)}`,
+      this._cacheTtlMsProvider(),
+      async () => await this._loadCryptoEvents(params),
+    );
+  }
+
+  private async _loadCryptoEvents(params: ListCryptoEventsParams): Promise<CryptoEventsResult> {
     const tagIds = this.normalizeTagIds(params.tagIds);
     if (!tagIds.length) {
       return { events: [], filteredCount: 0, totalCount: 0, activeCount: 0 };

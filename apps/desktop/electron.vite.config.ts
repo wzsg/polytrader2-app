@@ -53,8 +53,8 @@ const workspacePackageAliases = [
     replacement: resolve('../../packages/event-bus/src/index.ts'),
   },
   {
-    find: '@polytrader/kv-store',
-    replacement: resolve('../../packages/kv-store/src/index.ts'),
+    find: '@polytrader/cache-store',
+    replacement: resolve('../../packages/cache-store/src/index.ts'),
   },
   {
     find: '@polytrader/polymarket-market',
@@ -146,7 +146,7 @@ export default defineConfig({
           '@polytrader/app-preferences',
           '@polytrader/bot-runtime-contract',
           '@polytrader/repository-contract',
-          '@polytrader/kv-store',
+          '@polytrader/cache-store',
           '@polytrader/sqlite-repository',
           '@polytrader/duckdb-repository',
           '@polytrader/event-bus',

@@ -8,7 +8,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "types": ["node"],
-    "tsBuildInfoFile": "../../node_modules/.cache/tsbuildinfo/kv-store.tsbuildinfo"
+    "tsBuildInfoFile": "../../node_modules/.cache/tsbuildinfo/cache-store.tsbuildinfo"
   },
   "include": ["src/**/*"]
 }

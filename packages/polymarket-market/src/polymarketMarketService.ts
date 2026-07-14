@@ -50,11 +50,17 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     this._eventBus = options.eventBus ?? null;
     this._locale = DEFAULT_LOCALE;
     this._detailService = new MarketDetailService(options.apiClient);
-    this._cryptoEventsService = new CryptoEventsService(options.eventRepository);
+    this._cryptoEventsService = new CryptoEventsService({
+      repository: options.eventRepository,
+      cacheStore: options.listCacheStore,
+      cacheTtlMsProvider: options.listCacheTtlMsProvider,
+    });
     this._sportsEventsService = new SportsEventsService({
       apiClient: options.apiClient,
       repository: options.eventRepository,
       cacheStore: options.cacheStore,
+      listCacheStore: options.listCacheStore,
+      listCacheTtlMsProvider: options.listCacheTtlMsProvider,
     });
     this._categoryConfigClient = new MarketCategoryConfigClient(options.cacheStore, {
       configBaseUrl: options.configBaseUrl,

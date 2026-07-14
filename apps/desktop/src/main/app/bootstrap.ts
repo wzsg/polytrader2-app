@@ -33,7 +33,7 @@ import { botRuntimeService, strategyRunHistoryService } from '../services/strate
 import { tradingAccountService } from '../services/tradingAccountService.js';
 import { tradingMarketService } from '../services/tradingMarketService.js';
 import { tradingStrategyService } from '../services/tradingStrategyService.js';
-import { kvStore } from '../services/kvStore.js';
+import { fileCacheStore } from '../services/fileCacheStore.js';
 import { supabaseAuthService } from '../services/supabaseAuthService.js';
 import { desktopWorkflowService } from '../services/workflowService.js';
 import { mcpServerManager } from '../services/mcpServerService.js';
@@ -106,7 +106,7 @@ async function initializeAppStorage(userDataPath?: string): Promise<void> {
     migrationsFolder: resolveMigrationsFolder(),
     workerScriptPath: resolveSqliteWorkerPath(),
   });
-  await kvStore.initialize(userData);
+  await fileCacheStore.initialize(userData);
   MarketTradeRepositoryFactory.getInstance().setMarketTradeStoragePath(userData);
   MarketPriceHistoryRepositoryFactory.getInstance().setMarketPriceHistoryStoragePath(userData);
   desktopWorkflowService.start();

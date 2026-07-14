@@ -1,5 +1,5 @@
 {
-  "name": "@polytrader/kv-store",
+  "name": "@polytrader/cache-store",
   "version": "1.0.0",
   "type": "module",
   "private": true,
