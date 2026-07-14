@@ -1,6 +1,6 @@
 # Polytrader2 正式版发布流程
 
-本文记录 Polytrader2 Windows 桌面应用的正式版发布流程。当前约定是：普通分支构建只做校验，正式发布只通过 `v*` Git tag 触发 GitHub Actions。
+本文记录 Polytrader2 桌面应用的正式版发布流程。当前约定是：普通分支构建只做校验，正式发布只通过 `v*` Git tag 触发 GitHub Actions。
 
 ## 环境约定
 
@@ -10,6 +10,7 @@
 - GitHub 仓库：`wzsg/polytrader2-app`
 - 正式发布 tag 格式：`v<major>.<minor>.<patch>`，例如 `v1.2.3`
 - Windows 安装包命名格式：`Polytrader2-Setup-<version>.exe`
+- macOS 安装包命名格式：`Polytrader2-<version>-mac-arm64.dmg`
 
 ## 发布原则
 
@@ -17,8 +18,8 @@
 - `master` 分支只通过 Pull Request 合并，不直接提交。
 - 普通 push / PR 不生成正式版本号，也不发布 GitHub Release。
 - 正式版本号只来自 Git tag。
-- 推送 `v*` tag 后，`.github/workflows/release-windows.yml` 会把 tag 中的版本号写入 `apps/desktop/package.json`，再构建并发布 Windows 安装包。
-- GitHub Release 当前由 Electron Builder 创建为 draft release，发布前需要在 GitHub 页面确认内容后手动发布。
+- 推送 `v*` tag 后，`.github/workflows/release.yml` 会把 tag 中的版本号写入 `apps/desktop/package.json`，再构建 Windows 和 macOS 安装包。
+- `Release` workflow 会先创建 draft release；Windows 和 macOS 资产全部构建、签名并上传成功后，会自动将该 release 发布为 Latest。
 
 ## 1. 发布前检查
 
@@ -109,14 +110,14 @@ git show --stat $releaseTag
 git push origin $releaseTag
 ```
 
-推送后会触发 GitHub Actions 的 `Release Windows` workflow。
+推送后会触发 GitHub Actions 的 `Release` workflow。
 
 ## 4. 观察 GitHub Actions
 
 查看最近的发布 workflow：
 
 ```powershell
-gh run list --workflow "Release Windows" --limit 5
+gh run list --workflow "Release" --limit 5
 ```
 
 查看某次运行详情：
@@ -131,9 +132,9 @@ gh run view <run-id>
 gh run view <run-id> --log-failed
 ```
 
-成功后，Electron Builder 会在 GitHub Releases 中创建 draft release，并上传 Windows 安装包相关产物。
+成功后，GitHub Release 应已自动公开并标记为 Latest，同时包含 Windows、macOS 和自动更新所需的相关产物。
 
-## 5. 发布前确认 draft release
+## 5. 确认正式 release
 
 打开 GitHub Releases 页面：
 
@@ -141,16 +142,18 @@ gh run view <run-id> --log-failed
 gh release view $releaseTag --web
 ```
 
-发布前重点确认：
+工作流成功后重点确认：
 
 - Release tag 与 `$releaseTag` 一致。
 - 安装包文件名包含 `$releaseVersion`，例如 `Polytrader2-Setup-$releaseVersion.exe`。
-- Release 仍是 draft，确认无误后再手动 publish。
+- Release 已公开、不是 prerelease，并且已标记为 Latest。
+- Windows 资产至少包含 `latest.yml`、`.exe` 和 `.exe.blockmap`。
+- macOS 资产至少包含 `latest-mac.yml`、`.dmg`、`.dmg.blockmap`、`.zip` 和 `.zip.blockmap`。
 - 如需要发布说明，先补充 changelog、风险提示和升级说明。
 
 ## 6. 安装包验证
 
-下载 draft release 中的 Windows 安装包，在虚拟机中验证：
+下载正式 release 中的 Windows 安装包，在虚拟机中验证：
 
 - 安装包可以正常安装。
 - 安装后应用可以启动。
@@ -194,7 +197,7 @@ git tag $releaseTag
 git push origin $releaseTag
 ```
 
-如果失败的 draft release 已经创建，需要在 GitHub Releases 页面删除旧 draft 后再重跑，避免产物混淆。
+如果失败的 draft release 已经创建，需要在 GitHub Releases 页面删除旧 draft 后再重跑，避免产物混淆。成功的正式 release 不应通过复用 tag 的方式覆盖。
 
 ## 9. 版本号规则
 
@@ -227,7 +230,7 @@ git switch master
 git pull --ff-only origin master
 git tag $releaseTag
 git push origin $releaseTag
-gh run list --workflow "Release Windows" --limit 5
+gh run list --workflow "Release" --limit 5
 ```
 
 查看 release：
