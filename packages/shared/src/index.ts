@@ -11,6 +11,11 @@ export {
   priceCentsStepForTick,
 } from './utils/priceTick.js';
 export type { SupportedPriceTickSize } from './utils/priceTick.js';
+export type {
+  AiAgentConfigState,
+  AiAgentId,
+  AiAgentIntegrationStatus,
+} from './aiAgentIntegration.js';
 export {
   CLOUDFLARE_TURNSTILE_API_URL,
   GOOGLE_SEARCH_BASE_URL,

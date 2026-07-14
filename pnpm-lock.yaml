@@ -40,12 +40,6 @@ importers:
       '@duckdb/node-api':
         specifier: 1.5.4-r.1
         version: 1.5.4-r.1
-      '@hono/node-server':
-        specifier: 1.19.14
-        version: 1.19.14(hono@4.12.30)
-      '@modelcontextprotocol/sdk':
-        specifier: 1.29.0
-        version: 1.29.0(zod@3.25.76)
       '@noble/curves':
         specifier: 1.9.1
         version: 1.9.1
@@ -70,9 +64,6 @@ importers:
       electron-updater:
         specifier: ^6.8.9
         version: 6.8.9
-      hono:
-        specifier: 4.12.30
-        version: 4.12.30
       isolated-vm:
         specifier: 6.1.2
         version: 6.1.2
@@ -91,9 +82,6 @@ importers:
       viem:
         specifier: 2.55.1
         version: 2.55.1(typescript@6.0.3)(zod@3.25.76)
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
     devDependencies:
       '@electron/rebuild':
         specifier: ^4.2.0
@@ -122,6 +110,9 @@ importers:
       '@polytrader/kv-store':
         specifier: workspace:*
         version: link:../../packages/kv-store
+      '@polytrader/mcp-server':
+        specifier: workspace:*
+        version: link:../../packages/mcp-server
       '@polytrader/polymarket-api':
         specifier: workspace:*
         version: link:../../packages/polymarket-api
@@ -233,6 +224,9 @@ importers:
       '@polytrader/shared':
         specifier: workspace:*
         version: link:../shared
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
     devDependencies:
       '@types/node':
         specifier: ^25.9.3
@@ -261,6 +255,34 @@ importers:
       lowdb:
         specifier: ^7.0.1
         version: 7.0.1
+
+  packages/mcp-server:
+    dependencies:
+      '@hono/node-server':
+        specifier: 1.19.14
+        version: 1.19.14(hono@4.12.30)
+      '@modelcontextprotocol/sdk':
+        specifier: 1.29.0
+        version: 1.29.0(zod@3.25.76)
+      '@polytrader/repository-contract':
+        specifier: workspace:*
+        version: link:../contracts/repository-contract
+      '@polytrader/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@polytrader/strategy-runtime':
+        specifier: workspace:*
+        version: link:../strategy-runtime
+      hono:
+        specifier: 4.12.30
+        version: 4.12.30
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^25.9.3
+        version: 25.9.3
 
   packages/polymarket-api:
     dependencies:
@@ -3224,6 +3246,9 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  jsonc-parser@3.3.1:
+    resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
@@ -7290,6 +7315,8 @@ snapshots:
     optional: true
 
   json5@2.2.3: {}
+
+  jsonc-parser@3.3.1: {}
 
   jsonfile@4.0.0:
     optionalDependencies:

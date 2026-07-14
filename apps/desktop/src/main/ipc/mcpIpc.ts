@@ -1,6 +1,6 @@
 import type { IpcMain } from 'electron';
 import type { McpServerConfig } from '@polytrader/shared';
-import { mcpServerManager } from '../mcp/mcpServerManager.js';
+import { mcpServerManager } from '../services/mcpServerService.js';
 
 function registerMcpHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('mcp:getConfig', () => mcpServerManager.readConfig());

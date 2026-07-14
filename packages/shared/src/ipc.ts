@@ -98,6 +98,7 @@ import type {
   WorkflowTaskRecord,
 } from './types/index.js';
 import type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
+import type { AiAgentId, AiAgentIntegrationStatus } from './aiAgentIntegration.js';
 
 export type {
   ApiEvent,
@@ -331,7 +332,17 @@ interface CrossChainIpcApi {
   onWithdrawalEvent: (callback: (event: PolymarketBridgeWithdrawalEvent) => void) => () => void;
 }
 
+interface AiAgentIntegrationIpcApi {
+  detectAll: () => Promise<AiAgentIntegrationStatus[]>;
+  configure: (
+    agentId: AiAgentId,
+    options?: { replaceExisting?: boolean },
+  ) => Promise<AiAgentIntegrationStatus>;
+  remove: (agentId: AiAgentId) => Promise<AiAgentIntegrationStatus>;
+}
+
 export interface IpcApi {
+  aiAgentIntegrations: AiAgentIntegrationIpcApi;
   getAuthState: () => Promise<AuthState>;
   signUpWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;
   signInWithEmail: (input: AuthEmailInput) => Promise<ApiResult<AuthState>>;

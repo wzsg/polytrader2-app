@@ -5,19 +5,15 @@ import { Hono } from 'hono';
 import type { Context, Next } from 'hono';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import {
-  createSqliteMcpServerAccessLogRepository,
-  createSqliteMetaRepository,
-} from '@polytrader/sqlite-repository';
 import type { McpServerConfig, McpServerStatus } from '@polytrader/shared';
-import { createPolytraderMcpServer } from './mcpTools.js';
+import { createPolytraderMcpServer } from './polytraderMcpServer.js';
+import type { McpClientCredential, McpServerManagerOptions } from './types.js';
 
 const MCP_HOST = '127.0.0.1';
 const MCP_PATH = '/mcp';
 const DEFAULT_MCP_PORT = 8708;
 const MCP_CONFIG_KEY = 'mcp_server_config';
-const metaRepository = createSqliteMetaRepository();
-const accessLogRepository = createSqliteMcpServerAccessLogRepository();
+const MCP_CLIENT_CREDENTIALS_KEY = 'mcp_client_credentials';
 
 type McpTransportMap = Record<string, WebStandardStreamableHTTPServerTransport>;
 type McpRequestSummary = {
@@ -40,6 +36,14 @@ class McpServerManager {
   private _httpServer: ServerType | null = null;
   private _transports: McpTransportMap = {};
   private _statusError: string | null = null;
+  private _activePort: number | null = null;
+  private _activePrimaryToken: string | null = null;
+  private readonly _options: McpServerManagerOptions;
+  private _clientTokens: Record<string, string> = {};
+
+  public constructor(options: McpServerManagerOptions) {
+    this._options = options;
+  }
 
   public async applySavedConfig(): Promise<void> {
     const config = await this.readConfig();
@@ -80,7 +84,8 @@ class McpServerManager {
 
     const shouldRestart =
       !this._httpServer ||
-      (await this.getStatus()).port !== config.port ||
+      this._activePort !== config.port ||
+      this._activePrimaryToken !== config.token ||
       Boolean(this._statusError);
     if (!shouldRestart) return;
 
@@ -91,6 +96,7 @@ class McpServerManager {
   public async start(config?: McpServerConfig): Promise<void> {
     if (this._httpServer) return;
     const activeConfig = config ?? (await this.readConfig());
+    this._clientTokens = await this._readClientTokens();
     this._statusError = null;
     try {
       const app = new Hono();
@@ -112,6 +118,8 @@ class McpServerManager {
         );
         server.once('error', reject);
       });
+      this._activePort = activeConfig.port;
+      this._activePrimaryToken = activeConfig.token;
     } catch (error) {
       this._statusError = error instanceof Error ? error.message : String(error);
       await this.stop();
@@ -127,6 +135,8 @@ class McpServerManager {
     if (!this._httpServer) return;
     const server = this._httpServer;
     this._httpServer = null;
+    this._activePort = null;
+    this._activePrimaryToken = null;
     await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
@@ -143,6 +153,36 @@ class McpServerManager {
       tokenConfigured: Boolean(config.token),
       error: this._statusError,
     };
+  }
+
+  public async getClientToken(clientId: string): Promise<string | null> {
+    const normalizedClientId = this._normalizeClientId(clientId);
+    const tokens = await this._readClientTokens();
+    return tokens[normalizedClientId] ?? null;
+  }
+
+  public async issueClientToken(clientId: string): Promise<McpClientCredential> {
+    const normalizedClientId = this._normalizeClientId(clientId);
+    const tokens = await this._readClientTokens();
+    const existing = tokens[normalizedClientId];
+    if (existing) {
+      this._clientTokens = tokens;
+      return { clientId: normalizedClientId, token: existing, created: false };
+    }
+    const token = this._createToken();
+    tokens[normalizedClientId] = token;
+    await this._writeClientTokens(tokens);
+    this._clientTokens = tokens;
+    return { clientId: normalizedClientId, token, created: true };
+  }
+
+  public async revokeClientToken(clientId: string): Promise<void> {
+    const normalizedClientId = this._normalizeClientId(clientId);
+    const tokens = await this._readClientTokens();
+    if (!(normalizedClientId in tokens)) return;
+    delete tokens[normalizedClientId];
+    await this._writeClientTokens(tokens);
+    this._clientTokens = tokens;
   }
 
   private async _handleMcpRequest(context: Context): Promise<Response> {
@@ -188,7 +228,7 @@ class McpServerManager {
           if (closedSessionId) delete this._transports[closedSessionId];
         };
 
-        const server = createPolytraderMcpServer();
+        const server = createPolytraderMcpServer(this._options.ports);
         await server.connect(transport);
         const response = await transport.handleRequest(request, { parsedBody: body });
         this._writeAccessLog(context, {
@@ -271,7 +311,7 @@ class McpServerManager {
   ): Promise<Response | void> {
     const authorization = context.req.header('authorization') || '';
     const value = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
-    if (!this._tokenMatches(token, value)) {
+    if (!this._matchesAnyToken(token, value)) {
       this._writeAccessLog(context, {
         requestId: randomUUID(),
         statusCode: 401,
@@ -316,6 +356,11 @@ class McpServerManager {
     return (
       expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer)
     );
+  }
+
+  private _matchesAnyToken(primaryToken: string, actual: string): boolean {
+    if (this._tokenMatches(primaryToken, actual)) return true;
+    return Object.values(this._clientTokens).some((token) => this._tokenMatches(token, actual));
   }
 
   private _sessionId(request: Request): string {
@@ -366,7 +411,7 @@ class McpServerManager {
   }
 
   private _writeAccessLog(context: Context, input: McpAccessLogInput): void {
-    void accessLogRepository
+    void this._options.accessLogRepository
       .insertLog({
         id: randomUUID(),
         requestId: input.requestId,
@@ -420,7 +465,7 @@ class McpServerManager {
   }
 
   private async _readStoredConfig(): Promise<McpServerConfig | null> {
-    const value = await metaRepository.getMetaValue(MCP_CONFIG_KEY);
+    const value = await this._options.metaRepository.getMetaValue(MCP_CONFIG_KEY);
     if (!value) return null;
     try {
       const parsed = JSON.parse(value) as Partial<McpServerConfig>;
@@ -435,7 +480,32 @@ class McpServerManager {
   }
 
   private async _writeStoredConfig(config: McpServerConfig): Promise<void> {
-    await metaRepository.setMetaValue(MCP_CONFIG_KEY, JSON.stringify(config));
+    await this._options.metaRepository.setMetaValue(MCP_CONFIG_KEY, JSON.stringify(config));
+  }
+
+  private async _readClientTokens(): Promise<Record<string, string>> {
+    const value = await this._options.metaRepository.getMetaValue(MCP_CLIENT_CREDENTIALS_KEY);
+    if (!value) return {};
+    try {
+      const parsed = JSON.parse(value) as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.entries(parsed)
+          .map(([clientId, token]) => [
+            this._normalizeClientId(clientId),
+            String(token ?? '').trim(),
+          ])
+          .filter((entry): entry is [string, string] => Boolean(entry[0] && entry[1])),
+      );
+    } catch {
+      return {};
+    }
+  }
+
+  private async _writeClientTokens(tokens: Record<string, string>): Promise<void> {
+    await this._options.metaRepository.setMetaValue(
+      MCP_CLIENT_CREDENTIALS_KEY,
+      JSON.stringify(tokens),
+    );
   }
 
   private _defaultConfig(enabled: boolean): McpServerConfig {
@@ -457,6 +527,16 @@ class McpServerManager {
     return token || this._createToken();
   }
 
+  private _normalizeClientId(value: unknown): string {
+    const clientId = String(value ?? '')
+      .trim()
+      .toLowerCase();
+    if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(clientId)) {
+      throw new Error('Invalid MCP client ID');
+    }
+    return clientId;
+  }
+
   private _createToken(): string {
     return randomBytes(32).toString('base64url');
   }
@@ -466,6 +546,4 @@ class McpServerManager {
   }
 }
 
-const mcpServerManager = new McpServerManager();
-
-export { mcpServerManager, MCP_HOST, MCP_PATH, DEFAULT_MCP_PORT };
+export { McpServerManager, MCP_HOST, MCP_PATH, DEFAULT_MCP_PORT, MCP_CLIENT_CREDENTIALS_KEY };
