@@ -6,7 +6,6 @@ import {
   readFileSync,
   renameSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from 'fs';
 import { tmpdir } from 'os';
@@ -17,7 +16,6 @@ class WindowsSigningService {
   static #cacheSchema = 'polytrader2-windows-sign-v1';
 
   #cacheDir;
-  #cacheMaxFileSize;
   #certificateSha1;
   #configuration;
   #metricsPath;
@@ -44,10 +42,6 @@ class WindowsSigningService {
       'P2_WINDOWS_SIGNING_RETRY_DELAY_MS',
       15 * 1000,
     );
-    this.#cacheMaxFileSize = this.#positiveIntegerEnvironmentValue(
-      'P2_WINDOWS_SIGN_CACHE_MAX_FILE_SIZE',
-      64 * 1024 * 1024,
-    );
     this.#cacheDir =
       process.env.P2_WINDOWS_SIGN_CACHE_DIR?.trim() ||
       join(process.env.LOCALAPPDATA || tmpdir(), 'Polytrader2', 'code-sign-cache');
@@ -68,7 +62,7 @@ class WindowsSigningService {
     const cacheKey = this.#cacheKey(inputHash);
     this.#recordMetric('requests', filePath, inputHash);
 
-    if (this.#isCacheEligible(filePath) && this.#restoreFromCache(filePath, inputHash, cacheKey)) {
+    if (this.#restoreFromCache(filePath, inputHash, cacheKey)) {
       this.#recordMetric('cacheHits', filePath, inputHash);
       process.stdout.write(
         `[windows-sign] restored verified signature cache for ${basename(filePath)}\n`,
@@ -80,9 +74,7 @@ class WindowsSigningService {
     this.#assertValidSignature(filePath);
     this.#recordMetric('cloudSignatures', filePath, inputHash);
 
-    if (this.#isCacheEligible(filePath)) {
-      this.#saveToCache(filePath, inputHash, cacheKey);
-    }
+    this.#saveToCache(filePath, inputHash, cacheKey);
   }
 
   #cacheKey(inputHash) {
@@ -121,10 +113,6 @@ class WindowsSigningService {
 
   #fileHash(filePath) {
     return createHash('sha256').update(readFileSync(filePath)).digest('hex');
-  }
-
-  #isCacheEligible(filePath) {
-    return statSync(filePath).size <= this.#cacheMaxFileSize;
   }
 
   #loadMetrics() {
