@@ -569,6 +569,15 @@ export const messages = {
     update: {
       install: 'Update',
       installTitle: 'Install Polytrader2 {version}',
+      confirmTitle: 'Install update',
+      confirmSubtitle: 'Polytrader2 is ready to update.',
+      confirmMessage:
+        'The update has finished downloading. Continuing will close the main window and all trading, strategy, and browser windows.',
+      currentVersion: 'Current version',
+      newVersion: 'New version',
+      installNotice:
+        'The installer will show its progress and finish without further interaction. Polytrader2 will restart when the update is complete.',
+      confirmInstall: 'Update and restart',
     },
     settings: {
       navigation: 'Settings navigation',
@@ -1373,6 +1382,14 @@ export const messages = {
     update: {
       install: '更新',
       installTitle: '安装 Polytrader2 {version}',
+      confirmTitle: '安装更新',
+      confirmSubtitle: 'Polytrader2 已准备好更新。',
+      confirmMessage: '更新已下载完成。继续后将关闭主窗口以及所有交易、策略和浏览器窗口。',
+      currentVersion: '当前版本',
+      newVersion: '新版本',
+      installNotice:
+        '安装程序将显示安装进度并自动完成，无需其他操作。更新完成后，Polytrader2 将自动重新启动。',
+      confirmInstall: '更新并重启',
     },
     settings: {
       navigation: '系统设置导航',
