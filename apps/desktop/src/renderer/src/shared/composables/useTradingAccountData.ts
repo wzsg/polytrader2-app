@@ -1,5 +1,9 @@
 import { ref, unref, type Ref } from 'vue';
-import type { ApiResult, TradingAccountDataQuery } from '@polytrader/shared';
+import type {
+  ApiResult,
+  TradingAccountDataQuery,
+  TradingAccountScopedData,
+} from '@polytrader/shared';
 import { translateUiKey } from '../i18n';
 
 type TradingAccountDataRefreshOptions = {
@@ -7,7 +11,7 @@ type TradingAccountDataRefreshOptions = {
 };
 
 function useTradingAccountData<T>(
-  fetchFn: (query: TradingAccountDataQuery) => Promise<ApiResult<T[]>>,
+  fetchFn: (query: TradingAccountDataQuery) => Promise<ApiResult<TradingAccountScopedData<T>>>,
   options: {
     statusKey?: 'credentialsConfigured' | 'positionsConfigured';
     walletId?: Ref<string>;
@@ -18,6 +22,7 @@ function useTradingAccountData<T>(
   const loading = ref(false);
   const error = ref('');
   const configured = ref(true);
+  let refreshVersion = 0;
 
   function getAccountId(): string | undefined {
     return options.walletId ? unref(options.walletId) || undefined : undefined;
@@ -44,29 +49,37 @@ function useTradingAccountData<T>(
   }
 
   async function refresh(refreshOptions: TradingAccountDataRefreshOptions = {}): Promise<void> {
+    const version = ++refreshVersion;
+    const query = getQuery();
     if (!refreshOptions.silent) loading.value = true;
     error.value = '';
     try {
-      if (!(await checkStatus())) {
+      const isConfigured = await checkStatus();
+      if (version !== refreshVersion || query.walletId !== getAccountId()) return;
+      if (!isConfigured) {
         items.value = [];
         return;
       }
-      const res = await fetchFn(getQuery());
+      const res = await fetchFn(query);
+      if (version !== refreshVersion || query.walletId !== getAccountId()) return;
       if (!res.ok) {
         error.value = res.error || translateUiKey('common.requestFailed');
         items.value = [];
         return;
       }
-      items.value = Array.isArray(res.data) ? res.data : [];
+      if (res.data.walletId !== (query.walletId ?? null) || res.data.conditionId !== null) return;
+      items.value = Array.isArray(res.data.items) ? res.data.items : [];
     } catch (err) {
+      if (version !== refreshVersion) return;
       error.value = err instanceof Error ? err.message : String(err);
       items.value = [];
     } finally {
-      if (!refreshOptions.silent) loading.value = false;
+      if (version === refreshVersion && !refreshOptions.silent) loading.value = false;
     }
   }
 
   function clear(): void {
+    refreshVersion += 1;
     items.value = [];
     error.value = '';
     configured.value = true;

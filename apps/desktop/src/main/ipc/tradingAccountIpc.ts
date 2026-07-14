@@ -32,9 +32,14 @@ function registerTradingAccountHandlers(ipcMain: IpcMain): void {
 
   ipcMain.handle(
     'trading-account:queryOrders',
-    wrap((query?: TradingAccountDataQuery) =>
-      tradingAccountService.queryOrders(normalizeTradingAccountDataQuery(query)),
-    ),
+    wrap(async (query?: TradingAccountDataQuery) => {
+      const normalized = normalizeTradingAccountDataQuery(query);
+      return {
+        walletId: normalized.walletId ?? null,
+        conditionId: normalized.conditionId ?? null,
+        items: await tradingAccountService.queryOrders(normalized),
+      };
+    }),
   );
   ipcMain.handle(
     'trading-account:cancelOrder',
@@ -69,15 +74,25 @@ function registerTradingAccountHandlers(ipcMain: IpcMain): void {
   );
   ipcMain.handle(
     'trading-account:queryTrades',
-    wrap((query?: TradingAccountDataQuery) =>
-      tradingAccountService.queryTrades(normalizeTradingAccountDataQuery(query)),
-    ),
+    wrap(async (query?: TradingAccountDataQuery) => {
+      const normalized = normalizeTradingAccountDataQuery(query);
+      return {
+        walletId: normalized.walletId ?? null,
+        conditionId: normalized.conditionId ?? null,
+        items: await tradingAccountService.queryTrades(normalized),
+      };
+    }),
   );
   ipcMain.handle(
     'trading-account:queryPositions',
-    wrap((query?: TradingAccountDataQuery) =>
-      tradingAccountService.queryPositions(normalizeTradingAccountDataQuery(query)),
-    ),
+    wrap(async (query?: TradingAccountDataQuery) => {
+      const normalized = normalizeTradingAccountDataQuery(query);
+      return {
+        walletId: normalized.walletId ?? null,
+        conditionId: normalized.conditionId ?? null,
+        items: await tradingAccountService.queryPositions(normalized),
+      };
+    }),
   );
   ipcMain.handle('trading-account:placeManualOrder', wrap(placeManualOrder));
   ipcMain.handle(

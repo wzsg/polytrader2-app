@@ -83,6 +83,7 @@ import type {
   PolymarketWalletUpdateInput,
   TradingAccountDataEvent,
   TradingAccountDataQuery,
+  TradingAccountScopedData,
   TradingAccountPositionMergeInput,
   TradingAccountPositionOperationResult,
   TradingAccountPositionRedeemInput,
@@ -275,13 +276,19 @@ interface TradingStrategyIpcApi {
 interface TradingAccountIpcApi {
   getStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
   getData: (query?: TradingAccountDataQuery) => Promise<ApiResult<TradingRuntimeAccountState>>;
-  getOrders: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobOrder[]>>;
+  getOrders: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<TradingAccountScopedData<ClobOrder>>>;
   cancelOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
   cancelOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
   deleteFailedOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
   cancelAllOrders: (walletId: string) => Promise<ApiResult<unknown>>;
-  getTrades: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobTrade[]>>;
-  getPositions: (query?: TradingAccountDataQuery) => Promise<ApiResult<DataPosition[]>>;
+  getTrades: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<TradingAccountScopedData<ClobTrade>>>;
+  getPositions: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<TradingAccountScopedData<DataPosition>>>;
   placeOrder: (input: ManualPlaceOrderInput) => Promise<ApiResult<unknown>>;
   splitPosition: (
     input: TradingAccountPositionSplitInput,

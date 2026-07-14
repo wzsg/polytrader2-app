@@ -900,6 +900,12 @@ export interface TradingRuntimeAccountState {
   updatedAt: string | null;
 }
 
+interface TradingAccountScopedData<T> {
+  walletId: string | null;
+  conditionId: string | null;
+  items: T[];
+}
+
 interface TradingAccountDataQuery {
   walletId?: string;
   conditionId?: string;
@@ -1316,6 +1322,7 @@ export type {
   EventSyncTrigger,
   TradingAccountDataEvent,
   TradingAccountDataQuery,
+  TradingAccountScopedData,
   TradingMarketBinanceKlineEvent,
   TradingRuntimeBinanceKlineState,
 };
