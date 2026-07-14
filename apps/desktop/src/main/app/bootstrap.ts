@@ -9,6 +9,7 @@ import {
 } from '@polytrader/duckdb-repository';
 import { autoUpdaterService } from './updater.js';
 import { registerAccountHandlers } from '../ipc/walletIpc.js';
+import { registerAiAgentIntegrationHandlers } from '../ipc/aiAgentIntegrationIpc.js';
 import { registerAuthHandlers } from '../ipc/authIpc.js';
 import { registerBotHandlers } from '../ipc/botIpc.js';
 import { registerBridgeHandlers } from '../ipc/bridgeIpc.js';
@@ -35,7 +36,7 @@ import { tradingStrategyService } from '../services/tradingStrategyService.js';
 import { kvStore } from '../services/kvStore.js';
 import { supabaseAuthService } from '../services/supabaseAuthService.js';
 import { desktopWorkflowService } from '../services/workflowService.js';
-import { mcpServerManager } from '../mcp/mcpServerManager.js';
+import { mcpServerManager } from '../services/mcpServerService.js';
 import { createMainWindow } from '../windows/mainWindow.js';
 import { registerBrowserWindowHandlers } from '../windows/browserWindow.js';
 import { registerStrategyEditorWindowHandlers } from '../windows/strategyEditorWindow.js';
@@ -61,6 +62,7 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   if (ipcHandlersRegistered) return;
   autoUpdaterService.registerIpcHandlers(ipcMain);
   registerAuthHandlers(ipcMain);
+  registerAiAgentIntegrationHandlers(ipcMain);
   registerDbHandlers(ipcMain);
   registerDeveloperHandlers(ipcMain);
   registerMarketHandlers(ipcMain);

@@ -39,6 +39,7 @@ import {
   setOrderConfirmationThresholdUsd,
 } from '@/shared/i18n';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
+import AiAgentIntegrationsPanel from './settings-panels/AiAgentIntegrationsPanel.vue';
 import { writeClipboardText } from '@/shared/utils/clipboard';
 
 const props = defineProps<{
@@ -716,6 +717,7 @@ onMounted(async () => {
             </button>
           </div>
         </div>
+        <AiAgentIntegrationsPanel />
       </section>
 
       <section v-if="activeSection === 'advanced'">

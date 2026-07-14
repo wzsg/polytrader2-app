@@ -1,18 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { compileStrategySource, strategyCatalogService } from '@polytrader/strategy-runtime';
-import { createSqliteEventRepository } from '@polytrader/sqlite-repository';
 import { DEFAULT_STRATEGY_SOURCE, parseJsonArray, STRATEGY_CONTEXT_DTS } from '@polytrader/shared';
 import type { DbMarket, StrategyBotListParams, StrategyRunListParams } from '@polytrader/shared';
-import { botRuntimeService, strategyRunHistoryService } from '../services/strategyRuntime.js';
+import type { PolytraderMcpPorts } from './types.js';
 
 const STRATEGY_DOC_URI = 'polytrader://strategy/docs';
 const STRATEGY_DTS_URI = 'polytrader://strategy/context.d.ts';
 const STRATEGY_TEMPLATE_URI = 'polytrader://strategy/default-template.ts';
 const PRODUCT_NAME = 'Polytrader2';
 const PRODUCT_ALIAS = 'p2';
-const eventRepository = createSqliteEventRepository();
-
 type McpMarketInfo = {
   id: string;
   conditionId: string | null;
@@ -25,9 +21,11 @@ type McpMarketInfo = {
 
 class PolytraderMcpToolRegistrar {
   private readonly _server: McpServer;
+  private readonly _ports: PolytraderMcpPorts;
 
-  public constructor(server: McpServer) {
+  public constructor(server: McpServer, ports: PolytraderMcpPorts) {
     this._server = server;
+    this._ports = ports;
   }
 
   public register(): void {
@@ -100,7 +98,7 @@ class PolytraderMcpToolRegistrar {
         description: 'List locally saved strategy assets.',
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => this._json(await strategyCatalogService.listStrategies()),
+      async () => this._json(await this._ports.strategyCatalog.listStrategies()),
     );
 
     this._server.registerTool(
@@ -113,7 +111,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ id }) => this._json(await strategyCatalogService.getStrategy(id)),
+      async ({ id }) => this._json(await this._ports.strategyCatalog.getStrategy(id)),
     );
 
     this._server.registerTool(
@@ -128,7 +126,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       },
-      async (input) => this._json(await strategyCatalogService.createStrategy(input)),
+      async (input) => this._json(await this._ports.strategyCatalog.createStrategy(input)),
     );
 
     this._server.registerTool(
@@ -145,7 +143,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       },
-      async (input) => this._json(await strategyCatalogService.updateStrategy(input)),
+      async (input) => this._json(await this._ports.strategyCatalog.updateStrategy(input)),
     );
 
     this._server.registerTool(
@@ -159,7 +157,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ sourceCode }) => this._json(compileStrategySource(sourceCode)),
+      async ({ sourceCode }) => this._json(this._ports.compileStrategySource(sourceCode)),
     );
 
     this._server.registerTool(
@@ -173,7 +171,7 @@ class PolytraderMcpToolRegistrar {
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       async ({ strategyId }) =>
-        this._json(await strategyCatalogService.listStrategyVersions(strategyId)),
+        this._json(await this._ports.strategyCatalog.listStrategyVersions(strategyId)),
     );
   }
 
@@ -200,7 +198,7 @@ class PolytraderMcpToolRegistrar {
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       async (input) =>
-        this._json(await botRuntimeService.listBots(await this._botListParams(input))),
+        this._json(await this._ports.botRuntime.listBots(await this._botListParams(input))),
     );
 
     this._server.registerTool(
@@ -227,7 +225,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       },
-      async (input) => this._json(await botRuntimeService.createBot(input)),
+      async (input) => this._json(await this._ports.botRuntime.createBot(input)),
     );
 
     this._server.registerTool(
@@ -254,7 +252,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       },
-      async (input) => this._json(await botRuntimeService.updateBot(input)),
+      async (input) => this._json(await this._ports.botRuntime.updateBot(input)),
     );
 
     this._server.registerTool(
@@ -268,7 +266,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
       },
-      async ({ id }) => this._json(await botRuntimeService.startBot(id)),
+      async ({ id }) => this._json(await this._ports.botRuntime.startBot(id)),
     );
 
     this._server.registerTool(
@@ -281,7 +279,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       },
-      async ({ id }) => this._json(await botRuntimeService.stopBot(id)),
+      async ({ id }) => this._json(await this._ports.botRuntime.stopBot(id)),
     );
 
     this._server.registerTool(
@@ -294,7 +292,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ id }) => this._json(await botRuntimeService.getActiveRun(id)),
+      async ({ id }) => this._json(await this._ports.botRuntime.getActiveRun(id)),
     );
 
     this._server.registerTool(
@@ -308,7 +306,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ botId, limit }) => this._json(await botRuntimeService.listRuns(botId, limit)),
+      async ({ botId, limit }) => this._json(await this._ports.botRuntime.listRuns(botId, limit)),
     );
   }
 
@@ -330,7 +328,7 @@ class PolytraderMcpToolRegistrar {
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       async (input) =>
-        this._json(await strategyRunHistoryService.listHistory(await this._runListParams(input))),
+        this._json(await this._ports.strategyRun.listHistory(await this._runListParams(input))),
     );
 
     this._server.registerTool(
@@ -344,7 +342,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ runId, limit }) => this._json(await strategyRunHistoryService.getLogs(runId, limit)),
+      async ({ runId, limit }) => this._json(await this._ports.strategyRun.getLogs(runId, limit)),
     );
 
     this._server.registerTool(
@@ -358,8 +356,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ runId, limit }) =>
-        this._json(await strategyRunHistoryService.getOrders(runId, limit)),
+      async ({ runId, limit }) => this._json(await this._ports.strategyRun.getOrders(runId, limit)),
     );
   }
 
@@ -400,7 +397,7 @@ class PolytraderMcpToolRegistrar {
   private async _marketByConditionId(conditionId: string): Promise<McpMarketInfo> {
     const normalized = conditionId.trim();
     if (!normalized) throw new Error('conditionId is required');
-    const row = await eventRepository.getMarketByConditionId(normalized);
+    const row = await this._ports.market.getMarketByConditionId(normalized);
     if (!row) throw new Error(`Market does not exist for conditionId: ${normalized}`);
     return this._mapMarket(row);
   }
@@ -505,7 +502,7 @@ class PolytraderMcpToolRegistrar {
   }
 }
 
-function createPolytraderMcpServer(): McpServer {
+function createPolytraderMcpServer(ports: PolytraderMcpPorts): McpServer {
   const server = new McpServer(
     {
       name: 'Polytrader2',
@@ -516,7 +513,7 @@ function createPolytraderMcpServer(): McpServer {
       capabilities: { logging: {} },
     },
   );
-  new PolytraderMcpToolRegistrar(server).register();
+  new PolytraderMcpToolRegistrar(server, ports).register();
   return server;
 }
 

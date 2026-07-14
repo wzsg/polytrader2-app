@@ -1,8 +1,11 @@
 import { BrowserWindow, type IpcMain } from 'electron';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import type { StrategyEditorWindowInput } from '@polytrader/shared';
 import { getWindowIcon } from './icon.js';
 import { getWindowChromeOptions } from './windowChrome.js';
+
+const moduleDirname = dirname(fileURLToPath(import.meta.url));
 
 const strategyEditorWindows = new Map<string, BrowserWindow>();
 const strategyEditorWindowKeys = new WeakMap<BrowserWindow, string>();
@@ -50,7 +53,7 @@ function loadStrategyEditorWindow(window: BrowserWindow, input: StrategyEditorWi
     return;
   }
 
-  window.loadFile(join(__dirname, '../renderer/strategy-editor.html'), {
+  window.loadFile(join(moduleDirname, '../renderer/strategy-editor.html'), {
     query: buildQuery(input),
   });
 }
@@ -77,7 +80,7 @@ export function openStrategyEditorWindow(input: StrategyEditorWindowInput): Brow
     ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
-      preload: join(__dirname, '../preload/strategyEditor.cjs'),
+      preload: join(moduleDirname, '../preload/strategyEditor.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

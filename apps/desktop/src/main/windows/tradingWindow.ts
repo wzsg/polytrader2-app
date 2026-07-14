@@ -1,5 +1,6 @@
 import { BrowserWindow, type IpcMain } from 'electron';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import type {
   StrategyBotRuntimeEvent,
   StrategyRunRuntimeEvent,
@@ -8,6 +9,8 @@ import type {
 } from '@polytrader/shared';
 import { getWindowIcon } from './icon.js';
 import { getWindowChromeOptions } from './windowChrome.js';
+
+const moduleDirname = dirname(fileURLToPath(import.meta.url));
 
 const tradingWindows = new Map<string, BrowserWindow>();
 const tradingWindowKeys = new WeakMap<BrowserWindow, string>();
@@ -70,7 +73,7 @@ function loadTradingWindow(window: BrowserWindow, input: TradingWindowInput): vo
     return;
   }
 
-  window.loadFile(join(__dirname, '../renderer/trading.html'), {
+  window.loadFile(join(moduleDirname, '../renderer/trading.html'), {
     query: buildTradingQuery(input),
   });
 }
@@ -151,7 +154,7 @@ export function openTradingWindow(input: TradingWindowInput): BrowserWindow {
     ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
-      preload: join(__dirname, '../preload/trading.cjs'),
+      preload: join(moduleDirname, '../preload/trading.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

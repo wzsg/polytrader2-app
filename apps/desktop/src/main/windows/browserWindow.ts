@@ -14,7 +14,8 @@ import {
   type ContextMenuParams,
 } from 'electron';
 import { randomUUID } from 'crypto';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import type {
   BrowserModalPayload,
   BrowserNavigateOptions,
@@ -36,6 +37,8 @@ import {
 } from '../browser/provider.js';
 import { getWindowIcon } from './icon.js';
 import { getWindowChromeOptions } from './windowChrome.js';
+
+const moduleDirname = dirname(fileURLToPath(import.meta.url));
 
 const DEFAULT_BROWSER_URL = POLYMARKET_WEB_URL;
 const BROWSER_SESSION_PARTITION = 'persist:polytrader2-browser';
@@ -295,7 +298,7 @@ function showBrowserContextMenu(contents: WebContents, params: ContextMenuParams
 function createBrowserView(): WebContentsView {
   const view = new WebContentsView({
     webPreferences: {
-      preload: join(__dirname, '../preload/browserProvider.cjs'),
+      preload: join(moduleDirname, '../preload/browserProvider.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -344,7 +347,7 @@ function loadBrowserShell(window: BrowserWindow): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     window.loadURL(`${process.env.ELECTRON_RENDERER_URL}/browser.html`);
   } else {
-    window.loadFile(join(__dirname, '../renderer/browser.html'));
+    window.loadFile(join(moduleDirname, '../renderer/browser.html'));
   }
 }
 
@@ -352,7 +355,7 @@ function loadBrowserModal(window: BrowserWindow): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     window.loadURL(`${process.env.ELECTRON_RENDERER_URL}/browser-modal.html`);
   } else {
-    window.loadFile(join(__dirname, '../renderer/browser-modal.html'));
+    window.loadFile(join(moduleDirname, '../renderer/browser-modal.html'));
   }
 }
 
@@ -400,7 +403,7 @@ function openBrowserModal(payload: BrowserModalPayload): BrowserWindow {
     minimizable: false,
     backgroundColor: '#0f0f1a',
     webPreferences: {
-      preload: join(__dirname, '../preload/browserModal.cjs'),
+      preload: join(moduleDirname, '../preload/browserModal.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -503,7 +506,7 @@ function openBrowserWindow(): BrowserWindow {
     ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
-      preload: join(__dirname, '../preload/browserShell.cjs'),
+      preload: join(moduleDirname, '../preload/browserShell.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

@@ -12,6 +12,12 @@ import {
 } from './common.js';
 
 const mainWindowApi = {
+  aiAgentIntegrations: {
+    detectAll: () => ipcRenderer.invoke('ai-agent-integrations:detect'),
+    configure: (agentId, options) =>
+      ipcRenderer.invoke('ai-agent-integrations:configure', agentId, options),
+    remove: (agentId) => ipcRenderer.invoke('ai-agent-integrations:remove', agentId),
+  },
   getAuthState: () => ipcRenderer.invoke('auth:getState'),
   signUpWithEmail: (input) => ipcRenderer.invoke('auth:signUpWithEmail', input),
   signInWithEmail: (input) => ipcRenderer.invoke('auth:signInWithEmail', input),

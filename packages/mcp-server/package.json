@@ -1,5 +1,5 @@
 {
-  "name": "@polytrader/app-preferences",
+  "name": "@polytrader/mcp-server",
   "version": "1.0.0",
   "type": "module",
   "private": true,
@@ -8,10 +8,13 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
-    "@polytrader/event-bus": "workspace:*",
+    "@hono/node-server": "1.19.14",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@polytrader/repository-contract": "workspace:*",
     "@polytrader/shared": "workspace:*",
-    "jsonc-parser": "^3.3.1"
+    "@polytrader/strategy-runtime": "workspace:*",
+    "hono": "4.12.30",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "^25.9.3"

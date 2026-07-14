@@ -7,6 +7,7 @@ import { getMainWindow, prepareMainWindowForUpdateInstallation } from '../window
 const { autoUpdater } = electronUpdater;
 
 const UPDATE_CHECK_DELAY_MS = 10_000;
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60_000;
 const UPDATE_SHUTDOWN_TIMEOUT_MS = 30_000;
 
 const updaterLogger = {
@@ -18,6 +19,8 @@ const updaterLogger = {
 class AutoUpdaterService {
   private _initialized = false;
   private _ipcHandlersRegistered = false;
+  private _updateCheckInProgress = false;
+  private _updateCheckInterval: ReturnType<typeof setInterval> | null = null;
   private _installRequested = false;
   private _state: AppUpdateState = { status: 'idle', version: null };
 
@@ -77,7 +80,7 @@ class AutoUpdaterService {
       updaterLogger.info(`Version ${event.version} is ready to install`);
     });
 
-    this._scheduleUpdateCheck();
+    this._scheduleUpdateChecks();
   }
 
   public getState(): AppUpdateState {
@@ -101,12 +104,34 @@ class AutoUpdaterService {
     }
   }
 
-  private _scheduleUpdateCheck(): void {
+  private _scheduleUpdateChecks(): void {
+    if (this._updateCheckInterval) return;
+
     setTimeout(() => {
-      void autoUpdater.checkForUpdates().catch((err) => {
-        updaterLogger.warn('Failed to check for updates', err);
-      });
+      void this._checkForUpdates();
     }, UPDATE_CHECK_DELAY_MS);
+
+    this._updateCheckInterval = setInterval(() => {
+      void this._checkForUpdates();
+    }, UPDATE_CHECK_INTERVAL_MS);
+  }
+
+  private async _checkForUpdates(): Promise<void> {
+    if (!this._canCheckForUpdates()) return;
+    this._updateCheckInProgress = true;
+
+    try {
+      await autoUpdater.checkForUpdates();
+    } catch (err) {
+      updaterLogger.warn('Failed to check for updates', err);
+    } finally {
+      this._updateCheckInProgress = false;
+    }
+  }
+
+  private _canCheckForUpdates(): boolean {
+    if (this._updateCheckInProgress || this._installRequested) return false;
+    return this._state.status !== 'downloading' && this._state.status !== 'downloaded';
   }
 
   private _setState(state: AppUpdateState): void {
