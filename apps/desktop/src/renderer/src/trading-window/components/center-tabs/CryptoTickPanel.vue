@@ -286,7 +286,8 @@ function findReferencePrice(referenceTime: string | null): string {
 function tickPointColor(tickMs: number): string {
   const startMs = parseDateMs(props.cryptoTick.referenceStartTime);
   const endMs = parseDateMs(props.cryptoTick.referenceEndTime);
-  if ((startMs && tickMs < startMs) || (endMs && tickMs > endMs)) return TICK_LINE_OUTSIDE_COLOR;
+  // A LineData color applies to the segment that starts at that point.
+  if ((startMs && tickMs < startMs) || (endMs && tickMs >= endMs)) return TICK_LINE_OUTSIDE_COLOR;
   return tickLineColor.value;
 }
 
