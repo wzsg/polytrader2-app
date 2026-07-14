@@ -76,7 +76,7 @@ const depositAddress = computed(() => {
   if (!asset || !deposit.value) return '';
   if (isSolanaChain(asset.chainId)) return deposit.value.address.svm ?? '';
   if (isBitcoinChain(asset.chainId)) return deposit.value.address.btc ?? '';
-  if (isTronChain(asset.chainId)) return deposit.value.address.tvm ?? '';
+  if (isTronChain(asset.chainId)) return deposit.value.address.tron ?? '';
   return deposit.value.address.evm ?? '';
 });
 
