@@ -14,14 +14,20 @@ function registerDbHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('db:list', (_event, params: ListEventsParams) =>
     eventRepository.listEvents(params),
   );
-  ipcMain.handle('db:listChildren', (_event, request: IpcRequest<{ parentEventId: string }>) => ({
-    requestId: request.requestId,
-    data: eventRepository.listChildEvents(request.data.parentEventId),
-  }));
-  ipcMain.handle('db:listEventMarkets', (_event, request: IpcRequest<{ eventId: string }>) => ({
-    requestId: request.requestId,
-    data: eventRepository.listEventMarkets(request.data.eventId),
-  }));
+  ipcMain.handle(
+    'db:listChildren',
+    async (_event, request: IpcRequest<{ parentEventId: string }>) => ({
+      requestId: request.requestId,
+      data: await eventRepository.listChildEvents(request.data.parentEventId),
+    }),
+  );
+  ipcMain.handle(
+    'db:listEventMarkets',
+    async (_event, request: IpcRequest<{ eventId: string }>) => ({
+      requestId: request.requestId,
+      data: await eventRepository.listEventMarkets(request.data.eventId),
+    }),
+  );
   ipcMain.handle('db:count', (_event, params: ListEventsParams) =>
     eventRepository.countEvents(params),
   );
