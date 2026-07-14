@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import QRCode from 'qrcode';
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -46,6 +47,7 @@ import WalletWithdrawDialog from './wallet-panels/WalletWithdrawDialog.vue';
 import { useWalletsView } from './composables/useWalletsView';
 
 type AccountAssetTab = 'orders' | 'trades' | 'positions';
+type KeyMaterialDisplayMode = 'text' | 'qr';
 type AccountTableRow = {
   account: PolymarketWalletSummary;
   depth: number;
@@ -115,6 +117,9 @@ const keyMaterialBackupSaving = ref(false);
 const keyMaterialError = ref('');
 const keyMaterialWallet = ref<PolymarketWalletSummary | null>(null);
 const keyMaterialReveal = ref<PolymarketWalletKeyMaterialReveal | null>(null);
+const keyMaterialDisplayMode = ref<KeyMaterialDisplayMode>('text');
+const keyMaterialQrCodeUrl = ref('');
+const keyMaterialQrCodeLoading = ref(false);
 const bridgeDepositDialogOpen = ref(false);
 const bridgeWithdrawDialogOpen = ref(false);
 const bridgeWallet = ref<PolymarketWalletSummary | null>(null);
@@ -613,6 +618,7 @@ function closeBridgeWithdrawDialog(): void {
 function requestKeyMaterialReveal(account: PolymarketWalletSummary): void {
   keyMaterialWallet.value = account;
   keyMaterialReveal.value = null;
+  resetKeyMaterialDisplay();
   keyMaterialError.value = '';
   keyMaterialConfirmOpen.value = true;
 }
@@ -648,7 +654,60 @@ function closeKeyMaterialDialog(): void {
   keyMaterialDialogOpen.value = false;
   keyMaterialWallet.value = null;
   keyMaterialReveal.value = null;
+  resetKeyMaterialDisplay();
   keyMaterialError.value = '';
+}
+
+function resetKeyMaterialDisplay(): void {
+  keyMaterialDisplayMode.value = 'text';
+  keyMaterialQrCodeUrl.value = '';
+  keyMaterialQrCodeLoading.value = false;
+}
+
+function selectKeyMaterialDisplayMode(mode: KeyMaterialDisplayMode): void {
+  if (keyMaterialDisplayMode.value === mode) return;
+
+  keyMaterialDisplayMode.value = mode;
+  keyMaterialError.value = '';
+  if (mode === 'text') {
+    keyMaterialQrCodeUrl.value = '';
+    keyMaterialQrCodeLoading.value = false;
+    return;
+  }
+
+  void generateKeyMaterialQrCode();
+}
+
+async function generateKeyMaterialQrCode(): Promise<void> {
+  const value = keyMaterialReveal.value?.value.trim() || '';
+  if (!value) return;
+
+  keyMaterialQrCodeLoading.value = true;
+  keyMaterialQrCodeUrl.value = '';
+  try {
+    const qrCodeUrl = await QRCode.toDataURL(value, {
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: 260,
+      color: {
+        dark: '#111827',
+        light: '#ffffff',
+      },
+    });
+    if (
+      keyMaterialDialogOpen.value &&
+      keyMaterialDisplayMode.value === 'qr' &&
+      keyMaterialReveal.value?.value.trim() === value
+    ) {
+      keyMaterialQrCodeUrl.value = qrCodeUrl;
+    }
+  } catch (err) {
+    if (keyMaterialDialogOpen.value && keyMaterialDisplayMode.value === 'qr') {
+      keyMaterialError.value = err instanceof Error ? err.message : String(err);
+    }
+  } finally {
+    if (keyMaterialDisplayMode.value === 'qr') keyMaterialQrCodeLoading.value = false;
+  }
 }
 
 async function confirmKeyMaterialBackedUp(): Promise<void> {
@@ -1354,12 +1413,69 @@ watch(detailPanelCollapsed, (next) => writeDetailPanelCollapsed(next));
           </header>
 
           <div class="px-5 py-4">
+            <div
+              class="bg-bg mb-4 grid grid-cols-2 rounded-md p-1"
+              role="tablist"
+              :aria-label="t('account.keyMaterialDisplayMode')"
+            >
+              <button
+                type="button"
+                role="tab"
+                class="h-8 rounded text-[13px] font-medium transition-colors"
+                :class="
+                  keyMaterialDisplayMode === 'text'
+                    ? 'bg-btn-secondary text-white shadow-sm'
+                    : 'text-muted-light hover:text-white'
+                "
+                :aria-selected="keyMaterialDisplayMode === 'text'"
+                @click="selectKeyMaterialDisplayMode('text')"
+              >
+                {{ t('account.keyMaterialText') }}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class="h-8 rounded text-[13px] font-medium transition-colors"
+                :class="
+                  keyMaterialDisplayMode === 'qr'
+                    ? 'bg-btn-secondary text-white shadow-sm'
+                    : 'text-muted-light hover:text-white'
+                "
+                :aria-selected="keyMaterialDisplayMode === 'qr'"
+                @click="selectKeyMaterialDisplayMode('qr')"
+              >
+                {{ t('account.keyMaterialQrCode') }}
+              </button>
+            </div>
             <textarea
+              v-if="keyMaterialDisplayMode === 'text'"
               class="border-border bg-bg text-text h-28 w-full resize-none rounded-md border px-3 py-2 font-mono text-xs outline-none"
               readonly
               :aria-label="keyMaterialDialogTitle"
               :value="keyMaterialReveal?.value || ''"
             />
+            <div v-else class="flex flex-col items-center gap-3">
+              <img
+                v-if="keyMaterialQrCodeUrl"
+                :src="keyMaterialQrCodeUrl"
+                class="h-[260px] w-[260px] rounded-md bg-white p-2"
+                :alt="t('account.keyMaterialQrCode')"
+              />
+              <div
+                v-else
+                class="border-border text-muted-light flex h-[260px] w-[260px] items-center justify-center rounded-md border"
+              >
+                <LoaderCircle
+                  v-if="keyMaterialQrCodeLoading"
+                  :size="22"
+                  class="animate-spin"
+                  :title="t('account.keyMaterialQrCode')"
+                />
+              </div>
+              <p class="text-danger text-center text-xs leading-5">
+                {{ t('account.keyMaterialQrWarning') }}
+              </p>
+            </div>
             <p
               v-if="keyMaterialError"
               class="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"

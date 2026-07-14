@@ -521,6 +521,11 @@ export const messages = {
       keyMaterialBackupRequired: 'Backup Required',
       keyMaterialBackupRequiredTitle: 'Back up this wallet material',
       keyMaterialBackedUpConfirm: 'I Have Backed Up',
+      keyMaterialDisplayMode: 'Wallet material display mode',
+      keyMaterialText: 'Text',
+      keyMaterialQrCode: 'QR Code',
+      keyMaterialQrWarning:
+        'Scan only in a private, trusted environment. Anyone who captures this QR code can control the wallet.',
       revealSecurityTitle: 'Reveal Sensitive Wallet Material',
       revealSecuritySubtitle: 'Anyone with this value can control the wallet.',
       revealSecurityMessage:
@@ -1361,6 +1366,10 @@ export const messages = {
       keyMaterialBackupRequired: '未备份',
       keyMaterialBackupRequiredTitle: '请备份此钱包材料',
       keyMaterialBackedUpConfirm: '我已备份',
+      keyMaterialDisplayMode: '钱包材料显示方式',
+      keyMaterialText: '文本',
+      keyMaterialQrCode: '二维码',
+      keyMaterialQrWarning: '请仅在私密且可信的环境中扫码。任何获取此二维码的人都可以控制该钱包。',
       revealSecurityTitle: '查看敏感钱包材料',
       revealSecuritySubtitle: '任何获得此内容的人都可以控制该钱包。',
       revealSecurityMessage: '请仅在私密环境中查看 {name} 的钱包材料，不要与任何人分享。',
