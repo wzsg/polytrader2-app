@@ -225,50 +225,33 @@
       "indexes": {
         "idx_wallet_orders_exchange_order_id_unique": {
           "name": "idx_wallet_orders_exchange_order_id_unique",
-          "columns": [
-            "exchange_order_id"
-          ],
+          "columns": ["exchange_order_id"],
           "isUnique": true,
           "where": "\"wallet_orders\".\"exchange_order_id\" IS NOT NULL"
         },
         "idx_wallet_orders_wallet_active": {
           "name": "idx_wallet_orders_wallet_active",
-          "columns": [
-            "wallet_id",
-            "active"
-          ],
+          "columns": ["wallet_id", "active"],
           "isUnique": false
         },
         "idx_wallet_orders_wallet_condition_active": {
           "name": "idx_wallet_orders_wallet_condition_active",
-          "columns": [
-            "wallet_id",
-            "condition_id",
-            "active"
-          ],
+          "columns": ["wallet_id", "condition_id", "active"],
           "isUnique": false
         },
         "idx_wallet_orders_wallet_market": {
           "name": "idx_wallet_orders_wallet_market",
-          "columns": [
-            "wallet_id",
-            "market_id"
-          ],
+          "columns": ["wallet_id", "market_id"],
           "isUnique": false
         },
         "idx_wallet_orders_wallet_event": {
           "name": "idx_wallet_orders_wallet_event",
-          "columns": [
-            "wallet_id",
-            "event_id"
-          ],
+          "columns": ["wallet_id", "event_id"],
           "isUnique": false
         },
         "idx_wallet_orders_last_seen": {
           "name": "idx_wallet_orders_last_seen",
-          "columns": [
-            "last_seen_at"
-          ],
+          "columns": ["last_seen_at"],
           "isUnique": false
         }
       },
@@ -277,22 +260,15 @@
           "name": "wallet_orders_wallet_id_polymarket_wallets_id_fk",
           "tableFrom": "wallet_orders",
           "tableTo": "polymarket_wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "wallet_orders_wallet_id_order_id_pk": {
-          "columns": [
-            "wallet_id",
-            "order_id"
-          ],
+          "columns": ["wallet_id", "order_id"],
           "name": "wallet_orders_wallet_id_order_id_pk"
         }
       },
@@ -545,41 +521,27 @@
       "indexes": {
         "idx_wallet_positions_wallet_active": {
           "name": "idx_wallet_positions_wallet_active",
-          "columns": [
-            "wallet_id",
-            "active"
-          ],
+          "columns": ["wallet_id", "active"],
           "isUnique": false
         },
         "idx_wallet_positions_wallet_condition": {
           "name": "idx_wallet_positions_wallet_condition",
-          "columns": [
-            "wallet_id",
-            "condition_id"
-          ],
+          "columns": ["wallet_id", "condition_id"],
           "isUnique": false
         },
         "idx_wallet_positions_wallet_market": {
           "name": "idx_wallet_positions_wallet_market",
-          "columns": [
-            "wallet_id",
-            "market_id"
-          ],
+          "columns": ["wallet_id", "market_id"],
           "isUnique": false
         },
         "idx_wallet_positions_wallet_event": {
           "name": "idx_wallet_positions_wallet_event",
-          "columns": [
-            "wallet_id",
-            "event_id"
-          ],
+          "columns": ["wallet_id", "event_id"],
           "isUnique": false
         },
         "idx_wallet_positions_last_seen": {
           "name": "idx_wallet_positions_last_seen",
-          "columns": [
-            "last_seen_at"
-          ],
+          "columns": ["last_seen_at"],
           "isUnique": false
         }
       },
@@ -588,22 +550,15 @@
           "name": "wallet_positions_wallet_id_polymarket_wallets_id_fk",
           "tableFrom": "wallet_positions",
           "tableTo": "polymarket_wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "wallet_positions_wallet_id_position_id_pk": {
-          "columns": [
-            "wallet_id",
-            "position_id"
-          ],
+          "columns": ["wallet_id", "position_id"],
           "name": "wallet_positions_wallet_id_position_id_pk"
         }
       },
@@ -780,34 +735,22 @@
       "indexes": {
         "idx_wallet_trades_wallet_match_time": {
           "name": "idx_wallet_trades_wallet_match_time",
-          "columns": [
-            "wallet_id",
-            "match_time"
-          ],
+          "columns": ["wallet_id", "match_time"],
           "isUnique": false
         },
         "idx_wallet_trades_wallet_condition": {
           "name": "idx_wallet_trades_wallet_condition",
-          "columns": [
-            "wallet_id",
-            "condition_id"
-          ],
+          "columns": ["wallet_id", "condition_id"],
           "isUnique": false
         },
         "idx_wallet_trades_wallet_market": {
           "name": "idx_wallet_trades_wallet_market",
-          "columns": [
-            "wallet_id",
-            "market_id"
-          ],
+          "columns": ["wallet_id", "market_id"],
           "isUnique": false
         },
         "idx_wallet_trades_wallet_event": {
           "name": "idx_wallet_trades_wallet_event",
-          "columns": [
-            "wallet_id",
-            "event_id"
-          ],
+          "columns": ["wallet_id", "event_id"],
           "isUnique": false
         }
       },
@@ -816,22 +759,15 @@
           "name": "wallet_trades_wallet_id_polymarket_wallets_id_fk",
           "tableFrom": "wallet_trades",
           "tableTo": "polymarket_wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "wallet_trades_wallet_id_trade_id_pk": {
-          "columns": [
-            "wallet_id",
-            "trade_id"
-          ],
+          "columns": ["wallet_id", "trade_id"],
           "name": "wallet_trades_wallet_id_trade_id_pk"
         }
       },
@@ -945,9 +881,7 @@
       "indexes": {
         "idx_event_tags_tag_id": {
           "name": "idx_event_tags_tag_id",
-          "columns": [
-            "tag_id"
-          ],
+          "columns": ["tag_id"],
           "isUnique": false
         }
       },
@@ -956,22 +890,15 @@
           "name": "event_tags_event_id_events_id_fk",
           "tableFrom": "event_tags",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "event_tags_event_id_tag_id_pk": {
-          "columns": [
-            "event_id",
-            "tag_id"
-          ],
+          "columns": ["event_id", "tag_id"],
           "name": "event_tags_event_id_tag_id_pk"
         }
       },
@@ -1111,23 +1038,17 @@
       "indexes": {
         "idx_events_volume24hr": {
           "name": "idx_events_volume24hr",
-          "columns": [
-            "volume24hr"
-          ],
+          "columns": ["volume24hr"],
           "isUnique": false
         },
         "idx_events_active": {
           "name": "idx_events_active",
-          "columns": [
-            "active"
-          ],
+          "columns": ["active"],
           "isUnique": false
         },
         "idx_events_parent_event_id": {
           "name": "idx_events_parent_event_id",
-          "columns": [
-            "parent_event_id"
-          ],
+          "columns": ["parent_event_id"],
           "isUnique": false
         }
       },
@@ -1316,30 +1237,22 @@
       "indexes": {
         "idx_markets_event_id": {
           "name": "idx_markets_event_id",
-          "columns": [
-            "event_id"
-          ],
+          "columns": ["event_id"],
           "isUnique": false
         },
         "idx_markets_condition_id_unique": {
           "name": "idx_markets_condition_id_unique",
-          "columns": [
-            "condition_id"
-          ],
+          "columns": ["condition_id"],
           "isUnique": true
         },
         "idx_markets_clob_token_ids_0_unique": {
           "name": "idx_markets_clob_token_ids_0_unique",
-          "columns": [
-            "clob_token_ids_0"
-          ],
+          "columns": ["clob_token_ids_0"],
           "isUnique": true
         },
         "idx_markets_clob_token_ids_1_unique": {
           "name": "idx_markets_clob_token_ids_1_unique",
-          "columns": [
-            "clob_token_ids_1"
-          ],
+          "columns": ["clob_token_ids_1"],
           "isUnique": true
         }
       },
@@ -1348,12 +1261,8 @@
           "name": "markets_event_id_events_id_fk",
           "tableFrom": "markets",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1384,9 +1293,7 @@
       "indexes": {
         "idx_watchlist_created_at": {
           "name": "idx_watchlist_created_at",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -1395,12 +1302,8 @@
           "name": "watchlist_event_id_events_id_fk",
           "tableFrom": "watchlist",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1603,30 +1506,22 @@
       "indexes": {
         "idx_polymarket_wallets_default": {
           "name": "idx_polymarket_wallets_default",
-          "columns": [
-            "is_default"
-          ],
+          "columns": ["is_default"],
           "isUnique": false
         },
         "idx_polymarket_wallets_name": {
           "name": "idx_polymarket_wallets_name",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": false
         },
         "idx_polymarket_wallets_parent_wallet_id": {
           "name": "idx_polymarket_wallets_parent_wallet_id",
-          "columns": [
-            "parent_wallet_id"
-          ],
+          "columns": ["parent_wallet_id"],
           "isUnique": false
         },
         "idx_polymarket_wallets_initialization_status": {
           "name": "idx_polymarket_wallets_initialization_status",
-          "columns": [
-            "initialization_status"
-          ],
+          "columns": ["initialization_status"],
           "isUnique": false
         }
       },
@@ -1635,12 +1530,8 @@
           "name": "polymarket_wallets_parent_wallet_id_fk",
           "tableFrom": "polymarket_wallets",
           "tableTo": "polymarket_wallets",
-          "columnsFrom": [
-            "parent_wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1730,16 +1621,12 @@
       "indexes": {
         "idx_strategies_deleted_at": {
           "name": "idx_strategies_deleted_at",
-          "columns": [
-            "deleted_at"
-          ],
+          "columns": ["deleted_at"],
           "isUnique": false
         },
         "idx_strategies_name": {
           "name": "idx_strategies_name",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": false
         }
       },
@@ -1819,17 +1706,12 @@
       "indexes": {
         "idx_strategy_versions_strategy_id": {
           "name": "idx_strategy_versions_strategy_id",
-          "columns": [
-            "strategy_id"
-          ],
+          "columns": ["strategy_id"],
           "isUnique": false
         },
         "idx_strategy_versions_version": {
           "name": "idx_strategy_versions_version",
-          "columns": [
-            "strategy_id",
-            "version"
-          ],
+          "columns": ["strategy_id", "version"],
           "isUnique": false
         }
       },
@@ -1838,12 +1720,8 @@
           "name": "strategy_versions_strategy_id_strategies_id_fk",
           "tableFrom": "strategy_versions",
           "tableTo": "strategies",
-          "columnsFrom": [
-            "strategy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["strategy_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1984,52 +1862,37 @@
       "indexes": {
         "idx_strategy_bots_market_id": {
           "name": "idx_strategy_bots_market_id",
-          "columns": [
-            "market_id"
-          ],
+          "columns": ["market_id"],
           "isUnique": false
         },
         "idx_strategy_bots_name_unique": {
           "name": "idx_strategy_bots_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         },
         "idx_strategy_bots_event_id": {
           "name": "idx_strategy_bots_event_id",
-          "columns": [
-            "event_id"
-          ],
+          "columns": ["event_id"],
           "isUnique": false
         },
         "idx_strategy_bots_strategy_id": {
           "name": "idx_strategy_bots_strategy_id",
-          "columns": [
-            "strategy_id"
-          ],
+          "columns": ["strategy_id"],
           "isUnique": false
         },
         "idx_strategy_bots_wallet_id": {
           "name": "idx_strategy_bots_wallet_id",
-          "columns": [
-            "wallet_id"
-          ],
+          "columns": ["wallet_id"],
           "isUnique": false
         },
         "idx_strategy_bots_status": {
           "name": "idx_strategy_bots_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "idx_strategy_bots_auto_start": {
           "name": "idx_strategy_bots_auto_start",
-          "columns": [
-            "auto_start",
-            "enabled"
-          ],
+          "columns": ["auto_start", "enabled"],
           "isUnique": false
         }
       },
@@ -2038,12 +1901,8 @@
           "name": "strategy_bots_strategy_id_strategies_id_fk",
           "tableFrom": "strategy_bots",
           "tableTo": "strategies",
-          "columnsFrom": [
-            "strategy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["strategy_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2051,12 +1910,8 @@
           "name": "strategy_bots_wallet_id_polymarket_wallets_id_fk",
           "tableFrom": "strategy_bots",
           "tableTo": "polymarket_wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2116,16 +1971,12 @@
       "indexes": {
         "idx_strategy_run_logs_run_id": {
           "name": "idx_strategy_run_logs_run_id",
-          "columns": [
-            "run_id"
-          ],
+          "columns": ["run_id"],
           "isUnique": false
         },
         "idx_strategy_run_logs_time": {
           "name": "idx_strategy_run_logs_time",
-          "columns": [
-            "time"
-          ],
+          "columns": ["time"],
           "isUnique": false
         }
       },
@@ -2134,12 +1985,8 @@
           "name": "strategy_run_logs_run_id_strategy_runs_id_fk",
           "tableFrom": "strategy_run_logs",
           "tableTo": "strategy_runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2270,37 +2117,27 @@
       "indexes": {
         "idx_strategy_run_orders_run_id": {
           "name": "idx_strategy_run_orders_run_id",
-          "columns": [
-            "run_id"
-          ],
+          "columns": ["run_id"],
           "isUnique": false
         },
         "idx_strategy_run_orders_wallet_id": {
           "name": "idx_strategy_run_orders_wallet_id",
-          "columns": [
-            "wallet_id"
-          ],
+          "columns": ["wallet_id"],
           "isUnique": false
         },
         "idx_strategy_run_orders_market_id": {
           "name": "idx_strategy_run_orders_market_id",
-          "columns": [
-            "market_id"
-          ],
+          "columns": ["market_id"],
           "isUnique": false
         },
         "idx_strategy_run_orders_condition_id": {
           "name": "idx_strategy_run_orders_condition_id",
-          "columns": [
-            "condition_id"
-          ],
+          "columns": ["condition_id"],
           "isUnique": false
         },
         "idx_strategy_run_orders_submitted_at": {
           "name": "idx_strategy_run_orders_submitted_at",
-          "columns": [
-            "submitted_at"
-          ],
+          "columns": ["submitted_at"],
           "isUnique": false
         }
       },
@@ -2309,12 +2146,8 @@
           "name": "strategy_run_orders_run_id_strategy_runs_id_fk",
           "tableFrom": "strategy_run_orders",
           "tableTo": "strategy_runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2322,12 +2155,8 @@
           "name": "strategy_run_orders_wallet_id_polymarket_wallets_id_fk",
           "tableFrom": "strategy_run_orders",
           "tableTo": "polymarket_wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2335,12 +2164,8 @@
           "name": "strategy_run_orders_strategy_id_strategies_id_fk",
           "tableFrom": "strategy_run_orders",
           "tableTo": "strategies",
-          "columnsFrom": [
-            "strategy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["strategy_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2513,45 +2338,32 @@
       "indexes": {
         "idx_strategy_runs_market_status": {
           "name": "idx_strategy_runs_market_status",
-          "columns": [
-            "market_id",
-            "status"
-          ],
+          "columns": ["market_id", "status"],
           "isUnique": false
         },
         "idx_strategy_runs_event_id": {
           "name": "idx_strategy_runs_event_id",
-          "columns": [
-            "event_id"
-          ],
+          "columns": ["event_id"],
           "isUnique": false
         },
         "idx_strategy_runs_bot_id": {
           "name": "idx_strategy_runs_bot_id",
-          "columns": [
-            "bot_id"
-          ],
+          "columns": ["bot_id"],
           "isUnique": false
         },
         "idx_strategy_runs_strategy_id": {
           "name": "idx_strategy_runs_strategy_id",
-          "columns": [
-            "strategy_id"
-          ],
+          "columns": ["strategy_id"],
           "isUnique": false
         },
         "idx_strategy_runs_wallet_id": {
           "name": "idx_strategy_runs_wallet_id",
-          "columns": [
-            "wallet_id"
-          ],
+          "columns": ["wallet_id"],
           "isUnique": false
         },
         "idx_strategy_runs_started_at": {
           "name": "idx_strategy_runs_started_at",
-          "columns": [
-            "started_at"
-          ],
+          "columns": ["started_at"],
           "isUnique": false
         }
       },
@@ -2560,12 +2372,8 @@
           "name": "strategy_runs_bot_id_strategy_bots_id_fk",
           "tableFrom": "strategy_runs",
           "tableTo": "strategy_bots",
-          "columnsFrom": [
-            "bot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["bot_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2573,12 +2381,8 @@
           "name": "strategy_runs_strategy_id_strategies_id_fk",
           "tableFrom": "strategy_runs",
           "tableTo": "strategies",
-          "columnsFrom": [
-            "strategy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["strategy_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2586,12 +2390,8 @@
           "name": "strategy_runs_wallet_id_polymarket_wallets_id_fk",
           "tableFrom": "strategy_runs",
           "tableTo": "polymarket_wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2720,44 +2520,32 @@
       "indexes": {
         "idx_mcp_server_access_logs_request_id": {
           "name": "idx_mcp_server_access_logs_request_id",
-          "columns": [
-            "request_id"
-          ],
+          "columns": ["request_id"],
           "isUnique": false
         },
         "idx_mcp_server_access_logs_session_id": {
           "name": "idx_mcp_server_access_logs_session_id",
-          "columns": [
-            "session_id"
-          ],
+          "columns": ["session_id"],
           "isUnique": false
         },
         "idx_mcp_server_access_logs_rpc_method": {
           "name": "idx_mcp_server_access_logs_rpc_method",
-          "columns": [
-            "rpc_method"
-          ],
+          "columns": ["rpc_method"],
           "isUnique": false
         },
         "idx_mcp_server_access_logs_tool_name": {
           "name": "idx_mcp_server_access_logs_tool_name",
-          "columns": [
-            "tool_name"
-          ],
+          "columns": ["tool_name"],
           "isUnique": false
         },
         "idx_mcp_server_access_logs_created_at": {
           "name": "idx_mcp_server_access_logs_created_at",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "idx_mcp_server_access_logs_success": {
           "name": "idx_mcp_server_access_logs_success",
-          "columns": [
-            "success"
-          ],
+          "columns": ["success"],
           "isUnique": false
         }
       },
@@ -2898,35 +2686,23 @@
       "indexes": {
         "idx_workflow_tasks_idempotency_key_unique": {
           "name": "idx_workflow_tasks_idempotency_key_unique",
-          "columns": [
-            "idempotency_key"
-          ],
+          "columns": ["idempotency_key"],
           "isUnique": true,
           "where": "\"workflow_tasks\".\"idempotency_key\" IS NOT NULL"
         },
         "idx_workflow_tasks_due": {
           "name": "idx_workflow_tasks_due",
-          "columns": [
-            "status",
-            "next_run_at"
-          ],
+          "columns": ["status", "next_run_at"],
           "isUnique": false
         },
         "idx_workflow_tasks_type_status": {
           "name": "idx_workflow_tasks_type_status",
-          "columns": [
-            "type",
-            "status"
-          ],
+          "columns": ["type", "status"],
           "isUnique": false
         },
         "idx_workflow_tasks_group_status": {
           "name": "idx_workflow_tasks_group_status",
-          "columns": [
-            "group_key",
-            "status",
-            "next_run_at"
-          ],
+          "columns": ["group_key", "status", "next_run_at"],
           "isUnique": false
         }
       },

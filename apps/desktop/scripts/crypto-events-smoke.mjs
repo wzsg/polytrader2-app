@@ -2,7 +2,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
-import { closeDb, createSqliteEventRepository, createSqliteMetaRepository, initDb } from '@polytrader/sqlite-repository';
+import {
+  closeDb,
+  createSqliteEventRepository,
+  createSqliteMetaRepository,
+  initDb,
+} from '@polytrader/sqlite-repository';
 import { KvStore } from '@polytrader/kv-store';
 import { PolymarketMarketService } from '@polytrader/polymarket-market';
 
@@ -38,7 +43,10 @@ function parseArgs(argv) {
       options.migrationsFolder = path.resolve(next);
       i += 1;
     } else if (arg === '--tag-ids' && next) {
-      options.tagIds = next.split(',').map((id) => id.trim()).filter(Boolean);
+      options.tagIds = next
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
       i += 1;
     } else if (arg === '--iterations' && next) {
       options.iterations = Math.max(1, Number.parseInt(next, 10) || options.iterations);
@@ -296,8 +304,12 @@ async function main() {
     printResult(result);
   }
 
-  const cryptoResult = results.find((result) => result.label === 'service.listCryptoEvents')?.lastValue;
-  const normalEvents = results.find((result) => result.label === 'repo.listEvents normal params')?.lastValue;
+  const cryptoResult = results.find(
+    (result) => result.label === 'service.listCryptoEvents',
+  )?.lastValue;
+  const normalEvents = results.find(
+    (result) => result.label === 'repo.listEvents normal params',
+  )?.lastValue;
   if (cryptoResult) {
     console.log('');
     console.log('Crypto result shape:');

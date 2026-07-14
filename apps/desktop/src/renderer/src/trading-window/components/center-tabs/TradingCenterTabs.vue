@@ -36,6 +36,7 @@ defineProps<{
   tokenOutcomes: MarketOutcome[];
   holders: HolderGroup[];
   cryptoTick: TradingMarketSnapshot['cryptoTick'];
+  binanceKline: TradingMarketSnapshot['binanceKline'];
   priceHistory: Record<string, PriceHistoryPoint[]>;
   priceHistoryLoading: boolean;
   priceHistoryRange: PriceHistoryRange;
@@ -140,6 +141,7 @@ function centerTabCount(tab: CenterTab): string | number | null {
               :market-id="marketId"
               :token-outcomes="tokenOutcomes"
               :crypto-tick="cryptoTick"
+              :binance-kline="binanceKline"
               :price-history="priceHistory"
               :price-history-loading="priceHistoryLoading"
               :price-history-range="priceHistoryRange"

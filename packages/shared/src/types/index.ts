@@ -1005,6 +1005,47 @@ export interface TradingRuntimeCryptoTickState {
   updatedAt: string | null;
 }
 
+type BinanceKlineVenue = 'spot' | 'usdm-futures';
+
+interface BinanceKline {
+  source: 'binance';
+  venue: BinanceKlineVenue;
+  symbol: string;
+  interval: '1m' | '1h';
+  openTime: string;
+  closeTime: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  closed: boolean;
+}
+
+interface BinanceTradeTick {
+  source: 'binance';
+  venue: BinanceKlineVenue;
+  symbol: string;
+  price: string;
+  quantity: string;
+  tradeTime: string;
+}
+
+interface TradingRuntimeBinanceKlineState {
+  enabled: boolean;
+  source: 'binance';
+  venue: BinanceKlineVenue;
+  symbol: string;
+  status: TradingRuntimeCryptoTickStatus;
+  referenceStartTime: string | null;
+  referenceEndTime: string | null;
+  candles: BinanceKline[];
+  referenceCandle: BinanceKline | null;
+  latestTrade: BinanceTradeTick | null;
+  error: string;
+  updatedAt: string | null;
+}
+
 export interface TradingMarketSnapshot {
   marketId: string;
   eventId: string;
@@ -1020,6 +1061,7 @@ export interface TradingMarketSnapshot {
   wsStatus: TradingRuntimeWsStatus;
   priceHistory: Record<string, PriceHistoryPoint[]>;
   cryptoTick: TradingRuntimeCryptoTickState | null;
+  binanceKline: TradingRuntimeBinanceKlineState | null;
   marketTrades: TradingRuntimeMarketTradeState;
   updatedAt: string | null;
 }
@@ -1075,6 +1117,11 @@ export interface TradingMarketCryptoTickEvent {
   cryptoTick: TradingRuntimeCryptoTickState | null;
 }
 
+interface TradingMarketBinanceKlineEvent {
+  marketId: string;
+  binanceKline: TradingRuntimeBinanceKlineState | null;
+}
+
 export interface TradingMarketEventMap {
   'runtime-snapshot': TradingMarketSnapshotEvent;
   'runtime-status': TradingMarketStatusEvent;
@@ -1085,6 +1132,7 @@ export interface TradingMarketEventMap {
   'price-history-updated': TradingMarketPriceHistoryUpdatedEvent;
   'market-trades-state': TradingMarketTradesEvent;
   'crypto-tick': TradingMarketCryptoTickEvent;
+  'binance-kline': TradingMarketBinanceKlineEvent;
 }
 
 export type TradingMarketEventName = keyof TradingMarketEventMap & string;
@@ -1272,6 +1320,15 @@ export type {
   TradingAccountPositionSplitInput,
 } from './tradingPosition.js';
 
-export type { EventSyncTrigger, TradingAccountDataEvent, TradingAccountDataQuery };
+export type {
+  BinanceKline,
+  BinanceKlineVenue,
+  BinanceTradeTick,
+  EventSyncTrigger,
+  TradingAccountDataEvent,
+  TradingAccountDataQuery,
+  TradingMarketBinanceKlineEvent,
+  TradingRuntimeBinanceKlineState,
+};
 
 export { POLYMARKET_WALLET_LIMIT };

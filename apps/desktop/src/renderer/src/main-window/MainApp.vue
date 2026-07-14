@@ -10,6 +10,7 @@ import type {
 import { Download } from '@lucide/vue';
 import AuthAccountPanel from './components/AuthAccountPanel.vue';
 import CloseConfirmDialog from './components/CloseConfirmDialog.vue';
+import UpdateConfirmDialog from './components/UpdateConfirmDialog.vue';
 import Sidebar from './components/Sidebar.vue';
 import EventMarketsPanel from './components/EventMarketsPanel.vue';
 import WalletsView from './views/WalletsView.vue';
@@ -46,6 +47,7 @@ const cryptoEventsRef = ref<ReloadableListView | null>(null);
 const sportsEventsRef = ref<ReloadableListView | null>(null);
 const esportsEventsRef = ref<ReloadableListView | null>(null);
 const closeConfirmOpen = ref(false);
+const updateConfirmOpen = ref(false);
 const developerModeEnabled = ref(false);
 const appVersion = `v${__APP_VERSION__}`;
 const appUpdateState = ref<AppUpdateState>({ status: 'idle', version: null });
@@ -79,6 +81,11 @@ const eventPanelVisible = computed(
 const updateReady = computed(
   () => appUpdateState.value.status === 'downloaded' && !!appUpdateState.value.version,
 );
+const newAppVersion = computed(() => {
+  const version = appUpdateState.value.version;
+  if (!version) return '';
+  return version.startsWith('v') ? version : `v${version}`;
+});
 
 const { syncState, syncStatus, setupSync, toggleSync } = useSync(async () => {
   if (activeNav.value === 'events') {
@@ -235,8 +242,18 @@ async function confirmClose(): Promise<void> {
   await window.api.confirmMainWindowClose();
 }
 
-async function installAppUpdate(): Promise<void> {
+function requestAppUpdateInstallation(): void {
   if (!updateReady.value || updateInstallRequested.value) return;
+  updateConfirmOpen.value = true;
+}
+
+function cancelAppUpdateInstallation(): void {
+  updateConfirmOpen.value = false;
+}
+
+async function confirmAppUpdateInstallation(): Promise<void> {
+  if (!updateReady.value || updateInstallRequested.value) return;
+  updateConfirmOpen.value = false;
   updateInstallRequested.value = true;
   try {
     const started = await window.api.installAppUpdate();
@@ -256,7 +273,10 @@ onMounted(async () => {
   appUpdateState.value = await window.api.getAppUpdateState();
   unsubscribeAppUpdate = window.api.onAppUpdateStateChanged((state) => {
     appUpdateState.value = state;
-    if (state.status !== 'downloaded') updateInstallRequested.value = false;
+    if (state.status !== 'downloaded') {
+      updateConfirmOpen.value = false;
+      updateInstallRequested.value = false;
+    }
   });
   developerModeEnabled.value = (await window.api.getDeveloperModeConfig()).enabled;
   setupSync();
@@ -287,7 +307,7 @@ onUnmounted(() => {
               version: appUpdateState.version,
             })
           "
-          @click.stop="installAppUpdate"
+          @click.stop="requestAppUpdateInstallation"
           @dblclick.stop
         >
           <Download :size="11" :stroke-width="2" />
@@ -373,6 +393,13 @@ onUnmounted(() => {
       :open="closeConfirmOpen"
       @cancel="cancelCloseConfirm"
       @confirm="confirmClose"
+    />
+    <UpdateConfirmDialog
+      :open="updateConfirmOpen"
+      :current-version="appVersion"
+      :new-version="newAppVersion"
+      @cancel="cancelAppUpdateInstallation"
+      @confirm="confirmAppUpdateInstallation"
     />
     <AuthAccountPanel
       :open="authPanelOpen"

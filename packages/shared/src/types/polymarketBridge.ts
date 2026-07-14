@@ -7,7 +7,7 @@ interface PolymarketBridgeAddressSet {
   evm?: string;
   svm?: string;
   btc?: string;
-  tvm?: string;
+  tron?: string;
 }
 
 interface PolymarketBridgeChain {

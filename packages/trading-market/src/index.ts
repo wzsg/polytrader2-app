@@ -3,6 +3,7 @@ export { TRADING_MARKET_RUNTIME_EVENT_NAMES } from './tradingMarketRuntimeEvents
 export { TradingMarketRuntimeImpl } from './tradingMarketRuntime.js';
 export { TradingMarketServiceImpl } from './tradingMarketService.js';
 export { createTradingCryptoTickClient } from './crypto-tick/index.js';
+export { createTradingBinanceKlineClient } from './binance-kline/index.js';
 
 export type {
   TradingMarketRuntimeEvent,
@@ -30,3 +31,10 @@ export type {
   TradingCryptoTickClientOptions,
   TradingCryptoTickStartInput,
 } from './crypto-tick/index.js';
+export type {
+  BinanceKlineMarketWindow,
+  TradingBinanceKlineClient,
+  TradingBinanceKlineClientFactory,
+  TradingBinanceKlineClientOptions,
+  TradingBinanceKlineStartInput,
+} from './binance-kline/index.js';

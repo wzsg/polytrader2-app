@@ -211,7 +211,8 @@ class TradingCryptoTickClientImpl
     try {
       const displayStartMs = this._parseTime(input.window.displayStartTime);
       const displayEndMs = this._parseTime(input.window.displayEndTime);
-      if (!displayStartMs || !displayEndMs) throw new Error('Crypto tick display window is required');
+      if (!displayStartMs || !displayEndMs)
+        throw new Error('Crypto tick display window is required');
       const start = Math.floor(displayStartMs / 1000);
       const end = Math.floor(displayEndMs / 1000);
       const ticks = await this._fetchRange(input.symbol, start, end);
@@ -386,10 +387,7 @@ class TradingCryptoTickClientImpl
     }, this._reconnectDelayMs);
   }
 
-  private _scheduleDisplayEndStop(
-    input: TradingCryptoTickStartInput,
-    connectionId: number,
-  ): void {
+  private _scheduleDisplayEndStop(input: TradingCryptoTickStartInput, connectionId: number): void {
     this._clearDisplayEndTimer();
     const displayEndMs = this._parseTime(input.window.displayEndTime);
     if (!displayEndMs) return;

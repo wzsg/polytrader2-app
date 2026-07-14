@@ -15,6 +15,7 @@ import type {
   TradingRuntimeConnectionStatus,
   TradingMarketSnapshot,
   TradingWindowInput,
+  TradingRuntimeBinanceKlineState,
   TradingRuntimeCryptoTickState,
 } from '@polytrader/shared';
 import { EventEmitter } from 'events';
@@ -23,11 +24,14 @@ import { TradingMarketTradeService } from './trade/tradingMarketTradeService.js'
 import { TradingMarketPriceHistoryService } from './price-history/index.js';
 import { createTradingCryptoTickClient } from './crypto-tick/index.js';
 import { resolveCryptoTickStartInput } from './crypto-tick/tradingCryptoTickMetadata.js';
+import { createTradingBinanceKlineClient } from './binance-kline/index.js';
+import { resolveBinanceKlineStartInput } from './binance-kline/tradingBinanceKlineMetadata.js';
 import { TRADING_MARKET_RUNTIME_EVENT_NAMES } from './tradingMarketRuntimeEvents.js';
 import type { TradingMarketRuntime, TradingMarketServiceOptions } from './types.js';
 import type { TradingMarketRuntimeEventMap } from './tradingMarketRuntimeEvents.js';
 import type { OrderBookWebSocketClient } from './order-book/index.js';
 import type { TradingCryptoTickClient } from './crypto-tick/index.js';
+import type { TradingBinanceKlineClient } from './binance-kline/index.js';
 import type { TradingMarketPriceHistoryUpdatedEvent } from './price-history/index.js';
 import type {
   TradingMarketTradeStateResult,
@@ -62,6 +66,7 @@ class TradingMarketRuntimeImpl
   private _marketDetail: MarketDetailData | null = null;
   private _priceHistory: TradingMarketSnapshot['priceHistory'] = {};
   private _cryptoTick: TradingRuntimeCryptoTickState | null = null;
+  private _binanceKline: TradingRuntimeBinanceKlineState | null = null;
   private _marketTrades: TradingRuntimeMarketTradeState;
   private _status: SessionStatus;
   private _errors: TradingMarketSnapshot['errors'] = {};
@@ -69,6 +74,8 @@ class TradingMarketRuntimeImpl
   private _orderbook: OrderBookWebSocketClient | null = null;
   private _cryptoTickService: TradingCryptoTickClient | null = null;
   private _cryptoTickKey = '';
+  private _binanceKlineService: TradingBinanceKlineClient | null = null;
+  private _binanceKlineKey = '';
   private _detailRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private _detailRefreshInFlight = false;
   private _orderBookEventTimer: ReturnType<typeof setTimeout> | null = null;
@@ -114,6 +121,7 @@ class TradingMarketRuntimeImpl
       this._refreshMarketDetail({ startOrderBook: options.startOrderBook !== false }),
     ]);
     this._syncCryptoTickService();
+    this._syncBinanceKlineService();
 
     const tasks: Array<Promise<void>> = [];
     if (options.loadPriceHistory !== false) {
@@ -174,6 +182,7 @@ class TradingMarketRuntimeImpl
       wsStatus: orderbookSnapshot.wsStatus,
       priceHistory: { ...this._priceHistory },
       cryptoTick: this._cloneCryptoTickState(this._cryptoTick),
+      binanceKline: this._cloneBinanceKlineState(this._binanceKline),
       marketTrades: {
         ...this._marketTrades,
         recent: this._marketTrades.recent
@@ -210,6 +219,9 @@ class TradingMarketRuntimeImpl
     this._cryptoTickService?.dispose();
     this._cryptoTickService = null;
     this._cryptoTick = null;
+    this._binanceKlineService?.dispose();
+    this._binanceKlineService = null;
+    this._binanceKline = null;
   }
 
   public async loadPriceHistory(
@@ -354,6 +366,7 @@ class TradingMarketRuntimeImpl
       this._emitEvent('market-detail', { marketId: this._marketId, data: detail });
       if (options.startOrderBook) this._startOrderBook();
       this._syncCryptoTickService();
+      this._syncBinanceKlineService();
       this._ensureMarketDetailRefreshTimer();
     } catch (error) {
       if (!this._isCurrent('marketDetail', seq)) return;
@@ -452,6 +465,58 @@ class TradingMarketRuntimeImpl
     this._emitEvent('crypto-tick', { marketId: this._marketId, cryptoTick: null });
   }
 
+  private _syncBinanceKlineService(): void {
+    const input = resolveBinanceKlineStartInput({
+      marketId: this._marketId,
+      metadata: this._metadata,
+      event: this._event,
+      marketDetail: this._marketDetail,
+    });
+    if (!input) {
+      this._disposeBinanceKlineService();
+      return;
+    }
+
+    const key = [
+      input.marketId,
+      input.venue,
+      input.symbol,
+      input.window.closed ? 'closed' : 'live',
+      input.window.startTime,
+      input.window.endTime,
+    ].join('|');
+    if (!this._binanceKlineService) {
+      this._binanceKlineService =
+        this._options.binanceKlineFactory?.() ?? createTradingBinanceKlineClient();
+      this._binanceKlineService.on('binance-kline-changed', (state) => {
+        const previousStatus = this._binanceKline?.status ?? null;
+        this._binanceKline = this._cloneBinanceKlineState(state);
+        this._updatedAt = this._now();
+        this._emitEvent('binance-kline', {
+          marketId: this._marketId,
+          binanceKline: this._cloneBinanceKlineState(state),
+        });
+        if (previousStatus === 'loading' && state.status !== 'loading') this._emitSnapshot();
+      });
+    }
+    if (this._binanceKlineKey === key) {
+      this._binanceKline = this._cloneBinanceKlineState(this._binanceKlineService.snapshot());
+      return;
+    }
+    this._binanceKlineKey = key;
+    this._binanceKlineService.start(input);
+    this._binanceKline = this._cloneBinanceKlineState(this._binanceKlineService.snapshot());
+  }
+
+  private _disposeBinanceKlineService(): void {
+    if (!this._binanceKlineService && !this._binanceKline) return;
+    this._binanceKlineService?.dispose();
+    this._binanceKlineService = null;
+    this._binanceKlineKey = '';
+    this._binanceKline = null;
+    this._emitEvent('binance-kline', { marketId: this._marketId, binanceKline: null });
+  }
+
   private _cloneCryptoTickState(
     state: TradingRuntimeCryptoTickState | null,
   ): TradingRuntimeCryptoTickState | null {
@@ -460,6 +525,18 @@ class TradingMarketRuntimeImpl
       ...state,
       ticks: state.ticks.map((tick) => ({ ...tick })),
       latestTick: state.latestTick ? { ...state.latestTick } : null,
+    };
+  }
+
+  private _cloneBinanceKlineState(
+    state: TradingRuntimeBinanceKlineState | null,
+  ): TradingRuntimeBinanceKlineState | null {
+    if (!state) return null;
+    return {
+      ...state,
+      candles: state.candles.map((candle) => ({ ...candle })),
+      referenceCandle: state.referenceCandle ? { ...state.referenceCandle } : null,
+      latestTrade: state.latestTrade ? { ...state.latestTrade } : null,
     };
   }
 

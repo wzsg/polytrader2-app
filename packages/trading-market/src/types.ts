@@ -20,6 +20,7 @@ import type {
   TradingMarketTradeRepositoryFactory,
 } from './trade/tradingMarketTradeService.js';
 import type { TradingCryptoTickClientFactory } from './crypto-tick/index.js';
+import type { TradingBinanceKlineClientFactory } from './binance-kline/index.js';
 
 interface TradingMarketRuntimeApiClient extends TradingMarketPriceHistoryApiClient {
   fetchEventById(eventId: string): Promise<GammaEventRaw>;
@@ -33,6 +34,7 @@ interface TradingMarketServiceOptions {
   marketTradeSync: TradingMarketRuntimeTradeSync;
   orderbookFactory?: (marketId: string) => OrderBookWebSocketClient;
   cryptoTickFactory?: TradingCryptoTickClientFactory;
+  binanceKlineFactory?: TradingBinanceKlineClientFactory;
   cleanupDelayMs?: number;
 }
 

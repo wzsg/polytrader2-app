@@ -22,6 +22,7 @@ const {
   cancelOrders,
   cancelingOrderIds,
   conditionId,
+  binanceKline,
   cryptoTick,
   defaultMarketTrades,
   defaultMarketTradesSyncStatus,
@@ -239,6 +240,7 @@ const {
             :token-outcomes="tokenOutcomes"
             :holders="holders"
             :crypto-tick="cryptoTick"
+            :binance-kline="binanceKline"
             :price-history="priceHistory"
             :price-history-loading="priceHistoryLoading"
             :default-market-trades="defaultMarketTrades"

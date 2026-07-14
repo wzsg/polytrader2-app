@@ -57,6 +57,7 @@ const referenceLines = ref<
 >([]);
 let resizeObserver: ResizeObserver | null = null;
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
+let referenceLineFrame: number | null = null;
 const nowMs = ref(Date.now());
 
 const sortedTicks = computed(() =>
@@ -285,7 +286,8 @@ function findReferencePrice(referenceTime: string | null): string {
 function tickPointColor(tickMs: number): string {
   const startMs = parseDateMs(props.cryptoTick.referenceStartTime);
   const endMs = parseDateMs(props.cryptoTick.referenceEndTime);
-  if ((startMs && tickMs < startMs) || (endMs && tickMs > endMs)) return TICK_LINE_OUTSIDE_COLOR;
+  // A LineData color applies to the segment that starts at that point.
+  if ((startMs && tickMs < startMs) || (endMs && tickMs >= endMs)) return TICK_LINE_OUTSIDE_COLOR;
   return tickLineColor.value;
 }
 
@@ -369,7 +371,7 @@ function initChart(): void {
     crosshairMarkerRadius: 4,
   });
   chart.value.subscribeCrosshairMove(handleCrosshairMove);
-  chart.value.timeScale().subscribeVisibleTimeRangeChange(updateReferenceLines);
+  chart.value.timeScale().subscribeVisibleTimeRangeChange(scheduleReferenceLinesUpdate);
   renderChart();
 }
 
@@ -393,7 +395,7 @@ function renderChart(): void {
   updateSeriesOptions();
   series.value.setData(buildLineData());
   applyDisplayRange();
-  updateReferenceLines();
+  scheduleReferenceLinesUpdate();
 }
 
 function applyDisplayRange(): void {
@@ -414,7 +416,17 @@ function resizeChart(): void {
   if (!chart.value || !chartEl.value) return;
   const { clientWidth, clientHeight } = chartEl.value;
   chart.value.resize(Math.max(1, clientWidth), Math.max(1, clientHeight));
-  updateReferenceLines();
+  scheduleReferenceLinesUpdate();
+}
+
+function scheduleReferenceLinesUpdate(): void {
+  if (referenceLineFrame !== null) cancelAnimationFrame(referenceLineFrame);
+  referenceLineFrame = requestAnimationFrame(() => {
+    referenceLineFrame = requestAnimationFrame(() => {
+      referenceLineFrame = null;
+      updateReferenceLines();
+    });
+  });
 }
 
 function updateReferenceLines(): void {
@@ -477,8 +489,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (countdownTimer) clearInterval(countdownTimer);
+  if (referenceLineFrame !== null) cancelAnimationFrame(referenceLineFrame);
+  referenceLineFrame = null;
   resizeObserver?.disconnect();
-  chart.value?.timeScale().unsubscribeVisibleTimeRangeChange(updateReferenceLines);
+  chart.value?.timeScale().unsubscribeVisibleTimeRangeChange(scheduleReferenceLinesUpdate);
   chart.value?.remove();
   chart.value = null;
   series.value = null;

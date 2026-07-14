@@ -50,12 +50,7 @@ class TradingMarketPriceHistoryService extends EventEmitter<TradingMarketPriceHi
     }
 
     const tokenIdsToRefresh = this._normalizeTokenIds([...staleTokenIds, ...incompleteTokenIds]);
-    await this._startRefreshTask(
-      context,
-      context.priorityFidelity,
-      tokenIdsToRefresh,
-      false,
-    );
+    await this._startRefreshTask(context, context.priorityFidelity, tokenIdsToRefresh, false);
     return {
       priceHistory: await context.repository.listPriceHistory(query),
       error: '',

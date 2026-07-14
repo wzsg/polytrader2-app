@@ -15,11 +15,13 @@ import {
 import OutcomePriceChart from './OutcomePriceChart.vue';
 import TradingOrderBookPanel from './TradingOrderBookPanel.vue';
 import CryptoTickPanel from './CryptoTickPanel.vue';
+import BinanceKlinePanel from './BinanceKlinePanel.vue';
 
 defineProps<{
   marketId: string;
   tokenOutcomes: MarketOutcome[];
   cryptoTick: TradingMarketSnapshot['cryptoTick'];
+  binanceKline: TradingMarketSnapshot['binanceKline'];
   priceHistory: Record<string, PriceHistoryPoint[]>;
   priceHistoryLoading: boolean;
   priceHistoryRange: PriceHistoryRange;
@@ -38,7 +40,11 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex flex-col gap-4">
-    <div v-if="cryptoTick?.enabled" class="h-[420px] shrink-0 overflow-hidden">
+    <div v-if="binanceKline?.enabled" class="h-[420px] shrink-0 overflow-hidden">
+      <BinanceKlinePanel :binance-kline="binanceKline" />
+    </div>
+
+    <div v-else-if="cryptoTick?.enabled" class="h-[420px] shrink-0 overflow-hidden">
       <CryptoTickPanel :crypto-tick="cryptoTick" />
     </div>
 
