@@ -285,7 +285,7 @@ onUnmounted(() => {
       >
         <option value="">{{ t('tradingWindow.allOutcomes') }}</option>
         <option v-for="outcome in outcomes" :key="outcome.tokenId" :value="outcome.label">
-          {{ outcome.label }}
+          {{ outcome.displayLabel }}
         </option>
       </select>
 

@@ -10,7 +10,7 @@ const apiClient = PolymarketApiClient.getInstance();
 
 const tradingMarketService = createTradingMarketService({
   apiClient: {
-    fetchEventById: apiClient.fetchEventById.bind(apiClient),
+    fetchEventDetail: polymarketMarketService.fetchEventDetail.bind(polymarketMarketService),
     fetchMarketDetail: polymarketMarketService.fetchMarketDetail.bind(polymarketMarketService),
     streamPriceHistory: apiClient.streamPriceHistory.bind(apiClient),
   },

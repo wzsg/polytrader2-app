@@ -275,7 +275,14 @@ class OrderBookWebSocketClientImpl
     if (existing) return { ...existing, bids: [...existing.bids], asks: [...existing.asks] };
     const outcome = this._outcomes.find((item) => item.tokenId === tokenId);
     return this._createEmptyBook(
-      outcome ?? { tokenId, label: tokenId, price: null, tickSize: null, minOrderSize: null },
+      outcome ?? {
+        tokenId,
+        label: tokenId,
+        displayLabel: tokenId,
+        price: null,
+        tickSize: null,
+        minOrderSize: null,
+      },
     );
   }
 
@@ -317,7 +324,7 @@ class OrderBookWebSocketClientImpl
   private _createEmptyBook(outcome: MarketOutcome, meta: Partial<OrderBook> = {}): OrderBook {
     return {
       tokenId: outcome.tokenId,
-      label: outcome.label,
+      label: outcome.displayLabel,
       bids: [],
       asks: [],
       tickSize: meta.tickSize ?? outcome.tickSize ?? null,

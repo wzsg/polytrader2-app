@@ -23,7 +23,7 @@ import type { TradingCryptoTickClientFactory } from './crypto-tick/index.js';
 import type { TradingBinanceKlineClientFactory } from './binance-kline/index.js';
 
 interface TradingMarketRuntimeApiClient extends TradingMarketPriceHistoryApiClient {
-  fetchEventById(eventId: string): Promise<GammaEventRaw>;
+  fetchEventDetail(eventId: string): Promise<GammaEventRaw>;
   fetchMarketDetail(marketId: string): Promise<MarketDetailData>;
 }
 

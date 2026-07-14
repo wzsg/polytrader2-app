@@ -279,7 +279,7 @@ async function submitOrder(): Promise<void> {
           "
           @click="tokenId = item.tokenId"
         >
-          {{ item.label }}
+          {{ item.displayLabel }}
         </button>
       </div>
 

@@ -82,7 +82,7 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   }
 
   public fetchMarketDetail(marketId: string): Promise<MarketDetailData> {
-    return this._detailService.fetchMarketDetail(marketId);
+    return this._detailService.fetchMarketDetail(marketId, this._locale);
   }
 
   public fetchEventDetail(eventId: string): Promise<GammaEventRaw> {

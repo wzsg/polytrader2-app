@@ -226,7 +226,7 @@ function ensureSeries(): void {
       crosshairMarkerRadius: 4,
     });
     seriesByToken.set(outcome.tokenId, series);
-    seriesMeta.set(series, { label: outcome.label, color });
+    seriesMeta.set(series, { label: outcome.displayLabel, color });
   }
 }
 
@@ -380,7 +380,7 @@ watch(
               class="h-2 w-2 shrink-0 rounded-full"
               :style="{ backgroundColor: getOutcomeColor(index) }"
             />
-            <span class="text-muted-light max-w-32 truncate">{{ outcome.label }}</span>
+            <span class="text-muted-light max-w-32 truncate">{{ outcome.displayLabel }}</span>
           </span>
         </div>
       </div>
