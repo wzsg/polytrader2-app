@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { Minus, Plus } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
+import { priceCentsDigitsForTick, priceCentsStepForTick } from '@polytrader/shared';
 
 const props = defineProps<{
   modelValue: string;
@@ -16,12 +17,7 @@ const { t } = useI18n();
 
 const inputValue = ref('');
 const focused = ref(false);
-const digits = computed(() => {
-  const tickSize = Number(props.tickSize);
-  if (tickSize === 0.0001) return 2;
-  if (tickSize === 0.001) return 1;
-  return 0;
-});
+const digits = computed(() => priceCentsDigitsForTick(props.tickSize) ?? 0);
 const inputMode = computed(() => (digits.value === 0 ? 'numeric' : 'decimal'));
 const placeholder = computed(() => {
   if (digits.value === 0) return '0';
@@ -29,11 +25,7 @@ const placeholder = computed(() => {
   return '0.00';
 });
 const activePlaceholder = computed(() => (focused.value ? '' : placeholder.value));
-const stepValue = computed(() => {
-  if (digits.value === 0) return 1;
-  if (digits.value === 1) return 0.1;
-  return 0.01;
-});
+const stepValue = computed(() => priceCentsStepForTick(props.tickSize) ?? 1);
 const maxCents = computed(() => 100 - stepValue.value);
 const displayText = computed(() => inputValue.value || activePlaceholder.value);
 const showCentsSuffix = computed(() => displayText.value || focused.value);
@@ -78,9 +70,13 @@ function stepUp(): void {
 
 function stepInput(direction: 1 | -1): void {
   const currentCents = Number(inputValue.value) || 0;
+  const currentStepIndex =
+    direction === 1
+      ? Math.floor(currentCents / stepValue.value)
+      : Math.ceil(currentCents / stepValue.value);
   const nextCents = Math.min(
     maxCents.value,
-    Math.max(0, currentCents + direction * stepValue.value),
+    Math.max(0, (currentStepIndex + direction) * stepValue.value),
   );
   if (nextCents <= 0) {
     clearInput();

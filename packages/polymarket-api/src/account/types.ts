@@ -3,6 +3,7 @@ import type {
   ClobOrder,
   ClobTrade,
   DataPosition,
+  SupportedPriceTickSize,
   StrategyPlaceOrderInput,
 } from '@polytrader/shared';
 import type {
@@ -14,7 +15,7 @@ import type {
   PolymarketRelayerTransferPusdInput,
 } from '../relayer/index.js';
 
-type TickSize = '0.1' | '0.01' | '0.001' | '0.0001';
+type TickSize = SupportedPriceTickSize;
 
 interface PolymarketWalletCredentials {
   id?: string;

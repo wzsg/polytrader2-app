@@ -11,6 +11,7 @@ import type {
   StrategyPlaceOrderInput,
   StrategyRunOrderRecord,
 } from '@polytrader/shared';
+import { normalizePriceTickSize } from '@polytrader/shared';
 import type {
   TradingAccountOrderTradingEvent,
   TradingAccountOrderTradingEventMap,
@@ -113,8 +114,6 @@ interface TradingAccountOrderLocalPlaceResult {
 type TradingAccountOrderResolvedPlaceInput = StrategyPlaceOrderInput & {
   conditionId: string;
 };
-
-const TICK_SIZES = new Set<string>(['0.1', '0.01', '0.001', '0.0001']);
 
 class TradingAccountOrderServiceImpl
   extends EventEmitter<TradingAccountOrderTradingEventMap>
@@ -491,8 +490,8 @@ class TradingAccountOrderServiceImpl
 
   private _normalizeTickSize(value: unknown): string | undefined {
     if (value == null) return undefined;
-    const normalized = Number(value).toString();
-    if (TICK_SIZES.has(normalized)) return normalized;
+    const normalized = normalizePriceTickSize(value);
+    if (normalized != null) return normalized;
     throw new Error(`Unsupported tick size: ${String(value)}`);
   }
 

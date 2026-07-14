@@ -68,8 +68,7 @@ async function copyMessage(message: string): Promise<void> {
         <div class="px-5 py-4">
           <pre
             class="selectable-text border-border bg-bg text-text max-h-[260px] overflow-auto rounded-md border p-3 text-xs leading-relaxed whitespace-pre-wrap"
-            >{{ message }}</pre
-          >
+            >{{ message }}</pre>
         </div>
 
         <footer class="border-border flex justify-end gap-2 border-t px-5 py-4">

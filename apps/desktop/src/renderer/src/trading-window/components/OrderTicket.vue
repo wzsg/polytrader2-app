@@ -18,6 +18,7 @@ import type {
   StrategyOrderSide,
   PolymarketWalletSummary,
 } from '@polytrader/shared';
+import { isPriceAlignedToTick, normalizePriceTickSize } from '@polytrader/shared';
 
 const props = defineProps<{
   outcomes: MarketOutcome[];
@@ -129,6 +130,12 @@ const limitBuyMinimumShares = computed(() => {
   return Number.isFinite(value) && value > 0 ? value : null;
 });
 const orderValidationError = computed(() => {
+  if (orderType.value === 'limit' && price.value) {
+    const tickSize = normalizePriceTickSize(selectedOrderBook.value?.tickSize);
+    if (tickSize != null && !isPriceAlignedToTick(price.value, tickSize)) {
+      return t('tradingWindow.limitPriceTickSize', { tickSize });
+    }
+  }
   const minimumShares = limitBuyMinimumShares.value;
   if (minimumShares == null) return '';
   const currentShares = Number(shares.value);
@@ -196,6 +203,8 @@ function createOrderId(): string {
 }
 
 function buildInput(orderId: string): ManualPlaceOrderInput {
+  const tickSize = Number(selectedOrderBook.value?.tickSize);
+  const normalizedTickSize = Number.isFinite(tickSize) && tickSize > 0 ? tickSize : undefined;
   if (orderType.value === 'limit') {
     return {
       walletId: currentAccountId.value,
@@ -206,7 +215,7 @@ function buildInput(orderId: string): ManualPlaceOrderInput {
         orderType: 'limit',
         price: Number(price.value),
         shares: Number(shares.value),
-        tickSize: undefined,
+        tickSize: normalizedTickSize,
         postOnly: postOnly.value,
       },
     };
@@ -220,6 +229,7 @@ function buildInput(orderId: string): ManualPlaceOrderInput {
       side: side.value,
       orderType: 'market',
       amount: side.value === 'SELL' ? Number(shares.value) : Number(amount.value),
+      tickSize: normalizedTickSize,
       marketOrderType: 'FOK',
     },
   };

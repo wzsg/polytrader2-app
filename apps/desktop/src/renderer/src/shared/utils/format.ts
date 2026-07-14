@@ -1,4 +1,5 @@
 import { getCurrentIntlLocale, translateUiKey } from '../i18n';
+import { priceCentsDigitsForTick } from '@polytrader/shared';
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '-';
@@ -86,18 +87,10 @@ export function formatPrice(value: unknown): string {
   return `${(n * 100).toFixed(1)}¢`;
 }
 
-function priceDigitsForTick(tickSize: unknown): number {
-  const tick = Number(tickSize);
-  if (tick === 0.01) return 0;
-  if (tick === 0.001) return 1;
-  if (tick === 0.0001) return 2;
-  return 1;
-}
-
 export function formatPriceByTick(value: unknown, tickSize: unknown): string {
   const n = Number(value);
   if (Number.isNaN(n)) return String(value ?? '—');
-  return `${(n * 100).toFixed(priceDigitsForTick(tickSize))}¢`;
+  return `${(n * 100).toFixed(priceCentsDigitsForTick(tickSize) ?? 1)}¢`;
 }
 
 export function formatNumber(value: unknown, digits = 2): string {

@@ -731,9 +731,7 @@ export interface DataPosition {
 
 export type PolymarketWalletCreationType = 'created' | 'imported';
 export type PolymarketWalletWalletKeyMaterialType =
-  | 'private_key'
-  | 'mnemonic_seed'
-  | 'derived_wallet';
+  'private_key' | 'mnemonic_seed' | 'derived_wallet';
 export type PolymarketWalletInitializationStatus =
   | 'pending'
   | 'deriving_credentials'
@@ -845,12 +843,7 @@ export interface PolymarketAccountCredentialDerivationResult {
 }
 
 export type WorkflowTaskStatus =
-  | 'pending'
-  | 'running'
-  | 'retry_scheduled'
-  | 'succeeded'
-  | 'failed'
-  | 'canceled';
+  'pending' | 'running' | 'retry_scheduled' | 'succeeded' | 'failed' | 'canceled';
 
 export interface WorkflowTaskRecord {
   id: string;
@@ -888,11 +881,7 @@ export interface TradingMarketSubscribeOptions {
 }
 
 export type TradingRuntimeLoadScope =
-  | 'gammaEvent'
-  | 'marketDetail'
-  | 'orderBook'
-  | 'priceHistory'
-  | 'marketTrades';
+  'gammaEvent' | 'marketDetail' | 'orderBook' | 'priceHistory' | 'marketTrades';
 
 export type TradingRuntimeConnectionStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type TradingRuntimeWsStatus = 'disconnected' | 'connecting' | 'live' | 'error';
@@ -1234,8 +1223,7 @@ export interface BrowserConnectionModalPayload {
 }
 
 export type BrowserModalPayload =
-  | BrowserProviderRequestModalPayload
-  | BrowserConnectionModalPayload;
+  BrowserProviderRequestModalPayload | BrowserConnectionModalPayload;
 
 export type {
   MarketTradeAnalysisBucket,

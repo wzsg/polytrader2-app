@@ -82,12 +82,7 @@ interface PolymarketBridgeQuoteResponse {
 }
 
 type PolymarketBridgeTransactionStatus =
-  | 'DEPOSIT_DETECTED'
-  | 'PROCESSING'
-  | 'ORIGIN_TX_CONFIRMED'
-  | 'SUBMITTED'
-  | 'COMPLETED'
-  | 'FAILED';
+  'DEPOSIT_DETECTED' | 'PROCESSING' | 'ORIGIN_TX_CONFIRMED' | 'SUBMITTED' | 'COMPLETED' | 'FAILED';
 
 interface PolymarketBridgeTransaction {
   fromChainId?: string;
