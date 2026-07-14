@@ -112,14 +112,10 @@ class WindowsSigningService {
       `$certificate = Get-Item -LiteralPath 'Cert:\\CurrentUser\\My\\${this.#certificateSha1}' -ErrorAction SilentlyContinue`,
       'if ($null -eq $certificate -or -not $certificate.HasPrivateKey) { exit 1 }',
     ].join('; ');
-    const result = spawnSync(
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-Command', command],
-      {
-        encoding: 'utf8',
-        windowsHide: true,
-      },
-    );
+    const result = spawnSync('pwsh.exe', ['-NoProfile', '-NonInteractive', '-Command', command], {
+      encoding: 'utf8',
+      windowsHide: true,
+    });
     return result.status === 0;
   }
 
@@ -315,15 +311,11 @@ class WindowsSigningService {
       '$result = [pscustomobject]@{ Status = [string]$signature.Status; Thumbprint = [string]$signature.SignerCertificate.Thumbprint; Timestamped = $null -ne $signature.TimeStamperCertificate }',
       '$result | ConvertTo-Json -Compress',
     ].join('; ');
-    const result = spawnSync(
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-Command', script],
-      {
-        encoding: 'utf8',
-        env: { ...process.env, P2_VERIFY_SIGNATURE_PATH: filePath },
-        windowsHide: true,
-      },
-    );
+    const result = spawnSync('pwsh.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+      encoding: 'utf8',
+      env: { ...process.env, P2_VERIFY_SIGNATURE_PATH: filePath },
+      windowsHide: true,
+    });
     if (result.status !== 0) {
       throw new Error(`Unable to verify Authenticode signature for ${filePath}: ${result.stderr}`);
     }
@@ -352,7 +344,7 @@ class WindowsSigningService {
       const kitsBin = join(programFilesX86, 'Windows Kits', '10', 'bin');
       if (existsSync(kitsBin)) {
         const result = spawnSync(
-          'powershell.exe',
+          'pwsh.exe',
           [
             '-NoProfile',
             '-NonInteractive',
