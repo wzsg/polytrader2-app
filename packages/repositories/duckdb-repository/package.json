@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
-    "@duckdb/node-api": "1.5.3-r.3",
+    "@duckdb/node-api": "1.5.4-r.1",
     "@polytrader/repository-contract": "workspace:*",
     "@polytrader/shared": "workspace:*"
   },

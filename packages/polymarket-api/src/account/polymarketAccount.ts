@@ -27,7 +27,7 @@ import type {
   DataPosition,
   StrategyPlaceOrderInput,
 } from '@polytrader/shared';
-import { POLYMARKET_CLOB_BASE_URL } from '@polytrader/shared';
+import { normalizePriceTickSize, POLYMARKET_CLOB_BASE_URL } from '@polytrader/shared';
 import type {
   NormalizedPolymarketWalletCredentials,
   PolymarketAccount,
@@ -36,8 +36,6 @@ import type {
 } from './types.js';
 
 const DEFAULT_CHAIN_ID = 137;
-const TICK_SIZES = new Set<string>(['0.1', '0.01', '0.001', '0.0001']);
-
 class PolymarketAccountImpl implements PolymarketAccount {
   private readonly _client: ClobClient;
   private readonly _credentials: NormalizedPolymarketWalletCredentials;
@@ -256,8 +254,8 @@ class PolymarketAccountImpl implements PolymarketAccount {
 
   private normalizeTickSize(value: unknown): TickSize | undefined {
     if (value == null) return undefined;
-    const normalized = Number(value).toString();
-    if (TICK_SIZES.has(normalized)) return normalized as TickSize;
+    const normalized = normalizePriceTickSize(value);
+    if (normalized != null) return normalized;
     throw new Error(`Unsupported tick size: ${String(value)}`);
   }
 

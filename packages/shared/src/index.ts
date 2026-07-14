@@ -4,6 +4,14 @@ export * from './strategy.js';
 export * from './types/index.js';
 export * from './utils/market.js';
 export {
+  SUPPORTED_PRICE_TICK_SIZES,
+  isPriceAlignedToTick,
+  normalizePriceTickSize,
+  priceCentsDigitsForTick,
+  priceCentsStepForTick,
+} from './utils/priceTick.js';
+export type { SupportedPriceTickSize } from './utils/priceTick.js';
+export {
   CLOUDFLARE_TURNSTILE_API_URL,
   GOOGLE_SEARCH_BASE_URL,
   LOCAL_MCP_ENDPOINT_URL,

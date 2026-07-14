@@ -18,4 +18,5 @@ minimumReleaseAgeExclude:
   - vue-tsc@3.3.3
   - better-sqlite3@12.10.1
 overrides:
-  hono: 4.12.25
+  hono: 4.12.30
+  viem: 2.55.1
