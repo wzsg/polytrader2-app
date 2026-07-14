@@ -1,6 +1,9 @@
 import type { BrowserWindowConstructorOptions } from 'electron';
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const moduleDirname = dirname(fileURLToPath(import.meta.url));
 
 function getPlatformIconFile(): string | null {
   if (process.platform === 'win32') return 'icon.ico';
@@ -12,6 +15,6 @@ export function getWindowIcon(): BrowserWindowConstructorOptions['icon'] | undef
   const iconFile = getPlatformIconFile();
   if (!iconFile) return undefined;
 
-  const iconPath = join(__dirname, '../../build', iconFile);
+  const iconPath = join(moduleDirname, '../../build', iconFile);
   return existsSync(iconPath) ? iconPath : undefined;
 }

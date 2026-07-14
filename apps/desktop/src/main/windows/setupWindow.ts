@@ -1,7 +1,10 @@
 import { app, BrowserWindow } from 'electron';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { getWindowIcon } from './icon.js';
 import { getWindowChromeOptions } from './windowChrome.js';
+
+const moduleDirname = dirname(fileURLToPath(import.meta.url));
 
 let setupWindow: BrowserWindow | null = null;
 let setupWindowCloseConfirmed = false;
@@ -18,7 +21,7 @@ function createSetupWindow(): BrowserWindow {
     ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
-      preload: join(__dirname, '../preload/setup.cjs'),
+      preload: join(moduleDirname, '../preload/setup.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -38,7 +41,7 @@ function createSetupWindow(): BrowserWindow {
   if (process.env.ELECTRON_RENDERER_URL) {
     setupWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/setup.html`);
   } else {
-    setupWindow.loadFile(join(__dirname, '../renderer/setup.html'));
+    setupWindow.loadFile(join(moduleDirname, '../renderer/setup.html'));
   }
 
   return setupWindow;

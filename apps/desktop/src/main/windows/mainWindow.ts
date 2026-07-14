@@ -1,10 +1,13 @@
 import { app, BrowserWindow } from 'electron';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { closeBrowserWindow } from './browserWindow.js';
 import { getWindowIcon } from './icon.js';
 import { closeAllStrategyEditorWindows } from './strategyEditorWindow.js';
 import { closeAllTradingWindows } from './tradingWindow.js';
 import { getWindowChromeOptions } from './windowChrome.js';
+
+const moduleDirname = dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
 let mainWindowCloseConfirmed = false;
@@ -74,7 +77,7 @@ function createMainWindow(): BrowserWindow {
     ...getWindowChromeOptions(),
     backgroundColor: '#0f0f1a',
     webPreferences: {
-      preload: join(__dirname, '../preload/main.cjs'),
+      preload: join(moduleDirname, '../preload/main.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -95,7 +98,7 @@ function createMainWindow(): BrowserWindow {
   if (process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+    mainWindow.loadFile(join(moduleDirname, '../renderer/index.html'));
   }
 
   return mainWindow;
