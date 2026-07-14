@@ -28,6 +28,17 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Verify tag targets latest master
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          master_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/master" --jq '.object.sha')"
+          if [[ "$GITHUB_SHA" != "$master_sha" ]]; then
+            echo "Release tag must target the latest master commit ${master_sha}; received ${GITHUB_SHA}" >&2
+            exit 1
+          fi
+
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,14 +48,23 @@ jobs:
             gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --generate-notes --repo "$GITHUB_REPOSITORY"
 
   build-windows:
-    name: Build Windows installer
+    name: Build and sign Windows installer
     needs: prepare
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows, X64, simplysign]
+    timeout-minutes: 180
+    concurrency:
+      group: polytrader2-windows-simplysign
+      cancel-in-progress: false
+
+    permissions:
+      contents: read
 
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+      P2_WINDOWS_SIGNING_CERT_SHA1: 4039EA646010325F6795229BDD5274C892EC56AA
+      P2_WINDOWS_SIGNING_TIMESTAMP_URL: http://time.certum.pl
+      P2_WINDOWS_SIGNING_TIMEOUT_MS: 1800000
+      P2_WINDOWS_SIGNING_RETRY_DELAY_MS: 15000
+      P2_WINDOWS_SIGN_METRICS_PATH: ${{ runner.temp }}\polytrader2-windows-sign-metrics.json
 
     steps:
       - name: Checkout
@@ -65,9 +85,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set package version
-        shell: bash
+        shell: pwsh
         run: |
-          node - <<'NODE'
+          $script = @'
           const fs = require('fs');
           const version = process.env.P2_RELEASE_VERSION ?? '';
           if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
@@ -78,9 +98,14 @@ jobs:
           const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
           packageJson.version = version;
           fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
-          NODE
+          '@
+          $script | node
         env:
           P2_RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+
+      - name: Prepare Windows signing metrics
+        shell: pwsh
+        run: Remove-Item -LiteralPath $env:P2_WINDOWS_SIGN_METRICS_PATH -Force -ErrorAction SilentlyContinue
 
       - name: Typecheck
         run: pnpm run typecheck
@@ -93,6 +118,49 @@ jobs:
 
       - name: Build Windows installer
         run: pnpm --filter @polytrader2/app run dist:win:app
+
+      - name: Verify Windows signatures
+        shell: pwsh
+        run: |
+          $expectedThumbprint = $env:P2_WINDOWS_SIGNING_CERT_SHA1.ToUpperInvariant()
+          $paths = @(
+            "dist\Polytrader2-Setup-${{ needs.prepare.outputs.version }}.exe",
+            'dist\win-unpacked\Polytrader2.exe',
+            'dist\win-unpacked\resources\elevate.exe'
+          )
+          foreach ($path in $paths) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Missing signed Windows file: $path"
+            }
+            $signature = Get-AuthenticodeSignature -LiteralPath $path
+            if ($signature.Status -ne 'Valid') {
+              throw "Invalid Authenticode signature for ${path}: $($signature.Status)"
+            }
+            if ($signature.SignerCertificate.Thumbprint.ToUpperInvariant() -ne $expectedThumbprint) {
+              throw "Unexpected signing certificate for $path"
+            }
+          }
+
+      - name: Report Windows signing metrics
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath $env:P2_WINDOWS_SIGN_METRICS_PATH)) {
+            Write-Host 'No Windows signing operations were recorded.'
+            exit 0
+          }
+          $metrics = Get-Content -LiteralPath $env:P2_WINDOWS_SIGN_METRICS_PATH -Raw | ConvertFrom-Json
+          $lines = @(
+            '## Windows code signing',
+            '',
+            "- Requested files: $($metrics.requests)",
+            "- Cache hits: $($metrics.cacheHits)",
+            "- Successful cloud signatures: $($metrics.cloudSignatures)",
+            "- SignTool attempts: $($metrics.signToolAttempts)",
+            "- Authorization retries: $($metrics.authorizationRetries)"
+          )
+          $lines | ForEach-Object { Write-Host $_ }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
       - name: Upload Windows release assets
         uses: actions/upload-artifact@v6

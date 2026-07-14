@@ -133,6 +133,7 @@ class WindowsPackager {
 
   #writeBuilderConfig() {
     const configPath = join(this.#stageDir, 'electron-builder.generated.json');
+    const signingCertificateSha1 = process.env.P2_WINDOWS_SIGNING_CERT_SHA1?.trim();
     const config = {
       appId: 'com.wzsg.fbapp',
       productName: 'Polytrader2',
@@ -198,6 +199,17 @@ class WindowsPackager {
           },
         ],
         artifactName: '${productName}-Setup-${version}.${ext}',
+        ...(signingCertificateSha1
+          ? {
+              signtoolOptions: {
+                certificateSha1: signingCertificateSha1,
+                signingHashAlgorithms: ['sha256'],
+                rfc3161TimeStampServer:
+                  process.env.P2_WINDOWS_SIGNING_TIMESTAMP_URL?.trim() || 'http://time.certum.pl',
+                sign: join(this.#repoRoot, 'apps/desktop/scripts/windowsSign.mjs'),
+              },
+            }
+          : {}),
       },
       nsis: {
         oneClick: true,
@@ -207,6 +219,8 @@ class WindowsPackager {
         shortcutName: '${productName}',
       },
     };
+
+    if (signingCertificateSha1) config.forceCodeSigning = true;
 
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
     return configPath;
