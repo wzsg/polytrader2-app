@@ -11,7 +11,7 @@
     "@polytrader/event-bus": "workspace:*",
     "@polytrader/repository-contract": "workspace:*",
     "@polytrader/shared": "workspace:*",
-    "@scure/bip39": "^1.6.0",
+    "@scure/bip39": "^2.2.0",
     "viem": "^2.55.1"
   },
   "devDependencies": {
