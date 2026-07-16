@@ -35,6 +35,7 @@
     "smoke:duckdb-native": "node scripts/run-electron-node.mjs scripts/duckdb-native-smoke.mjs",
     "smoke:event-sync-write": "node scripts/run-electron-node.mjs scripts/event-sync-write-benchmark.mjs",
     "smoke:event-sync-status": "node scripts/run-electron-node.mjs scripts/event-sync-status-smoke.mjs",
+    "smoke:r2-event-snapshot": "node scripts/r2-event-snapshot-smoke.mjs",
     "smoke:ai-agent-integration": "node scripts/run-electron-node.mjs scripts/ai-agent-integration-smoke.mjs",
     "smoke:mcp-stdio-bridge": "pnpm run build:mcp-stdio-bridge && node scripts/run-electron-node.mjs scripts/mcp-stdio-bridge-smoke.mjs",
     "smoke:sports-sync": "node scripts/run-electron-node.mjs scripts/sports-sync-smoke.mjs",

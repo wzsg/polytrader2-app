@@ -20,6 +20,12 @@ interface R2SnapshotResponse {
   totalEvents: number;
 }
 
+interface R2SnapshotInput {
+  source: Readable;
+  input: Readable;
+  decompressor: ReturnType<typeof createGunzip> | null;
+}
+
 class R2EventSnapshotClient {
   private readonly _baseUrl: string;
   private readonly _latestKey: string;
@@ -45,22 +51,25 @@ class R2EventSnapshotClient {
     if (!res.body) throw new Error('R2 event snapshot response did not include a body');
 
     const body = Readable.fromWeb(res.body as unknown as NodeReadableStream<Uint8Array>);
-    const gunzip = createGunzip();
-    const contentEncoding = res.headers.get('content-encoding')?.toLowerCase() || '';
-    const input = contentEncoding.includes('gzip') ? body : body.pipe(gunzip);
-    const lines = createInterface({
-      input,
-      crlfDelay: Infinity,
-    });
+    let snapshotInput: R2SnapshotInput | null = null;
+    let lines: ReturnType<typeof createInterface> | null = null;
     const abort = () => {
       const error = this.createAbortError();
       body.destroy(error);
-      gunzip.destroy(error);
-      lines.close();
+      snapshotInput?.source.destroy(error);
+      snapshotInput?.input.destroy(error);
+      snapshotInput?.decompressor?.destroy(error);
+      lines?.close();
     };
 
     signal.addEventListener('abort', abort, { once: true });
     try {
+      if (signal.aborted) throw this.createAbortError();
+      snapshotInput = await this.prepareSnapshotInput(body);
+      lines = createInterface({
+        input: snapshotInput.input,
+        crlfDelay: Infinity,
+      });
       const normalizedBatchSize = this.normalizeBatchSize(batchSize);
       let events: GammaEventRaw[] = [];
       let pendingLine: string | null = null;
@@ -88,10 +97,79 @@ class R2EventSnapshotClient {
       if (events.length) yield { events, totalEvents: snapshot.totalEvents };
     } finally {
       signal.removeEventListener('abort', abort);
-      lines.close();
+      lines?.close();
+      snapshotInput?.source.destroy();
+      snapshotInput?.input.destroy();
+      snapshotInput?.decompressor?.destroy();
       body.destroy();
-      gunzip.destroy();
     }
+  }
+
+  private async prepareSnapshotInput(body: Readable): Promise<R2SnapshotInput> {
+    const iterator: AsyncIterator<unknown> = body[Symbol.asyncIterator]();
+    const prefixChunks: Buffer[] = [];
+    let prefixLength = 0;
+
+    while (prefixLength < 2) {
+      const next = await iterator.next();
+      if (next.done) break;
+      const chunk = this.snapshotChunkToBuffer(next.value);
+      if (!chunk.length) continue;
+      prefixChunks.push(chunk);
+      prefixLength += chunk.length;
+    }
+
+    const source = Readable.from(this.replaySnapshotBody(prefixChunks, iterator));
+    if (!this.hasGzipMagicBytes(prefixChunks)) {
+      return { source, input: source, decompressor: null };
+    }
+
+    const decompressor = createGunzip();
+    return {
+      source,
+      input: source.pipe(decompressor),
+      decompressor,
+    };
+  }
+
+  private async *replaySnapshotBody(
+    prefixChunks: Buffer[],
+    iterator: AsyncIterator<unknown>,
+  ): AsyncGenerator<Buffer> {
+    try {
+      for (const chunk of prefixChunks) yield chunk;
+      while (true) {
+        const next = await iterator.next();
+        if (next.done) break;
+        const chunk = this.snapshotChunkToBuffer(next.value);
+        if (chunk.length) yield chunk;
+      }
+    } finally {
+      await iterator.return?.();
+    }
+  }
+
+  private snapshotChunkToBuffer(value: unknown): Buffer {
+    if (Buffer.isBuffer(value)) return value;
+    if (value instanceof Uint8Array) {
+      return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+    }
+    if (typeof value === 'string') return Buffer.from(value);
+    throw new Error('R2 event snapshot response included an unsupported stream chunk');
+  }
+
+  private hasGzipMagicBytes(chunks: Buffer[]): boolean {
+    let firstByte: number | null = null;
+    for (const chunk of chunks) {
+      for (const byte of chunk) {
+        if (firstByte === null) {
+          firstByte = byte;
+          continue;
+        }
+        return firstByte === 0x1f && byte === 0x8b;
+      }
+    }
+    return false;
   }
 
   private async fetchLatestSnapshot(
