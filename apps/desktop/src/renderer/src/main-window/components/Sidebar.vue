@@ -39,6 +39,7 @@ const browseItems = [
 ];
 
 const accountItems = [{ nav: 'accounts', labelKey: 'nav.accountManagement', icon: Wallet }];
+const accountDataSyncEnabled = __ACCOUNT_DATA_SYNC_ENABLED__;
 const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
 
 const tradingItems = [
@@ -156,7 +157,7 @@ function authHint(): string {
       </button>
     </nav>
 
-    <div class="border-border mt-4 border-t px-3 pt-4">
+    <div v-if="accountDataSyncEnabled" class="border-border mt-4 border-t px-3 pt-4">
       <button
         type="button"
         class="hover:bg-btn-secondary flex w-full min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left transition-colors"

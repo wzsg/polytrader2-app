@@ -38,6 +38,7 @@ interface ReloadableListView {
 }
 
 const hiddenStrategyAutomationNavs = new Set(['bots', 'strategies']);
+const accountDataSyncEnabled = __ACCOUNT_DATA_SYNC_ENABLED__;
 const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
 const activeNav = ref('events');
 const selectedEvent = ref<EventListItem | null>(null);
@@ -292,10 +293,12 @@ async function confirmAppUpdateInstallation(): Promise<void> {
 onMounted(async () => {
   unsubscribeCloseRequested = window.api.onMainWindowCloseRequested(requestCloseConfirm);
   unsubscribeNavigate = window.api.onMainWindowNavigate((nav) => handleNavChange(nav));
-  authState.value = await window.api.getAuthState();
-  unsubscribeAuth = window.api.onAuthChanged((state) => {
-    authState.value = state;
-  });
+  if (accountDataSyncEnabled) {
+    authState.value = await window.api.getAuthState();
+    unsubscribeAuth = window.api.onAuthChanged((state) => {
+      authState.value = state;
+    });
+  }
   appUpdateState.value = await window.api.getAppUpdateState();
   unsubscribeAppUpdate = window.api.onAppUpdateStateChanged((state) => {
     appUpdateState.value = state;
@@ -349,7 +352,7 @@ onUnmounted(() => {
         :auth-state="authState"
         :open-watchlist-event-count="openWatchlistEventCount"
         @change-nav="handleNavChange"
-        @open-auth="authPanelOpen = true"
+        @open-auth="authPanelOpen = accountDataSyncEnabled"
       />
 
       <main class="flex min-w-0 flex-1 overflow-hidden">
@@ -426,6 +429,7 @@ onUnmounted(() => {
       @confirm="confirmAppUpdateInstallation"
     />
     <AuthAccountPanel
+      v-if="accountDataSyncEnabled"
       :open="authPanelOpen"
       :auth-state="authState"
       @close="authPanelOpen = false"

@@ -60,6 +60,7 @@ jobs:
       contents: read
 
     env:
+      P2_ENABLE_ACCOUNT_DATA_SYNC: '0'
       P2_WINDOWS_SIGNING_CERT_SHA1: 4039EA646010325F6795229BDD5274C892EC56AA
       P2_WINDOWS_SIGNING_TIMESTAMP_URL: http://time.certum.pl
       P2_WINDOWS_SIGNING_TIMEOUT_MS: 1800000
@@ -183,6 +184,7 @@ jobs:
     runs-on: macos-14
 
     env:
+      P2_ENABLE_ACCOUNT_DATA_SYNC: '0'
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}

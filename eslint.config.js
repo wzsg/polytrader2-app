@@ -137,6 +137,7 @@ export default tseslint.config(
       globals: {
         ...globals.browser,
         ...globals.es2021,
+        __ACCOUNT_DATA_SYNC_ENABLED__: 'readonly',
         __APP_VERSION__: 'readonly',
         __STRATEGY_AUTOMATION_ENABLED__: 'readonly',
         __TURNSTILE_ENABLED__: 'readonly',

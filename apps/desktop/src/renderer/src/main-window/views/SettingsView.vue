@@ -98,6 +98,7 @@ const dataStorageMigrating = ref(false);
 const dataStorageError = ref('');
 const activeSection = ref<SettingsSection>('general');
 const { t } = useI18n();
+const accountDataSyncEnabled = __ACCOUNT_DATA_SYNC_ENABLED__;
 
 const localeOptions: Array<{ value: AppLocalePreference; labelKey: string }> = [
   { value: 'system', labelKey: 'language.system' },
@@ -319,6 +320,7 @@ async function updateEventSyncBatchSize(event: Event) {
 }
 
 async function runDataSync() {
+  if (!accountDataSyncEnabled) return;
   dataSyncing.value = true;
   dataSyncError.value = '';
   try {
@@ -438,7 +440,7 @@ onMounted(async () => {
         </div>
       </section>
 
-      <section v-if="activeSection === 'general'">
+      <section v-if="accountDataSyncEnabled && activeSection === 'general'">
         <h2 class="mb-3 text-sm font-semibold text-white">{{ t('dataSync.title') }}</h2>
         <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
