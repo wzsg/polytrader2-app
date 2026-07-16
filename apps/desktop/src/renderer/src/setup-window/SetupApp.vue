@@ -10,7 +10,12 @@ import {
   Languages,
   ShieldCheck,
 } from '@lucide/vue';
-import type { AppLocale, AppLocalePreference, SetupState, SyncStatus } from '@polytrader/shared';
+import type {
+  AppLocale,
+  AppLocalePreference,
+  EventSyncStatus,
+  SetupState,
+} from '@polytrader/shared';
 import { useI18n } from 'vue-i18n';
 import TitleBar from '../shared/components/TitleBar.vue';
 import LoadingSpinner from '../shared/components/LoadingSpinner.vue';
@@ -31,11 +36,11 @@ const confirmPassword = ref('');
 const phase = ref<SetupPhase>('language');
 const errorStep = ref<'storage' | 'security'>('security');
 const errorMessage = ref('');
-const syncStatus = ref<SyncStatus>({ state: 'idle' });
+const eventSyncStatus = ref<EventSyncStatus>({ state: 'idle' });
 const isChoosingDirectory = ref(false);
 const isSubmitting = ref(false);
 const appVersion = `v${__APP_VERSION__}`;
-let unsubscribeSyncStatus: (() => void) | null = null;
+let unsubscribeEventSyncStatus: (() => void) | null = null;
 
 const isUnlockMode = computed(() => state.value?.requiresPassword === true);
 const isMac = computed(() => navigator.userAgent.includes('Macintosh'));
@@ -100,21 +105,23 @@ const primaryDisabled = computed(() => {
   return false;
 });
 const syncProgressPercent = computed(() => {
-  const value = syncStatus.value.progressPercent ?? 0;
+  const value = eventSyncStatus.value.progressPercent ?? 0;
   return Math.min(100, Math.max(0, Math.round(value)));
 });
 const syncProgressDashOffset = computed(() => 326.73 * (1 - syncProgressPercent.value / 100));
 const statusText = computed(() => {
   if (phase.value === 'sync') {
-    if (syncStatus.value.state === 'syncing')
-      return t('setup.syncing', {
-        page: syncStatus.value.page ?? 0,
-        completedEvents: syncStatus.value.completedEvents ?? 0,
-        totalEvents: syncStatus.value.totalEvents ?? 0,
-        progressPercent: syncStatus.value.progressPercent ?? 0,
+    if (eventSyncStatus.value.state === 'syncing')
+      return t('setup.eventSyncing', {
+        page: eventSyncStatus.value.page ?? 0,
+        completedEvents: eventSyncStatus.value.completedEvents ?? 0,
+        totalEvents: eventSyncStatus.value.totalEvents ?? 0,
+        progressPercent: eventSyncStatus.value.progressPercent ?? 0,
       });
-    if (syncStatus.value.state === 'finalizing')
-      return t('setup.finalizing', { progressPercent: syncStatus.value.progressPercent ?? 100 });
+    if (eventSyncStatus.value.state === 'finalizing')
+      return t('setup.eventSyncFinalizing', {
+        progressPercent: eventSyncStatus.value.progressPercent ?? 100,
+      });
     return t('setup.starting');
   }
   if (phase.value === 'error') return t('setup.failed', { error: errorMessage.value });
@@ -253,12 +260,12 @@ onMounted(async () => {
   encryptionMethod.value = state.value.encryptionMethod || (isMac.value ? 'keychain' : 'dpapi');
   if (isUnlockMode.value) phase.value = 'security';
   else await validateDirectory();
-  unsubscribeSyncStatus = window.api.onSetupSyncStatus((status) => {
-    syncStatus.value = status;
+  unsubscribeEventSyncStatus = window.api.onSetupEventSyncStatus((status) => {
+    eventSyncStatus.value = status;
   });
 });
 
-onUnmounted(() => unsubscribeSyncStatus?.());
+onUnmounted(() => unsubscribeEventSyncStatus?.());
 </script>
 
 <template>
@@ -457,7 +464,7 @@ onUnmounted(() => unsubscribeSyncStatus?.());
               <div
                 class="relative size-40"
                 role="progressbar"
-                :aria-label="t('sync.eventSyncing')"
+                :aria-label="t('eventSync.syncEventData')"
                 :aria-valuemin="0"
                 :aria-valuemax="100"
                 :aria-valuenow="syncProgressPercent"

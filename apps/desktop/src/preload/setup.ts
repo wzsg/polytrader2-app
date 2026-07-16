@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import type { IpcApi, SyncStatus } from '@polytrader/shared';
+import type { EventSyncStatus, IpcApi } from '@polytrader/shared';
 import { exposeApi, windowApi } from './common.js';
 
 const setupApi = {
@@ -12,11 +12,11 @@ const setupApi = {
   unlockInitialSetup: (password) => ipcRenderer.invoke('setup:unlockInitialSetup', password),
   completeInitialSetup: () => ipcRenderer.invoke('setup:completeInitialSetup'),
   cancelInitialSetup: () => ipcRenderer.invoke('setup:cancelInitialSetup'),
-  onSetupSyncStatus: (callback) => {
+  onSetupEventSyncStatus: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
-      callback(input as SyncStatus);
-    ipcRenderer.on('sync:status', listener);
-    return () => ipcRenderer.removeListener('sync:status', listener);
+      callback(input as EventSyncStatus);
+    ipcRenderer.on('event-sync:status', listener);
+    return () => ipcRenderer.removeListener('event-sync:status', listener);
   },
   ...windowApi,
 } satisfies Partial<IpcApi>;

@@ -1,5 +1,5 @@
 import type {
-  CacheStats,
+  EventCacheStats,
   AccountOrderCreateInput,
   AccountOrderExchangeUpdateInput,
   AccountOrderStatus,
@@ -67,7 +67,7 @@ interface EventRepository {
   countMarkets(): Promise<number>;
   getMarketByClobTokenId(assetId: string): Promise<DbMarket | null>;
   getMarketByConditionId(conditionId: string): Promise<DbMarket | null>;
-  getCacheStats(): Promise<CacheStats>;
+  getEventCacheStats(): Promise<EventCacheStats>;
 }
 
 interface EventBulkUpsertStats {
@@ -100,8 +100,8 @@ interface MetaRepository {
   getMetaValue(key: string): Promise<string | null>;
   setMetaValue(key: string, value: string): Promise<void>;
   deleteMetaValue(key: string): Promise<void>;
-  getLastSyncTime(): Promise<string | null>;
-  setLastSyncTime(iso?: string): Promise<void>;
+  getLastEventSyncTime(): Promise<string | null>;
+  setLastEventSyncTime(iso?: string): Promise<void>;
 }
 
 interface AppPreferenceRecord {

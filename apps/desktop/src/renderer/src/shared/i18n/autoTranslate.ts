@@ -106,21 +106,27 @@ const exactTerms: Record<string, TranslationTerm> = {
   'account.balance': { zh: '余额', en: 'Balance' },
   'account.noTradableWallets': { zh: '无可交易钱包', en: 'No tradable wallets' },
   'account.walletOnly': { zh: '仅钱包', en: 'Wallet Only' },
-  'settings.autoSync': { zh: '自动同步', en: 'Auto Sync' },
-  'settings.syncInterval': { zh: '同步间隔', en: 'Sync Interval' },
-  'settings.scheduledSync': { zh: '定时同步', en: 'Scheduled Sync' },
-  'settings.dataSync': { zh: '数据同步', en: 'Data Sync' },
+  'settings.autoEventSync': { zh: '自动事件同步', en: 'Automatic Event Sync' },
+  'settings.eventSyncInterval': { zh: '事件同步间隔', en: 'Event Sync Interval' },
+  'settings.scheduledEventSync': { zh: '定时事件同步', en: 'Scheduled Event Sync' },
+  'settings.eventSync': { zh: '事件同步', en: 'Event Sync' },
   'settings.localCache': { zh: '本地缓存', en: 'Local Cache' },
-  'settings.cacheAndSync': { zh: '本地缓存与数据同步', en: 'Local Cache and Data Sync' },
+  'settings.cacheAndEventSync': {
+    zh: '本地缓存与事件同步',
+    en: 'Local Cache and Event Sync',
+  },
   'settings.eventData': { zh: '事件数据', en: 'Event Data' },
   'settings.marketData': { zh: '市场数据', en: 'Market Data' },
-  'settings.lastSyncTime': { zh: '最后同步时间', en: 'Last Sync Time' },
-  'settings.fromPolymarketApi': { zh: '来自 R2 事件快照', en: 'From R2 event snapshot' },
+  'settings.lastEventSyncTime': { zh: '最后事件同步时间', en: 'Last Event Sync Time' },
+  'settings.fromEventSnapshot': { zh: '来自 R2 事件快照', en: 'From R2 event snapshot' },
   'settings.from': { zh: '来自', en: 'From' },
-  'settings.startSync': { zh: '开始同步', en: 'Start Sync' },
-  'settings.notSyncedYet': { zh: '尚未同步', en: 'Not synced yet' },
-  'loading.syncData': { zh: '同步数据', en: 'Sync data' },
-  'loading.saveSchedule': { zh: '保存同步计划', en: 'Save sync schedule' },
+  'settings.startEventSync': { zh: '开始事件同步', en: 'Start Event Sync' },
+  'settings.eventNotSyncedYet': { zh: '事件尚未同步', en: 'Events not synced yet' },
+  'loading.syncEventData': { zh: '同步事件数据', en: 'Sync event data' },
+  'loading.saveEventSyncSchedule': {
+    zh: '保存事件同步计划',
+    en: 'Save event sync schedule',
+  },
   'loading.eventStats': { zh: '加载事件数据统计', en: 'Load event data stats' },
   'loading.marketStats': { zh: '加载市场数据统计', en: 'Load market data stats' },
   'loading.filters': { zh: '加载筛选配置', en: 'Load filter configuration' },
@@ -320,13 +326,13 @@ const exactTerms: Record<string, TranslationTerm> = {
 };
 
 const phraseTerms: Record<string, TranslationTerm> = {
-  'settings.syncDescription': {
+  'settings.eventSyncDescription': {
     zh: '从 R2 快照拉取开放事件及市场数据，写入本地 SQLite 缓存，供事件列表使用。',
     en: 'Fetch open events and market data from the R2 snapshot into the local SQLite cache for event lists.',
   },
-  'settings.scheduleDescription': {
-    zh: '每隔设定时间自动执行一次完整数据同步。',
-    en: 'Automatically run a full data sync at the configured interval.',
+  'settings.eventSyncScheduleDescription': {
+    zh: '每隔设定时间自动执行一次完整事件同步。',
+    en: 'Automatically run a full event sync at the configured interval.',
   },
   'language.description': {
     zh: '默认使用系统语言；系统语言不支持时使用英文。',
@@ -371,10 +377,10 @@ const phraseTerms: Record<string, TranslationTerm> = {
   'run.accountPrefix': { zh: '钱包：', en: 'Wallet: ' },
   'run.startedPrefix': { zh: '启动：', en: 'Started: ' },
   'strategy.stopFailedPrefix': { zh: '停止策略失败：', en: 'Failed to stop strategy: ' },
-  'sync.completePrefix': { zh: '同步完成：', en: 'Sync complete: ' },
-  'sync.stoppedPrefix': { zh: '同步已停止：', en: 'Sync stopped: ' },
-  'sync.failedPrefix': { zh: '同步失败：', en: 'Sync failed: ' },
-  'sync.fetchedPrefix': { zh: '已获取 ', en: 'fetched ' },
+  'eventSync.completePrefix': { zh: '事件同步完成：', en: 'Event sync complete: ' },
+  'eventSync.stoppedPrefix': { zh: '事件同步已停止：', en: 'Event sync stopped: ' },
+  'eventSync.failedPrefix': { zh: '事件同步失败：', en: 'Event sync failed: ' },
+  'eventSync.fetchedPrefix': { zh: '已获取 ', en: 'fetched ' },
   'page.separator': { zh: '页，', en: ', ' },
   'generic.no': { zh: '暂无', en: 'No ' },
 };

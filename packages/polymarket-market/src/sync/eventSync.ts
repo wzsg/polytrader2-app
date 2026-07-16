@@ -7,8 +7,8 @@ import type {
 import type {
   AppLocale,
   EventSyncTrigger,
-  SyncScheduleConfig,
-  SyncStatus,
+  EventSyncScheduleConfig,
+  EventSyncStatus,
 } from '@polytrader/shared';
 import {
   DEFAULT_EVENT_SYNC_BATCH_SIZE,
@@ -17,11 +17,11 @@ import {
 } from '@polytrader/shared';
 import type { EventSyncClient } from './types.js';
 
-const DEFAULT_SCHEDULE_CONFIG: SyncScheduleConfig = {
+const DEFAULT_EVENT_SYNC_SCHEDULE_CONFIG: EventSyncScheduleConfig = {
   enabled: true,
   intervalMinutes: 10,
 };
-const SCHEDULE_CONFIG_KEY = 'sync_schedule_config';
+const EVENT_SYNC_SCHEDULE_CONFIG_KEY = 'event_sync_schedule_config';
 const MIN_INTERVAL_MINUTES = 1;
 const MAX_INTERVAL_MINUTES = 60;
 
@@ -57,7 +57,7 @@ interface EventSyncServiceOptions {
 }
 
 type EventSyncEventMap = {
-  status: [status: SyncStatus];
+  status: [status: EventSyncStatus];
 };
 
 class EventSyncService extends EventEmitter<EventSyncEventMap> {
@@ -125,7 +125,7 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
       );
       result.closedMissingEvents =
         await this._eventRepository.markOpenEventsMissingFromSnapshotClosed(seenEventIds);
-      await this._metaRepository.setLastSyncTime();
+      await this._metaRepository.setLastEventSyncTime();
       this.emitStatus(
         this.createProgressStatus('done', result.pagesFetched, result.eventsFetched, totalEvents),
       );
@@ -157,7 +157,7 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
     }
   }
 
-  private emitStatus(status: SyncStatus): void {
+  private emitStatus(status: EventSyncStatus): void {
     this.emit('status', status);
   }
 
@@ -170,11 +170,11 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
   }
 
   private createProgressStatus(
-    state: SyncStatus['state'],
+    state: EventSyncStatus['state'],
     page: number,
     completedEvents: number,
     totalEvents: number | null,
-  ): SyncStatus {
+  ): EventSyncStatus {
     const progressPercent =
       totalEvents === null ? 0 : Math.min(100, Math.floor((completedEvents / totalEvents) * 100));
     return {
@@ -262,26 +262,28 @@ class EventSyncScheduler {
     );
   }
 
-  public async readConfig(): Promise<SyncScheduleConfig> {
-    const value = await this._metaRepository.getMetaValue(SCHEDULE_CONFIG_KEY);
-    if (!value) return DEFAULT_SCHEDULE_CONFIG;
+  public async readConfig(): Promise<EventSyncScheduleConfig> {
+    const value = await this._metaRepository.getMetaValue(EVENT_SYNC_SCHEDULE_CONFIG_KEY);
+    if (!value) return DEFAULT_EVENT_SYNC_SCHEDULE_CONFIG;
 
     try {
-      return this.normalizeScheduleConfig(JSON.parse(value) as Partial<SyncScheduleConfig>);
+      return this.normalizeScheduleConfig(JSON.parse(value) as Partial<EventSyncScheduleConfig>);
     } catch {
-      return DEFAULT_SCHEDULE_CONFIG;
+      return DEFAULT_EVENT_SYNC_SCHEDULE_CONFIG;
     }
   }
 
-  public async writeConfig(config: Partial<SyncScheduleConfig>): Promise<SyncScheduleConfig> {
+  public async writeConfig(
+    config: Partial<EventSyncScheduleConfig>,
+  ): Promise<EventSyncScheduleConfig> {
     const current = await this.readConfig();
     const next = this.normalizeScheduleConfig({ ...current, ...config });
-    await this._metaRepository.setMetaValue(SCHEDULE_CONFIG_KEY, JSON.stringify(next));
+    await this._metaRepository.setMetaValue(EVENT_SYNC_SCHEDULE_CONFIG_KEY, JSON.stringify(next));
     return next;
   }
 
   public async apply(
-    config?: SyncScheduleConfig,
+    config?: EventSyncScheduleConfig,
     initialTrigger: EventSyncTrigger | null = 'startup',
   ): Promise<void> {
     const next = config ?? (await this.readConfig());
@@ -307,11 +309,13 @@ class EventSyncScheduler {
 
   private clampIntervalMinutes(value: unknown): number {
     const minutes = Number(value);
-    if (!Number.isFinite(minutes)) return DEFAULT_SCHEDULE_CONFIG.intervalMinutes;
+    if (!Number.isFinite(minutes)) return DEFAULT_EVENT_SYNC_SCHEDULE_CONFIG.intervalMinutes;
     return Math.max(MIN_INTERVAL_MINUTES, Math.min(MAX_INTERVAL_MINUTES, Math.trunc(minutes)));
   }
 
-  private normalizeScheduleConfig(config: Partial<SyncScheduleConfig> | null): SyncScheduleConfig {
+  private normalizeScheduleConfig(
+    config: Partial<EventSyncScheduleConfig> | null,
+  ): EventSyncScheduleConfig {
     return {
       enabled: config?.enabled === true,
       intervalMinutes: this.clampIntervalMinutes(config?.intervalMinutes),
@@ -319,7 +323,7 @@ class EventSyncScheduler {
   }
 }
 
-export { DEFAULT_SCHEDULE_CONFIG, EventSyncScheduler, EventSyncService };
+export { DEFAULT_EVENT_SYNC_SCHEDULE_CONFIG, EventSyncScheduler, EventSyncService };
 export type {
   EventSyncEventMap,
   EventSyncResult,

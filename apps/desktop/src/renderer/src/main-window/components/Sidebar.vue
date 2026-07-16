@@ -21,8 +21,6 @@ const props = defineProps<{
   developerModeEnabled: boolean;
   authState: AuthState;
   openWatchlistEventCount: number;
-  syncState?: string;
-  syncStatus?: string;
 }>();
 
 const { t } = useI18n();
@@ -58,13 +56,13 @@ function authLabel(): string {
   if (!props.authState.configured || props.authState.status === 'disabled')
     return t('auth.disabled');
   if (props.authState.status === 'signed-in') return props.authState.email || t('auth.signedIn');
-  if (props.authState.status === 'error') return t('auth.syncState.error');
+  if (props.authState.status === 'error') return t('auth.error');
   return t('auth.notSignedIn');
 }
 
 function authHint(): string {
   if (props.authState.status === 'signed-in')
-    return t(`auth.syncState.${props.authState.syncState}`);
+    return t(`dataSync.state.${props.authState.dataSyncState}`);
   if (props.authState.status === 'error' && props.authState.error) return props.authState.error;
   return t('auth.openAccountPanel');
 }
@@ -172,7 +170,7 @@ function authHint(): string {
           <p class="text-muted truncate text-xs">{{ authHint() }}</p>
         </div>
         <RefreshCw
-          v-if="authState.syncState === 'syncing'"
+          v-if="authState.dataSyncState === 'syncing'"
           :size="14"
           class="text-primary-light shrink-0 animate-spin"
         />

@@ -72,7 +72,7 @@ applicationEventBus.subscribe('app-preferences:changed', (event) => {
 
 applicationEventBus.subscribe('polymarket-event-sync:status', (event) => {
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send('sync:status', event.status);
+    window.webContents.send('event-sync:status', event.status);
   }
 });
 

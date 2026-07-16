@@ -277,14 +277,14 @@ async function resendConfirmation(): Promise<void> {
   });
 }
 
-async function syncNow(): Promise<void> {
+async function runDataSync(): Promise<void> {
   await runAction(async () => {
-    const result = await window.api.syncUserData();
+    const result = await window.api.runDataSync();
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    setResult(t('auth.syncComplete'));
+    setResult(t('dataSync.complete'));
   });
 }
 
@@ -373,21 +373,21 @@ watch([() => props.open, mode, signedIn], () => {
               <p class="text-sm font-medium text-white">{{ t('auth.signedInAs') }}</p>
               <p class="text-muted mt-1 truncate text-sm">{{ authState.email }}</p>
               <p class="text-muted mt-2 text-xs">
-                {{ t(`auth.syncState.${authState.syncState}`) }}
+                {{ t(`dataSync.state.${authState.dataSyncState}`) }}
               </p>
             </div>
             <div class="flex flex-wrap gap-3">
               <button
                 type="button"
                 class="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
-                :disabled="busy || authState.syncState === 'syncing'"
-                @click="syncNow"
+                :disabled="busy || authState.dataSyncState === 'syncing'"
+                @click="runDataSync"
               >
                 <RefreshCw
                   :size="16"
-                  :class="{ 'animate-spin': busy || authState.syncState === 'syncing' }"
+                  :class="{ 'animate-spin': busy || authState.dataSyncState === 'syncing' }"
                 />
-                {{ t('auth.syncNow') }}
+                {{ t('dataSync.runNow') }}
               </button>
               <button
                 type="button"

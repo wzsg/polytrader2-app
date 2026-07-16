@@ -22,11 +22,11 @@ import {
 import type { AppLocalePreference } from '@polytrader/shared';
 import type {
   AuthState,
-  CacheStats,
+  EventCacheStats,
+  EventSyncScheduleConfig,
   DeveloperModeConfig,
   McpServerConfig,
   McpServerStatus,
-  SyncScheduleConfig,
 } from '@polytrader/shared';
 import { formatNum, formatTimestamp } from '@/shared/utils/format';
 import {
@@ -43,24 +43,24 @@ import AiAgentIntegrationsPanel from './settings-panels/AiAgentIntegrationsPanel
 import { writeClipboardText } from '@/shared/utils/clipboard';
 
 const props = defineProps<{
-  syncState: string;
-  syncStatus?: string;
+  eventSyncState: string;
+  eventSyncStatus?: string;
   authState: AuthState;
 }>();
 
 const emit = defineEmits<{
-  'toggle-sync': [];
+  'toggle-event-sync': [];
   'developer-mode-change': [enabled: boolean];
 }>();
 
 type SettingsSection = 'general' | 'data' | 'integrations' | 'advanced';
 
-const stats = ref<CacheStats>({
+const stats = ref<EventCacheStats>({
   eventCount: 0,
   marketCount: 0,
-  lastSyncAt: null,
+  lastEventSyncAt: null,
 });
-const schedule = ref<SyncScheduleConfig>({
+const schedule = ref<EventSyncScheduleConfig>({
   enabled: true,
   intervalMinutes: 1,
 });
@@ -91,8 +91,8 @@ const mcpLoading = ref(false);
 const mcpSaving = ref(false);
 const developerModeLoading = ref(false);
 const developerModeSaving = ref(false);
-const accountSyncing = ref(false);
-const accountSyncError = ref('');
+const dataSyncing = ref(false);
+const dataSyncError = ref('');
 const dataStorageDirectory = ref('');
 const dataStorageMigrating = ref(false);
 const dataStorageError = ref('');
@@ -112,7 +112,7 @@ const sectionItems: Array<{ id: SettingsSection; labelKey: string; icon: unknown
   { id: 'advanced', labelKey: 'settings.tabs.advanced', icon: Wrench },
 ];
 
-const isSyncing = () => props.syncState === 'syncing';
+const isEventSyncing = () => props.eventSyncState === 'syncing';
 
 function sectionClass(section: SettingsSection): string {
   return activeSection.value === section
@@ -123,7 +123,7 @@ function sectionClass(section: SettingsSection): string {
 async function loadStats() {
   loading.value = true;
   try {
-    stats.value = await window.api.getCacheStats();
+    stats.value = await window.api.getEventCacheStats();
   } finally {
     loading.value = false;
   }
@@ -154,7 +154,7 @@ function clampEventSyncBatchSize(value: unknown): number {
 async function loadSchedule() {
   scheduleLoading.value = true;
   try {
-    schedule.value = await window.api.getSyncScheduleConfig();
+    schedule.value = await window.api.getEventSyncScheduleConfig();
   } finally {
     scheduleLoading.value = false;
   }
@@ -190,10 +190,10 @@ async function loadDeveloperMode() {
   }
 }
 
-async function saveSchedule(config: Partial<SyncScheduleConfig>) {
+async function saveSchedule(config: Partial<EventSyncScheduleConfig>) {
   scheduleSaving.value = true;
   try {
-    schedule.value = await window.api.setSyncScheduleConfig(config);
+    schedule.value = await window.api.setEventSyncScheduleConfig(config);
   } finally {
     scheduleSaving.value = false;
   }
@@ -318,21 +318,21 @@ async function updateEventSyncBatchSize(event: Event) {
   }
 }
 
-async function syncAccountData() {
-  accountSyncing.value = true;
-  accountSyncError.value = '';
+async function runDataSync() {
+  dataSyncing.value = true;
+  dataSyncError.value = '';
   try {
-    const result = await window.api.syncUserData();
+    const result = await window.api.runDataSync();
     if (!result.ok) {
-      accountSyncError.value = result.error;
+      dataSyncError.value = result.error;
     }
   } finally {
-    accountSyncing.value = false;
+    dataSyncing.value = false;
   }
 }
 
 watch(
-  () => props.syncState,
+  () => props.eventSyncState,
   (state) => {
     if (state === 'done' || state === 'aborted') {
       loadStats();
@@ -439,7 +439,7 @@ onMounted(async () => {
       </section>
 
       <section v-if="activeSection === 'general'">
-        <h2 class="mb-3 text-sm font-semibold text-white">{{ t('auth.accountSync') }}</h2>
+        <h2 class="mb-3 text-sm font-semibold text-white">{{ t('dataSync.title') }}</h2>
         <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="min-w-0">
@@ -450,29 +450,29 @@ onMounted(async () => {
               <p class="text-muted mt-1 text-sm">
                 {{
                   authState.configured
-                    ? t(`auth.syncState.${authState.syncState}`)
-                    : t('auth.configureHint')
+                    ? t(`dataSync.state.${authState.dataSyncState}`)
+                    : t('dataSync.configureHint')
                 }}
               </p>
-              <p v-if="accountSyncError || authState.error" class="mt-2 text-xs text-red-400">
-                {{ accountSyncError || authState.error }}
+              <p v-if="dataSyncError || authState.dataSyncError" class="mt-2 text-xs text-red-400">
+                {{ dataSyncError || authState.dataSyncError }}
               </p>
             </div>
             <button
               type="button"
               class="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               :disabled="
-                accountSyncing ||
-                authState.syncState === 'syncing' ||
+                dataSyncing ||
+                authState.dataSyncState === 'syncing' ||
                 authState.status !== 'signed-in'
               "
-              @click="syncAccountData"
+              @click="runDataSync"
             >
               <RefreshCw
                 :size="16"
-                :class="{ 'animate-spin': accountSyncing || authState.syncState === 'syncing' }"
+                :class="{ 'animate-spin': dataSyncing || authState.dataSyncState === 'syncing' }"
               />
-              {{ t('auth.syncNow') }}
+              {{ t('dataSync.runNow') }}
             </button>
           </div>
         </div>
@@ -508,7 +508,7 @@ onMounted(async () => {
             <button
               type="button"
               class="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="dataStorageMigrating || isSyncing()"
+              :disabled="dataStorageMigrating || isEventSyncing()"
               @click="changeDataStorageDirectory"
             >
               <LoadingSpinner
@@ -556,18 +556,18 @@ onMounted(async () => {
           </div>
           <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
             <p class="text-muted text-xs font-semibold tracking-wide uppercase">
-              {{ t('settings.lastSyncTime') }}
+              {{ t('settings.lastEventSyncTime') }}
             </p>
             <p class="mt-2 text-lg font-semibold text-white">
-              {{ stats.lastSyncAt ? formatTimestamp(stats.lastSyncAt) : '—' }}
+              {{ stats.lastEventSyncAt ? formatTimestamp(stats.lastEventSyncAt) : '—' }}
             </p>
-            <p class="text-muted mt-1 text-xs">{{ t('settings.fromPolymarketApi') }}</p>
+            <p class="text-muted mt-1 text-xs">{{ t('settings.fromEventSnapshot') }}</p>
           </div>
         </div>
       </section>
 
       <section v-if="activeSection === 'data'" class="mb-8">
-        <h2 class="mb-3 text-sm font-semibold text-white">{{ t('settings.dataSync') }}</h2>
+        <h2 class="mb-3 text-sm font-semibold text-white">{{ t('settings.eventSync') }}</h2>
         <div class="border-border bg-detail-bg mb-4 rounded-lg border px-5 py-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="min-w-0">
@@ -584,7 +584,7 @@ onMounted(async () => {
                 step="1"
                 class="border-border bg-bg text-text focus:border-primary h-9 w-28 rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 :value="currentEventSyncBatchSize"
-                :disabled="eventSyncBatchSizeSaving || isSyncing()"
+                :disabled="eventSyncBatchSizeSaving || isEventSyncing()"
                 :title="t('settings.eventSyncBatchSize')"
                 :aria-label="t('settings.eventSyncBatchSize')"
                 @change="updateEventSyncBatchSize"
@@ -595,21 +595,23 @@ onMounted(async () => {
         </div>
         <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
           <p class="text-muted text-sm">
-            {{ t('settings.syncDescription') }}
+            {{ t('settings.eventSyncDescription') }}
           </p>
           <div class="mt-4 flex flex-wrap items-center gap-3">
             <button
               type="button"
               class="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors"
-              :class="isSyncing() ? 'bg-primary/60' : 'bg-primary hover:bg-primary-hover'"
-              :disabled="isSyncing()"
-              @click="emit('toggle-sync')"
+              :class="isEventSyncing() ? 'bg-primary/60' : 'bg-primary hover:bg-primary-hover'"
+              :disabled="isEventSyncing()"
+              @click="emit('toggle-event-sync')"
             >
-              <RefreshCw :size="16" :class="{ 'animate-spin': isSyncing() }" />
-              {{ t('settings.startSync') }}
+              <RefreshCw :size="16" :class="{ 'animate-spin': isEventSyncing() }" />
+              {{ t('settings.startEventSync') }}
             </button>
-            <LoadingSpinner v-if="isSyncing()" :title="t('settings.syncData')" />
-            <span class="text-muted text-sm">{{ syncStatus || t('settings.notSyncedYet') }}</span>
+            <LoadingSpinner v-if="isEventSyncing()" :title="t('settings.syncEventData')" />
+            <span class="text-muted text-sm">
+              {{ eventSyncStatus || t('settings.eventNotSyncedYet') }}
+            </span>
           </div>
         </div>
       </section>
@@ -750,12 +752,16 @@ onMounted(async () => {
       </section>
 
       <section v-if="activeSection === 'data'">
-        <h2 class="mb-3 text-sm font-semibold text-white">{{ t('settings.scheduledSync') }}</h2>
+        <h2 class="mb-3 text-sm font-semibold text-white">
+          {{ t('settings.scheduledEventSync') }}
+        </h2>
         <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="min-w-0">
-              <p class="text-sm font-medium text-white">{{ t('settings.autoSync') }}</p>
-              <p class="text-muted mt-1 text-sm">{{ t('settings.scheduleDescription') }}</p>
+              <p class="text-sm font-medium text-white">{{ t('settings.autoEventSync') }}</p>
+              <p class="text-muted mt-1 text-sm">
+                {{ t('settings.eventSyncScheduleDescription') }}
+              </p>
             </div>
             <button
               type="button"
@@ -775,11 +781,11 @@ onMounted(async () => {
 
           <div class="border-border mt-5 flex flex-wrap items-center gap-3 border-t pt-4">
             <Clock :size="16" class="text-muted" />
-            <label for="sync-interval" class="text-muted text-sm">
-              {{ t('settings.syncInterval') }}
+            <label for="event-sync-interval" class="text-muted text-sm">
+              {{ t('settings.eventSyncInterval') }}
             </label>
             <input
-              id="sync-interval"
+              id="event-sync-interval"
               type="number"
               min="1"
               max="60"
@@ -790,7 +796,7 @@ onMounted(async () => {
               @change="updateInterval"
             />
             <span class="text-muted text-sm">{{ t('common.minutes') }}</span>
-            <LoadingSpinner v-if="scheduleSaving" :title="t('settings.saveSchedule')" />
+            <LoadingSpinner v-if="scheduleSaving" :title="t('settings.saveEventSyncSchedule')" />
           </div>
         </div>
       </section>

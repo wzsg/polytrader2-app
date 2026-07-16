@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { UserSyncResult, UserSyncState } from '@polytrader/shared';
+import type { DataSyncResult, DataSyncState } from '@polytrader/shared';
 import { createSqliteWatchlistRepository } from '@polytrader/sqlite-repository';
 import { appPreferencesService } from './appPreferencesService.js';
 
@@ -8,54 +8,51 @@ interface RemoteWatchlistRow {
   deleted_at: string | null;
 }
 
-class UserSyncService {
+class DataSyncService {
   private readonly _watchlistRepository = createSqliteWatchlistRepository();
   private _client: SupabaseClient | null = null;
-  private _syncState: UserSyncState = 'idle';
-  private _lastError: string | null = null;
-  private _onStateChange: (() => void) | null = null;
+  private _dataSyncState: DataSyncState = 'idle';
+  private _dataSyncError: string | null = null;
+  private _onDataSyncStateChange: (() => void) | null = null;
 
   public setClient(client: SupabaseClient | null): void {
     this._client = client;
   }
 
-  public setStateChangeHandler(handler: (() => void) | null): void {
-    this._onStateChange = handler;
+  public setDataSyncStateChangeHandler(handler: (() => void) | null): void {
+    this._onDataSyncStateChange = handler;
   }
 
-  public getSyncState(): UserSyncState {
-    return this._syncState;
+  public getDataSyncState(): DataSyncState {
+    return this._dataSyncState;
   }
 
-  public getLastError(): string | null {
-    return this._lastError;
+  public getDataSyncError(): string | null {
+    return this._dataSyncError;
   }
 
-  public syncInBackground(userId: string | null | undefined): void {
+  public syncDataInBackground(userId: string | null | undefined): void {
     if (!userId) return;
-    void this.syncCurrentUser(userId).catch((error) => {
-      console.warn('Failed to sync user data in background', error);
+    void this.syncDataForUser(userId).catch((error) => {
+      console.warn('Failed to sync data in background', error);
     });
   }
 
-  public async syncCurrentUser(userId: string): Promise<UserSyncResult> {
+  public async syncDataForUser(userId: string): Promise<DataSyncResult> {
     const client = this._assertClient();
-    this._setSyncState('syncing', null);
+    this._setDataSyncState('syncing', null);
     try {
-      const result = await this._syncLocalStateToCloud(client, userId);
-      this._setSyncState('synced', null);
+      const result = await this._syncDataToCloud(client, userId);
+      this._setDataSyncState('synced', null);
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this._setSyncState('error', message);
+      this._setDataSyncState('error', message);
       throw err;
     }
   }
 
-  private async _syncLocalStateToCloud(
-    client: SupabaseClient,
-    userId: string,
-  ): Promise<UserSyncResult> {
+  private async _syncDataToCloud(client: SupabaseClient, userId: string): Promise<DataSyncResult> {
     await this._syncPreference(client, userId);
     const watchlistResult = await this._syncWatchlist(client, userId);
     return {
@@ -126,13 +123,13 @@ class UserSyncService {
     return this._client;
   }
 
-  private _setSyncState(syncState: UserSyncState, error: string | null): void {
-    this._syncState = syncState;
-    this._lastError = error;
-    this._onStateChange?.();
+  private _setDataSyncState(dataSyncState: DataSyncState, error: string | null): void {
+    this._dataSyncState = dataSyncState;
+    this._dataSyncError = error;
+    this._onDataSyncStateChange?.();
   }
 }
 
-const userSyncService = new UserSyncService();
+const dataSyncService = new DataSyncService();
 
-export { userSyncService };
+export { dataSyncService };

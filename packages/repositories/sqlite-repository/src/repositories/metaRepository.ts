@@ -3,7 +3,7 @@ import { getDb } from '../client.js';
 import { appMeta } from '../schema/index.js';
 
 class SqliteMetaRepository {
-  private readonly _lastSyncKey = 'last_sync_at';
+  private readonly _lastEventSyncKey = 'last_event_sync_at';
 
   public getMetaValue(key: string): string | null {
     const db = getDb();
@@ -27,12 +27,12 @@ class SqliteMetaRepository {
     db.delete(appMeta).where(eq(appMeta.key, key)).run();
   }
 
-  public getLastSyncTime(): string | null {
-    return this.getMetaValue(this._lastSyncKey);
+  public getLastEventSyncTime(): string | null {
+    return this.getMetaValue(this._lastEventSyncKey);
   }
 
-  public setLastSyncTime(iso = new Date().toISOString()): void {
-    this.setMetaValue(this._lastSyncKey, iso);
+  public setLastEventSyncTime(iso = new Date().toISOString()): void {
+    this.setMetaValue(this._lastEventSyncKey, iso);
   }
 }
 

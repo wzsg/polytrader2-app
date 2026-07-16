@@ -51,7 +51,7 @@ function registerDbHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('db:countActiveByTags', (_event, tagIds: string[]) =>
     eventRepository.countActiveWithTags(tagIds),
   );
-  ipcMain.handle('db:cacheStats', () => eventRepository.getCacheStats());
+  ipcMain.handle('db:eventCacheStats', () => eventRepository.getEventCacheStats());
   ipcMain.handle('db:active', () =>
     eventListCache.getOrSetValue('events:active', getEventListCacheTtlMs(), async () =>
       eventRepository.countActive(),
@@ -60,12 +60,12 @@ function registerDbHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('watchlist:list', () => watchlistRepository.getWatchlistEventIds());
   ipcMain.handle('watchlist:add', async (_event, eventId: string) => {
     const result = await watchlistRepository.addToWatchlist(eventId);
-    if (result) supabaseAuthService.syncLocalChangesInBackground();
+    if (result) supabaseAuthService.runDataSyncInBackground();
     return result;
   });
   ipcMain.handle('watchlist:remove', async (_event, eventId: string) => {
     await watchlistRepository.removeFromWatchlist(eventId);
-    supabaseAuthService.syncLocalChangesInBackground();
+    supabaseAuthService.runDataSyncInBackground();
   });
   ipcMain.handle('watchlist:count', () => watchlistRepository.countWatchlist());
   ipcMain.handle('watchlist:countOpen', () => watchlistRepository.countOpenWatchlistEvents());

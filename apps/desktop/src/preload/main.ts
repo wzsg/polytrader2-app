@@ -24,7 +24,7 @@ const mainWindowApi = {
   signInWithProvider: (provider) => ipcRenderer.invoke('auth:signInWithProvider', provider),
   resendSignupConfirmation: (email) => ipcRenderer.invoke('auth:resendSignupConfirmation', email),
   signOut: () => ipcRenderer.invoke('auth:signOut'),
-  syncUserData: () => ipcRenderer.invoke('auth:syncUserData'),
+  runDataSync: () => ipcRenderer.invoke('data-sync:run'),
   onAuthChanged: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
       callback(input as Parameters<typeof callback>[0]);
@@ -36,12 +36,15 @@ const mainWindowApi = {
   chooseDataStorageDirectory: (defaultPath) =>
     ipcRenderer.invoke('data-storage:chooseDirectory', defaultPath),
   migrateDataStorage: (dataDirectory) => ipcRenderer.invoke('data-storage:migrate', dataDirectory),
-  startSync: () => ipcRenderer.send('sync:start'),
-  onSyncStatus: (callback) => {
-    ipcRenderer.on('sync:status', (_event, data) => callback(data));
+  startEventSync: () => ipcRenderer.send('event-sync:start'),
+  onEventSyncStatus: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data as Parameters<typeof callback>[0]);
+    ipcRenderer.on('event-sync:status', listener);
+    return () => ipcRenderer.removeListener('event-sync:status', listener);
   },
-  getSyncScheduleConfig: () => ipcRenderer.invoke('sync:schedule:get'),
-  setSyncScheduleConfig: (config) => ipcRenderer.invoke('sync:schedule:set', config),
+  getEventSyncScheduleConfig: () => ipcRenderer.invoke('event-sync:schedule:get'),
+  setEventSyncScheduleConfig: (config) => ipcRenderer.invoke('event-sync:schedule:set', config),
   getMcpServerConfig: () => ipcRenderer.invoke('mcp:getConfig'),
   setMcpServerConfig: (config) => ipcRenderer.invoke('mcp:setConfig', config),
   resetMcpServerToken: () => ipcRenderer.invoke('mcp:resetToken'),
@@ -58,7 +61,7 @@ const mainWindowApi = {
   getTotalCount: () => ipcRenderer.invoke('db:total'),
   countEventsByTags: (tagIds) => ipcRenderer.invoke('db:countByTags', tagIds),
   countActiveByTags: (tagIds) => ipcRenderer.invoke('db:countActiveByTags', tagIds),
-  getCacheStats: () => ipcRenderer.invoke('db:cacheStats'),
+  getEventCacheStats: () => ipcRenderer.invoke('db:eventCacheStats'),
   countActive: () => ipcRenderer.invoke('db:active'),
   getWatchlistEventIds: () => ipcRenderer.invoke('watchlist:list'),
   addToWatchlist: (eventId) => ipcRenderer.invoke('watchlist:add', eventId),

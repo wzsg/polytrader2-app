@@ -1,4 +1,8 @@
-export { DEFAULT_SCHEDULE_CONFIG, EventSyncScheduler, EventSyncService } from './eventSync.js';
+export {
+  DEFAULT_EVENT_SYNC_SCHEDULE_CONFIG,
+  EventSyncScheduler,
+  EventSyncService,
+} from './eventSync.js';
 export { MarketTradeSyncService } from './marketTradeSync.js';
 
 export type {

@@ -14,11 +14,11 @@ import type { SortOrder } from './common.js';
 import type { AccountOrderStatus } from './tradingOrder.js';
 
 export type EventStatusFilter = 'all' | 'active' | 'closed';
-export type SyncState = 'idle' | 'syncing' | 'finalizing' | 'done' | 'aborted' | 'error';
+export type EventSyncState = 'idle' | 'syncing' | 'finalizing' | 'done' | 'aborted' | 'error';
 type EventSyncTrigger = 'startup' | 'schedule' | 'manual' | 'retry' | 'locale-change';
 export type AuthProvider = 'google' | 'github';
 export type AuthStatus = 'disabled' | 'signed-out' | 'signed-in' | 'error';
-export type UserSyncState = 'idle' | 'syncing' | 'synced' | 'error';
+export type DataSyncState = 'idle' | 'syncing' | 'synced' | 'error';
 
 export interface AuthUserSummary {
   id: string;
@@ -30,7 +30,8 @@ export interface AuthState {
   status: AuthStatus;
   user: AuthUserSummary | null;
   email: string | null;
-  syncState: UserSyncState;
+  dataSyncState: DataSyncState;
+  dataSyncError: string | null;
   error: string | null;
 }
 
@@ -44,15 +45,15 @@ export interface AuthProviderStartResult {
   provider: AuthProvider;
 }
 
-export interface UserSyncResult {
+export interface DataSyncResult {
   preferenceSynced: boolean;
   watchlistSynced: boolean;
   watchlistActiveCount: number;
   watchlistDeletedCount: number;
 }
 
-export interface SyncStatus {
-  state: SyncState;
+export interface EventSyncStatus {
+  state: EventSyncState;
   page?: number;
   completedEvents?: number;
   totalEvents?: number;
@@ -60,7 +61,7 @@ export interface SyncStatus {
   error?: string;
 }
 
-export interface SyncScheduleConfig {
+export interface EventSyncScheduleConfig {
   enabled: boolean;
   intervalMinutes: number;
 }
@@ -81,8 +82,8 @@ export interface SetupState {
   requiresPassword: boolean;
   availableSpaceBytes: number | null;
   hasExistingDatabase: boolean;
-  cacheStats?: CacheStats;
-  syncStatus?: SyncStatus;
+  eventCacheStats?: EventCacheStats;
+  eventSyncStatus?: EventSyncStatus;
 }
 
 export interface McpServerConfig {
@@ -365,10 +366,10 @@ export interface MarketDetailData {
   holders: HolderGroup[];
 }
 
-export interface CacheStats {
+export interface EventCacheStats {
   eventCount: number;
   marketCount: number;
-  lastSyncAt: string | null;
+  lastEventSyncAt: string | null;
 }
 
 export interface CryptoEventsResult {

@@ -11,8 +11,8 @@ import type {
   SportsCategoryConfig,
   SportsEventsResult,
   SportsMetadataItem,
-  SyncScheduleConfig,
-  SyncStatus,
+  EventSyncScheduleConfig,
+  EventSyncStatus,
   EventSyncTrigger,
   GammaEventRaw,
 } from '@polytrader/shared';
@@ -28,7 +28,7 @@ import type { EventSyncResult, EventSyncWorkflowInput } from './sync/index.js';
 import type { MarketServiceOptions } from './types.js';
 
 type PolymarketMarketServiceEventMap = {
-  'event-sync-status': [status: SyncStatus];
+  'event-sync-status': [status: EventSyncStatus];
   'market-trade-sync-status': [status: MarketTradeSyncStatus];
 };
 
@@ -144,16 +144,18 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     return true;
   }
 
-  public readSyncScheduleConfig(): Promise<SyncScheduleConfig> {
+  public readEventSyncScheduleConfig(): Promise<EventSyncScheduleConfig> {
     return this._eventSyncScheduler.readConfig();
   }
 
-  public writeSyncScheduleConfig(config: Partial<SyncScheduleConfig>): Promise<SyncScheduleConfig> {
+  public writeEventSyncScheduleConfig(
+    config: Partial<EventSyncScheduleConfig>,
+  ): Promise<EventSyncScheduleConfig> {
     return this._eventSyncScheduler.writeConfig(config);
   }
 
-  public applySyncScheduleConfig(
-    config?: SyncScheduleConfig,
+  public applyEventSyncScheduleConfig(
+    config?: EventSyncScheduleConfig,
     initialTrigger: EventSyncTrigger | null = 'startup',
   ): Promise<void> {
     return this._eventSyncScheduler.apply(config, initialTrigger);
@@ -181,7 +183,7 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     this._marketTradeSyncService.stopAll();
   }
 
-  private handleEventSyncStatus(status: SyncStatus): void {
+  private handleEventSyncStatus(status: EventSyncStatus): void {
     this._eventBus?.publish('polymarket-event-sync:status', {
       status,
       at: new Date().toISOString(),

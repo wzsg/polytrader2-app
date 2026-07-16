@@ -7,10 +7,10 @@ import type {
   AuthState,
   AuthStatus,
   AuthUserSummary,
-  UserSyncResult,
+  DataSyncResult,
 } from '@polytrader/shared';
 import { createSqliteMetaRepository } from '@polytrader/sqlite-repository';
-import { userSyncService } from './userSyncService.js';
+import { dataSyncService } from './dataSyncService.js';
 import { getMainWindow } from '../windows/mainWindow.js';
 
 const DEEP_LINK_URL = 'polytrader2://auth/callback';
@@ -63,7 +63,7 @@ class SupabaseAuthService {
   private readonly _pendingDeepLinkUrls: string[] = [];
 
   public constructor() {
-    userSyncService.setStateChangeHandler(() => {
+    dataSyncService.setDataSyncStateChangeHandler(() => {
       this._broadcastAuthState();
     });
   }
@@ -79,8 +79,9 @@ class SupabaseAuthService {
       status: this._status,
       user: this._user,
       email: this._email,
-      syncState: userSyncService.getSyncState(),
-      error: this._error || userSyncService.getLastError(),
+      dataSyncState: dataSyncService.getDataSyncState(),
+      dataSyncError: dataSyncService.getDataSyncError(),
+      error: this._error,
     };
   }
 
@@ -157,14 +158,14 @@ class SupabaseAuthService {
     return this.getAuthState();
   }
 
-  public async syncUserData(): Promise<UserSyncResult> {
+  public async runDataSync(): Promise<DataSyncResult> {
     const userId = this._user?.id;
-    if (!userId) throw new Error('Sign in before syncing user data');
-    return userSyncService.syncCurrentUser(userId);
+    if (!userId) throw new Error('Sign in before syncing data');
+    return dataSyncService.syncDataForUser(userId);
   }
 
-  public syncLocalChangesInBackground(): void {
-    userSyncService.syncInBackground(this._user?.id);
+  public runDataSyncInBackground(): void {
+    dataSyncService.syncDataInBackground(this._user?.id);
   }
 
   public async handleDeepLinkUrl(input: string): Promise<void> {
@@ -232,7 +233,7 @@ class SupabaseAuthService {
         storage: new SupabaseSafeStorage(),
       },
     });
-    userSyncService.setClient(this._client);
+    dataSyncService.setClient(this._client);
     this._client.auth.onAuthStateChange((_event, session) => {
       void this._handleAuthSession(session).catch((error) => {
         console.warn('Failed to handle Supabase auth session', error);
@@ -276,7 +277,7 @@ class SupabaseAuthService {
     const userId = this._user?.id;
     if (!userId) return;
     try {
-      await userSyncService.syncCurrentUser(userId);
+      await dataSyncService.syncDataForUser(userId);
     } catch {
       this._broadcastAuthState();
     }
@@ -340,7 +341,7 @@ class SupabaseAuthService {
     this._user = null;
     this._email = null;
     this._error = error;
-    userSyncService.setClient(null);
+    dataSyncService.setClient(null);
     this._broadcastAuthState();
   }
 

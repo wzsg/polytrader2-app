@@ -9,7 +9,7 @@ import type {
   BrowserNavigationState,
   BrowserProviderResponseInput,
   BrowserViewBounds,
-  CacheStats,
+  EventCacheStats,
   ClobOrder,
   ClobTrade,
   CryptoCategoryConfig,
@@ -64,8 +64,8 @@ import type {
   SportsEventScope,
   SportsEventsResult,
   SportsMetadataItem,
-  SyncScheduleConfig,
-  SyncStatus,
+  EventSyncScheduleConfig,
+  EventSyncStatus,
   PolymarketWalletImportInput,
   PolymarketBridgeDepositInput,
   PolymarketBridgeQuoteInput,
@@ -97,7 +97,7 @@ import type {
   TradingStrategyState,
   TradingStrategyStateEvent,
   TradingWindowInput,
-  UserSyncResult,
+  DataSyncResult,
   WorkflowTaskRecord,
 } from './types/index.js';
 import type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
@@ -121,7 +121,7 @@ export type {
   BrowserProviderRequestKind,
   BrowserWalletConnectionState,
   BrowserViewBounds,
-  CacheStats,
+  EventCacheStats,
   CryptoCategoryConfig,
   CryptoEventsResult,
   DbMarket,
@@ -156,7 +156,7 @@ export type {
   PriceHistoryPoint,
   OrderBook,
   SortOrder,
-  SyncStatus,
+  EventSyncStatus,
   WsMessage,
   ClobOrder,
   ClobTrade,
@@ -177,8 +177,8 @@ export type {
   TradingMarketSubscribeOptions,
   TradingMarketSnapshot,
   TradingWindowInput,
-  UserSyncResult,
-  UserSyncState,
+  DataSyncResult,
+  DataSyncState,
   ManualPlaceOrderInput,
   StrategyBotCreateInput,
   StrategyBotDetail,
@@ -194,7 +194,7 @@ export type {
   StrategyListItem,
   StrategyUpdateInput,
   StrategyVersionSummary,
-  SyncScheduleConfig,
+  EventSyncScheduleConfig,
   StrategyRunDetail,
   StrategyRunListItem,
   StrategyRunListParams,
@@ -358,7 +358,7 @@ export interface IpcApi {
   signInWithProvider: (provider: AuthProvider) => Promise<ApiResult<AuthProviderStartResult>>;
   resendSignupConfirmation: (email: string) => Promise<ApiResult<void>>;
   signOut: () => Promise<ApiResult<AuthState>>;
-  syncUserData: () => Promise<ApiResult<UserSyncResult>>;
+  runDataSync: () => Promise<ApiResult<DataSyncResult>>;
   onAuthChanged: (callback: (state: AuthState) => void) => () => void;
   getAppPreferences: () => Promise<AppPreferences>;
   setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
@@ -381,11 +381,13 @@ export interface IpcApi {
   unlockInitialSetup: (password: string) => Promise<ApiResult<SetupState>>;
   completeInitialSetup: () => Promise<void>;
   cancelInitialSetup: () => Promise<void>;
-  onSetupSyncStatus: (callback: (status: SyncStatus) => void) => () => void;
-  startSync: () => void;
-  onSyncStatus: (callback: (status: SyncStatus) => void) => void;
-  getSyncScheduleConfig: () => Promise<SyncScheduleConfig>;
-  setSyncScheduleConfig: (config: Partial<SyncScheduleConfig>) => Promise<SyncScheduleConfig>;
+  onSetupEventSyncStatus: (callback: (status: EventSyncStatus) => void) => () => void;
+  startEventSync: () => void;
+  onEventSyncStatus: (callback: (status: EventSyncStatus) => void) => () => void;
+  getEventSyncScheduleConfig: () => Promise<EventSyncScheduleConfig>;
+  setEventSyncScheduleConfig: (
+    config: Partial<EventSyncScheduleConfig>,
+  ) => Promise<EventSyncScheduleConfig>;
   getMcpServerConfig: () => Promise<McpServerConfig>;
   setMcpServerConfig: (config: Partial<McpServerConfig>) => Promise<McpServerConfig>;
   resetMcpServerToken: () => Promise<McpServerConfig>;
@@ -404,7 +406,7 @@ export interface IpcApi {
   getTotalCount: () => Promise<number>;
   countEventsByTags: (tagIds: string[]) => Promise<number>;
   countActiveByTags: (tagIds: string[]) => Promise<number>;
-  getCacheStats: () => Promise<CacheStats>;
+  getEventCacheStats: () => Promise<EventCacheStats>;
   countActive: () => Promise<number>;
   getWatchlistEventIds: () => Promise<string[]>;
   addToWatchlist: (eventId: string) => Promise<boolean>;

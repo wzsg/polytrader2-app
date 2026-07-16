@@ -412,11 +412,15 @@ class SqliteEventRepository {
     return row ? this._rowToMarket(this._drizzleMarketToRow(row)) : null;
   }
 
-  public getCacheStats(): { eventCount: number; marketCount: number; lastSyncAt: string | null } {
+  public getEventCacheStats(): {
+    eventCount: number;
+    marketCount: number;
+    lastEventSyncAt: string | null;
+  } {
     return {
       eventCount: this._countAllEvents(),
       marketCount: this.countMarkets(),
-      lastSyncAt: new SqliteMetaRepository().getLastSyncTime(),
+      lastEventSyncAt: new SqliteMetaRepository().getLastEventSyncTime(),
     };
   }
 

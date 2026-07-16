@@ -26,7 +26,7 @@ import EsportsEventsView from './views/EsportsEventsView.vue';
 import TitleBar from '../shared/components/TitleBar.vue';
 import { useFilters } from '../shared/composables/useFilters';
 import { preloadSportsMetadata } from '../shared/composables/sportsMetadata';
-import { useSync } from '../shared/composables/useSync';
+import { useEventSync } from '../shared/composables/useEventSync';
 import { useWatchlist } from '../shared/composables/useWatchlist';
 import { translateUiKey } from '../shared/i18n';
 import { displayMarkets, getSingleOpenMarket } from '../shared/utils/markets';
@@ -59,7 +59,8 @@ const authState = ref<AuthState>({
   status: 'disabled',
   user: null,
   email: null,
-  syncState: 'idle',
+  dataSyncState: 'idle',
+  dataSyncError: null,
   error: null,
 });
 let unsubscribeCloseRequested: (() => void) | null = null;
@@ -90,20 +91,22 @@ const newAppVersion = computed(() => {
   return version.startsWith('v') ? version : `v${version}`;
 });
 
-const { syncState, syncStatus, setupSync, toggleSync } = useSync(async () => {
-  if (activeNav.value === 'events') {
-    await eventsListRef.value?.reload();
-  } else if (activeNav.value === 'watchlist') {
-    await watchlistRef.value?.reload();
-  } else if (activeNav.value === 'crypto') {
-    await cryptoEventsRef.value?.reload();
-  } else if (activeNav.value === 'sports') {
-    await sportsEventsRef.value?.reload();
-  } else if (activeNav.value === 'esports') {
-    await esportsEventsRef.value?.reload();
-  }
-  await refreshOpenWatchlistEventCount();
-});
+const { eventSyncState, eventSyncStatus, setupEventSync, toggleEventSync } = useEventSync(
+  async () => {
+    if (activeNav.value === 'events') {
+      await eventsListRef.value?.reload();
+    } else if (activeNav.value === 'watchlist') {
+      await watchlistRef.value?.reload();
+    } else if (activeNav.value === 'crypto') {
+      await cryptoEventsRef.value?.reload();
+    } else if (activeNav.value === 'sports') {
+      await sportsEventsRef.value?.reload();
+    } else if (activeNav.value === 'esports') {
+      await esportsEventsRef.value?.reload();
+    }
+    await refreshOpenWatchlistEventCount();
+  },
+);
 
 const authStatusText = computed(() => {
   if (!authState.value.configured || authState.value.status === 'disabled') return '';
@@ -302,7 +305,7 @@ onMounted(async () => {
     }
   });
   developerModeEnabled.value = (await window.api.getDeveloperModeConfig()).enabled;
-  setupSync();
+  setupEventSync();
   preloadSportsMetadata();
   await loadPersistedFilters();
   await refreshOpenWatchlistEventCount();
@@ -345,8 +348,6 @@ onUnmounted(() => {
         :developer-mode-enabled="developerModeEnabled"
         :auth-state="authState"
         :open-watchlist-event-count="openWatchlistEventCount"
-        :sync-state="syncState"
-        :sync-status="syncStatus"
         @change-nav="handleNavChange"
         @open-auth="authPanelOpen = true"
       />
@@ -358,10 +359,10 @@ onUnmounted(() => {
           <StrategiesView v-else-if="activeNav === 'strategies'" />
           <SettingsView
             v-else-if="activeNav === 'settings'"
-            :sync-state="syncState"
-            :sync-status="syncStatus"
+            :event-sync-state="eventSyncState"
+            :event-sync-status="eventSyncStatus"
             :auth-state="authState"
-            @toggle-sync="toggleSync"
+            @toggle-event-sync="toggleEventSync"
             @developer-mode-change="handleDeveloperModeChange"
           />
           <DeveloperModeView v-else-if="activeNav === 'developer' && developerModeEnabled" />
