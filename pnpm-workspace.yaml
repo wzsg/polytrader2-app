@@ -6,7 +6,12 @@ packages:
   - packages/repositories/*
 
 nodeLinker: hoisted
-blockExoticSubdeps: false
+blockExoticSubdeps: true
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+minimumReleaseAgeIgnoreMissingTime: false
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 43200
 allowBuilds:
   better-sqlite3: true
   electron: true
@@ -18,5 +23,17 @@ minimumReleaseAgeExclude:
   - vue-tsc@3.3.3
   - better-sqlite3@12.10.1
 overrides:
+  '@esbuild-kit/core-utils>esbuild': 0.25.0
+  '@polymarket/builder-relayer-client>axios': 0.33.0
+  'dompurify@<3.4.12': 3.4.12
+  'esbuild@>=0.27.3 <0.28.1': 0.28.1
+  'form-data@<4.0.6': 4.0.6
   hono: 4.12.30
+  'undici@<6.27.0': 6.27.0
+  'undici@>=7.0.0 <7.28.0': 7.28.0
   viem: 2.55.1
+  'vite@>=7.0.0 <7.3.5': 7.3.5
+  'ws@>=8.0.0 <8.21.0': 8.21.0
+patchedDependencies:
+  '@polymarket/builder-abstract-signer@0.0.1': patches/@polymarket__builder-abstract-signer@0.0.1.patch
+  '@polymarket/builder-relayer-client@0.0.10': patches/@polymarket__builder-relayer-client@0.0.10.patch

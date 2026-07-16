@@ -6,9 +6,9 @@ import { basename, dirname, join, relative, resolve } from 'path';
 import type {
   ApiResult,
   AppLocalePreference,
-  CacheStats,
+  EventCacheStats,
+  EventSyncStatus,
   SetupState,
-  SyncStatus,
 } from '@polytrader/shared';
 import { createSqliteEventRepository } from '@polytrader/sqlite-repository';
 import { initializeAppStorage } from '../app/bootstrap.js';
@@ -49,7 +49,7 @@ interface SetupStartInput {
 class SetupService {
   private readonly _eventRepository = createSqliteEventRepository();
   private _running = false;
-  private _lastStatus: SyncStatus = { state: 'idle' };
+  private _lastEventSyncStatus: EventSyncStatus = { state: 'idle' };
   private _initializedDataDirectory: string | null = null;
 
   public getBootstrapConfigPath(): string {
@@ -189,7 +189,7 @@ class SetupService {
       this._configureEncryption(settings, input.password);
       await this._writeSettings(validated.data.dataDirectory, settings);
       this._running = true;
-      this._lastStatus = { state: 'idle' };
+      this._lastEventSyncStatus = { state: 'idle' };
       await initializeAppStorage(validated.data.dataDirectory);
       this._initializedDataDirectory = validated.data.dataDirectory;
       await appPreferencesService.setLocalePreference(settings.localePreference);
@@ -203,8 +203,8 @@ class SetupService {
         new AbortController().signal,
       );
       await categoryWarmupPromise;
-      const cacheStats = await this._eventRepository.getCacheStats();
-      if (cacheStats.eventCount <= 0) {
+      const eventCacheStats = await this._eventRepository.getEventCacheStats();
+      if (eventCacheStats.eventCount <= 0) {
         return { ok: false, error: 'Event data download completed without cached events' };
       }
       const completedSettings = { ...settings, setupCompleted: true as const };
@@ -220,11 +220,11 @@ class SetupService {
           setupCompleted: true,
           requiresPassword: false,
           encryptionLocked: validated.data.hasExistingDatabase,
-          cacheStats,
-          syncStatus: {
+          eventCacheStats,
+          eventSyncStatus: {
             state: 'done',
-            completedEvents: cacheStats.eventCount,
-            totalEvents: cacheStats.eventCount,
+            completedEvents: eventCacheStats.eventCount,
+            totalEvents: eventCacheStats.eventCount,
             progressPercent: 100,
           },
         }),
@@ -266,8 +266,8 @@ class SetupService {
     walletEncryptionService.verifySystemMethod(state.encryptionMethod);
   }
 
-  public setLastSyncStatus(status: SyncStatus): void {
-    this._lastStatus = status;
+  public setLastEventSyncStatus(status: EventSyncStatus): void {
+    this._lastEventSyncStatus = status;
   }
 
   private async _warmCategoryConfigs(): Promise<void> {
@@ -419,8 +419,8 @@ class SetupService {
     setupCompleted: boolean;
     requiresPassword: boolean;
     encryptionLocked: boolean;
-    cacheStats?: CacheStats;
-    syncStatus?: SyncStatus;
+    eventCacheStats?: EventCacheStats;
+    eventSyncStatus?: EventSyncStatus;
   }): SetupState {
     return {
       setupCompleted: input.setupCompleted,
@@ -433,8 +433,8 @@ class SetupService {
       requiresPassword: input.requiresPassword,
       availableSpaceBytes: input.availableSpaceBytes,
       hasExistingDatabase: input.hasExistingDatabase,
-      cacheStats: input.cacheStats,
-      syncStatus: input.syncStatus,
+      eventCacheStats: input.eventCacheStats,
+      eventSyncStatus: input.eventSyncStatus,
     };
   }
 

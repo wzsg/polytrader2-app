@@ -1,16 +1,26 @@
+import { app } from 'electron';
 import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { AiAgentIntegrationService } from '@polytrader/app-preferences';
 import type { McpConnectionConfig } from '@polytrader/app-preferences';
 import type { AiAgentId, AiAgentIntegrationStatus } from '@polytrader/shared';
 import { mcpServerManager } from './mcpServerService.js';
 
-const AGENT_IDS: AiAgentId[] = ['codex', 'claude-code', 'opencode', 'cursor'];
+const AGENT_IDS: AiAgentId[] = ['codex', 'claude-desktop', 'opencode', 'cursor'];
 
 class DesktopAiAgentIntegrationService {
   private readonly _service: AiAgentIntegrationService;
 
   public constructor() {
-    this._service = new AiAgentIntegrationService({ homeDirectory: homedir() });
+    this._service = new AiAgentIntegrationService({
+      homeDirectory: homedir(),
+      claudeDesktopBridge: {
+        command: process.execPath,
+        scriptPath: app.isPackaged
+          ? join(process.resourcesPath, 'mcp-stdio-bridge', 'mcp-stdio-bridge.js')
+          : join(app.getAppPath(), 'out', 'mcp-stdio-bridge', 'mcp-stdio-bridge.js'),
+      },
+    });
   }
 
   public async detectAll(): Promise<AiAgentIntegrationStatus[]> {

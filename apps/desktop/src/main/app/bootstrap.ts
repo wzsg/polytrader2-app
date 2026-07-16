@@ -16,13 +16,14 @@ import { registerBridgeHandlers } from '../ipc/bridgeIpc.js';
 import { registerTradingAccountHandlers } from '../ipc/tradingAccountIpc.js';
 import { registerDbHandlers } from '../ipc/dbIpc.js';
 import { registerDeveloperHandlers } from '../ipc/developerIpc.js';
+import { registerDataSyncHandlers } from '../ipc/dataSyncIpc.js';
 import { registerMarketHandlers } from '../ipc/marketIpc.js';
 import { registerMcpHandlers } from '../ipc/mcpIpc.js';
 import { registerStrategyTradingHandlers } from '../ipc/strategyIpc.js';
 import { registerStrategyRunHandlers } from '../ipc/strategyRunIpc.js';
 import { registerTradingMarketHandlers } from '../ipc/tradingMarketIpc.js';
 import { registerTradingStrategyHandlers } from '../ipc/tradingStrategyIpc.js';
-import { registerSyncHandlers } from '../ipc/syncIpc.js';
+import { registerEventSyncHandlers } from '../ipc/eventSyncIpc.js';
 import { registerWindowHandlers } from '../ipc/windowIpc.js';
 import { registerPreferenceHandlers } from '../preferences.js';
 import {
@@ -33,7 +34,7 @@ import { botRuntimeService, strategyRunHistoryService } from '../services/strate
 import { tradingAccountService } from '../services/tradingAccountService.js';
 import { tradingMarketService } from '../services/tradingMarketService.js';
 import { tradingStrategyService } from '../services/tradingStrategyService.js';
-import { kvStore } from '../services/kvStore.js';
+import { fileCacheStore } from '../services/fileCacheStore.js';
 import { supabaseAuthService } from '../services/supabaseAuthService.js';
 import { desktopWorkflowService } from '../services/workflowService.js';
 import { mcpServerManager } from '../services/mcpServerService.js';
@@ -62,6 +63,7 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   if (ipcHandlersRegistered) return;
   autoUpdaterService.registerIpcHandlers(ipcMain);
   registerAuthHandlers(ipcMain);
+  registerDataSyncHandlers(ipcMain);
   registerAiAgentIntegrationHandlers(ipcMain);
   registerDbHandlers(ipcMain);
   registerDeveloperHandlers(ipcMain);
@@ -69,7 +71,7 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   registerMcpHandlers(ipcMain);
   registerWindowHandlers(ipcMain);
   registerPreferenceHandlers(ipcMain);
-  registerSyncHandlers(ipcMain, {
+  registerEventSyncHandlers(ipcMain, {
     initialTrigger: options.initialEventSync ? 'startup' : null,
   });
   registerAccountHandlers(ipcMain);
@@ -106,7 +108,7 @@ async function initializeAppStorage(userDataPath?: string): Promise<void> {
     migrationsFolder: resolveMigrationsFolder(),
     workerScriptPath: resolveSqliteWorkerPath(),
   });
-  await kvStore.initialize(userData);
+  await fileCacheStore.initialize(userData);
   MarketTradeRepositoryFactory.getInstance().setMarketTradeStoragePath(userData);
   MarketPriceHistoryRepositoryFactory.getInstance().setMarketPriceHistoryStoragePath(userData);
   desktopWorkflowService.start();

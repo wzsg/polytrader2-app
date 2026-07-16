@@ -4,6 +4,7 @@ import type { SportDisciplineCategory, SportsCategoryConfig } from '@polytrader/
 import { translateUiKey } from '../i18n';
 import { useSportsCategory } from './useSportsCategory';
 import { useWatchlist } from './useWatchlist';
+import { createRequestId } from '../utils/request';
 
 const PAGE_SIZE = 50;
 const SPORTS_START_TIME_GRACE_MS = 24 * 60 * 60 * 1000;
@@ -62,6 +63,7 @@ function useSportsEvents() {
   const metadataError = computed(() => sportsCategory.error.value || visibleCountsError.value);
 
   let ready = false;
+  let activeRequestId = '';
   let appliedCategoryConfig: SportsCategoryConfig | null = null;
 
   const availableDisciplines = computed(() =>
@@ -198,6 +200,8 @@ function useSportsEvents() {
   }
 
   async function loadEvents(): Promise<void> {
+    const requestId = createRequestId();
+    activeRequestId = requestId;
     loading.value = true;
     error.value = '';
     try {
@@ -221,14 +225,16 @@ function useSportsEvents() {
         window.api.listEvents(params),
         window.api.countEvents(params),
       ]);
+      if (requestId !== activeRequestId) return;
       pageEvents.value = events;
       filteredCount.value = count;
       totalCount.value = count;
       activeCount.value = count;
     } catch (err) {
+      if (requestId !== activeRequestId) return;
       error.value = err instanceof Error ? err.message : String(err);
     } finally {
-      loading.value = false;
+      if (requestId === activeRequestId) loading.value = false;
     }
   }
 

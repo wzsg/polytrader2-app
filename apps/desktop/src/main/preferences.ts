@@ -20,7 +20,7 @@ function broadcastPreferences(preferences: AppPreferences): void {
 function registerPreferenceHandlers(ipcMain: IpcMain): void {
   applicationEventBus.subscribe('app-preferences:changed', (event) => {
     broadcastPreferences(event.preferences);
-    supabaseAuthService.syncLocalChangesInBackground();
+    supabaseAuthService.runDataSyncInBackground();
   });
   ipcMain.handle('preferences:get', () => getAppPreferences());
   ipcMain.handle('preferences:setLocalePreference', async (_event, input: unknown) => {

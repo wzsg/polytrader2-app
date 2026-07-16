@@ -1,4 +1,4 @@
-type AiAgentId = 'codex' | 'claude-code' | 'opencode' | 'cursor';
+type AiAgentId = 'codex' | 'claude-desktop' | 'opencode' | 'cursor';
 
 type AiAgentConfigState =
   'not-configured' | 'configured' | 'update-required' | 'conflict' | 'error';

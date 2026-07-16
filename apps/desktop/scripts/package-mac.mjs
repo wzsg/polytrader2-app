@@ -235,6 +235,10 @@ class MacPackager {
       files: ['out/**', 'build/**', 'package.json'],
       extraResources: [
         {
+          from: join(this.#stageDir, 'out/mcp-stdio-bridge/mcp-stdio-bridge.js'),
+          to: 'mcp-stdio-bridge/mcp-stdio-bridge.js',
+        },
+        {
           from: join(this.#stageDir, 'resources/strategy-runtime'),
           to: 'strategy-runtime',
           filter: ['**/*'],

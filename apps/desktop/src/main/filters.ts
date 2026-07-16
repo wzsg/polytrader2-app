@@ -1,5 +1,5 @@
 import type { Filters } from '@polytrader/shared';
-import { kvStore } from './services/kvStore.js';
+import { fileCacheStore } from './services/fileCacheStore.js';
 
 const FILTER_KEYS = [
   'search',
@@ -45,14 +45,14 @@ const FILTER_KEYS = [
 const FILTERS_STORE_KEY = 'main-window-filters';
 
 async function loadFilters(): Promise<Partial<Filters> | null> {
-  const stored = await kvStore.getValue<Partial<Filters>>(FILTERS_STORE_KEY);
+  const stored = await fileCacheStore.getValue<Partial<Filters>>(FILTERS_STORE_KEY);
   return stored ? sanitizeFilters(stored) : null;
 }
 
 async function saveFilters(filters: Partial<Filters>): Promise<void> {
   const saved = (await loadFilters()) ?? {};
   const data = mergeFilters(saved, filters);
-  await kvStore.setValue(FILTERS_STORE_KEY, data, null);
+  await fileCacheStore.setValue(FILTERS_STORE_KEY, data, null);
 }
 
 function sanitizeFilters(filters: Record<string, unknown>): Partial<Filters> | null {

@@ -6,6 +6,7 @@ import type {
   Market,
   MarketTradeListResult,
   TradingAccountDataEvent,
+  TradingAccountScopedData,
   TradingMarketEvent,
   TradingMarketSnapshot,
   TradingRuntimeAccountState,
@@ -16,6 +17,7 @@ import type {
 import { translateUiKey } from '@/shared/i18n';
 import { displayMarkets, getMarketIcon, isDisplayableMarket } from '@/shared/utils/markets';
 import { getMarketTitle, normalizeApiEvent } from '@/shared/utils/apiEvent';
+import { createRequestId } from '@/shared/utils/request';
 import { resolvePriceHistoryRange, type PriceHistoryRange } from './usePriceHistoryRange';
 import { useTradingOrderBookSummary } from './useTradingOrderBookSummary';
 import { useTradingPanelLayout } from './useTradingPanelLayout';
@@ -23,6 +25,18 @@ import { useTradingPanelLayout } from './useTradingPanelLayout';
 export type CenterTab = 'market' | 'trades' | 'analysis' | 'holders';
 export type ActivityTab =
   'orders' | 'positions' | 'walletTrades' | 'bots' | 'strategyLogs' | 'strategyHistory';
+
+type WalletDataScope = {
+  walletId: string;
+  conditionId: string;
+};
+
+type WalletDataType = 'orders' | 'positions' | 'trades';
+
+type WalletDataRequest = {
+  requestId: string;
+  scope: WalletDataScope;
+};
 
 export function useTradingApp() {
   const params = ref<TradingWindowInput>(readParamsFromUrl());
@@ -48,6 +62,8 @@ export function useTradingApp() {
   const priceHistoryError = ref('');
   let runtimeRequestSeq = 0;
   let walletRequestSeq = 0;
+  const walletDataRefreshVersions = new Map<string, number>();
+  const strategyStateRefreshVersions = new Map<string, number>();
   let priceHistoryRequestSeq = 0;
   let defaultMarketTradesRequestSeq = 0;
   let defaultMarketTradesInFlight = false;
@@ -586,21 +602,104 @@ export function useTradingApp() {
     }
   }
 
+  function getWalletDataScope(): WalletDataScope | null {
+    const walletId = selectedPanelWalletId.value.trim();
+    const targetConditionId = conditionId.value.trim();
+    if (!walletId || !targetConditionId) return null;
+    return { walletId, conditionId: targetConditionId };
+  }
+
+  function getWalletDataRefreshKey(type: WalletDataType, scope: WalletDataScope): string {
+    return `${type}:${scope.walletId}:${scope.conditionId}`;
+  }
+
+  function nextRefreshVersion(versions: Map<string, number>, key: string): number {
+    const version = (versions.get(key) ?? 0) + 1;
+    versions.set(key, version);
+    return version;
+  }
+
+  function isCurrentRefreshVersion(
+    versions: Map<string, number>,
+    key: string,
+    version: number,
+  ): boolean {
+    return versions.get(key) === version;
+  }
+
+  function nextWalletDataRefreshVersion(type: WalletDataType, scope: WalletDataScope): number {
+    return nextRefreshVersion(walletDataRefreshVersions, getWalletDataRefreshKey(type, scope));
+  }
+
+  function isCurrentWalletDataRefresh(
+    type: WalletDataType,
+    scope: WalletDataScope,
+    version: number,
+  ): boolean {
+    const activeScope = getWalletDataScope();
+    if (
+      !activeScope ||
+      activeScope.walletId !== scope.walletId ||
+      activeScope.conditionId !== scope.conditionId
+    ) {
+      return false;
+    }
+    return isCurrentRefreshVersion(
+      walletDataRefreshVersions,
+      getWalletDataRefreshKey(type, scope),
+      version,
+    );
+  }
+
+  function createWalletDataRequest(scope: WalletDataScope): WalletDataRequest {
+    return { requestId: createRequestId(), scope };
+  }
+
+  function isMatchingWalletDataResponse<T>(
+    data: TradingAccountScopedData<T>,
+    request: WalletDataRequest,
+  ): boolean {
+    return (
+      data.requestId === request.requestId &&
+      data.walletId === request.scope.walletId &&
+      data.conditionId === request.scope.conditionId
+    );
+  }
+
   async function refreshStrategyState(): Promise<void> {
-    if (!marketId.value) return;
+    const targetMarketId = marketId.value;
+    if (!targetMarketId) return;
+    const version = nextRefreshVersion(strategyStateRefreshVersions, targetMarketId);
     strategyLoading.value = true;
     strategyError.value = '';
     try {
-      const result = await window.api.tradingStrategy.getState(marketId.value);
+      const result = await window.api.tradingStrategy.getState(targetMarketId);
+      if (
+        marketId.value !== targetMarketId ||
+        !isCurrentRefreshVersion(strategyStateRefreshVersions, targetMarketId, version)
+      ) {
+        return;
+      }
       if (result.ok) {
         strategyState.value = result.data;
       } else {
         strategyError.value = result.error;
       }
     } catch (error) {
+      if (
+        marketId.value !== targetMarketId ||
+        !isCurrentRefreshVersion(strategyStateRefreshVersions, targetMarketId, version)
+      ) {
+        return;
+      }
       strategyError.value = error instanceof Error ? error.message : String(error);
     } finally {
-      strategyLoading.value = false;
+      if (
+        marketId.value === targetMarketId &&
+        isCurrentRefreshVersion(strategyStateRefreshVersions, targetMarketId, version)
+      ) {
+        strategyLoading.value = false;
+      }
     }
   }
 
@@ -706,57 +805,78 @@ export function useTradingApp() {
   }
 
   async function refreshWalletOrders(): Promise<void> {
-    if (!conditionId.value || !walletState.value) return;
+    const scope = getWalletDataScope();
+    if (!scope || !walletState.value) return;
+    const version = nextWalletDataRefreshVersion('orders', scope);
+    const request = createWalletDataRequest(scope);
     const result = await window.api.tradingAccount.getOrders({
-      walletId: selectedPanelWalletId.value || undefined,
-      conditionId: conditionId.value,
+      requestId: request.requestId,
+      walletId: scope.walletId,
+      conditionId: scope.conditionId,
     });
+    if (!isCurrentWalletDataRefresh('orders', scope, version)) return;
     if (!result.ok) {
       walletError.value = result.error;
       return;
     }
+    if (!isMatchingWalletDataResponse(result.data, request)) return;
     const current = walletState.value;
+    if (!current) return;
     walletState.value = {
       ...current,
-      orders: result.data,
+      orders: result.data.items,
       updatedAt: new Date().toISOString(),
     };
     walletError.value = '';
   }
 
   async function refreshWalletPositions(): Promise<void> {
-    if (!conditionId.value || !walletState.value) return;
+    const scope = getWalletDataScope();
+    if (!scope || !walletState.value) return;
+    const version = nextWalletDataRefreshVersion('positions', scope);
+    const request = createWalletDataRequest(scope);
     const result = await window.api.tradingAccount.getPositions({
-      walletId: selectedPanelWalletId.value || undefined,
-      conditionId: conditionId.value,
+      requestId: request.requestId,
+      walletId: scope.walletId,
+      conditionId: scope.conditionId,
     });
+    if (!isCurrentWalletDataRefresh('positions', scope, version)) return;
     if (!result.ok) {
       walletError.value = result.error;
       return;
     }
+    if (!isMatchingWalletDataResponse(result.data, request)) return;
     const current = walletState.value;
+    if (!current) return;
     walletState.value = {
       ...current,
-      positions: result.data,
+      positions: result.data.items,
       updatedAt: new Date().toISOString(),
     };
     walletError.value = '';
   }
 
   async function refreshWalletTrades(): Promise<void> {
-    if (!conditionId.value || !walletState.value) return;
+    const scope = getWalletDataScope();
+    if (!scope || !walletState.value) return;
+    const version = nextWalletDataRefreshVersion('trades', scope);
+    const request = createWalletDataRequest(scope);
     const result = await window.api.tradingAccount.getTrades({
-      walletId: selectedPanelWalletId.value || undefined,
-      conditionId: conditionId.value,
+      requestId: request.requestId,
+      walletId: scope.walletId,
+      conditionId: scope.conditionId,
     });
+    if (!isCurrentWalletDataRefresh('trades', scope, version)) return;
     if (!result.ok) {
       walletError.value = result.error;
       return;
     }
+    if (!isMatchingWalletDataResponse(result.data, request)) return;
     const current = walletState.value;
+    if (!current) return;
     walletState.value = {
       ...current,
-      trades: result.data,
+      trades: result.data.items,
       updatedAt: new Date().toISOString(),
     };
     walletError.value = '';

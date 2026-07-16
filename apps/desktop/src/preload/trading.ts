@@ -27,7 +27,7 @@ const tradingWindowApi = {
 
   // Market basics and trade data.
   ...marketDataApi,
-  fetchEvent: (eventId) => ipcRenderer.invoke('api:fetchEvent', eventId),
+  fetchEvent: (request) => ipcRenderer.invoke('api:fetchEvent', request),
 
   // Account trading read data and manual trading actions.
   ...tradingAccountApi,

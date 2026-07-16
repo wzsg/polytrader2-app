@@ -9,8 +9,9 @@ import {
 } from '@polytrader/sqlite-repository';
 import { applicationEventBus } from './applicationEventBus.js';
 import { appPreferencesService } from './appPreferencesService.js';
-import { kvStore } from './kvStore.js';
+import { fileCacheStore } from './fileCacheStore.js';
 import { desktopWorkflowService } from './workflowService.js';
+import { eventListCache, getEventListCacheTtlMs } from './eventListCache.js';
 
 const eventRepository = createSqliteEventRepository();
 const metaRepository = createSqliteMetaRepository();
@@ -22,7 +23,9 @@ const polymarketMarketService = new PolymarketMarketService({
   metaRepository,
   marketTradeRepositoryFactory: (marketId, conditionId) =>
     MarketTradeRepositoryFactory.getInstance().createMarketTradeRepository(marketId, conditionId),
-  cacheStore: kvStore,
+  cacheStore: fileCacheStore,
+  listCacheStore: eventListCache,
+  listCacheTtlMsProvider: getEventListCacheTtlMs,
   eventBus: applicationEventBus,
 });
 
@@ -69,7 +72,7 @@ applicationEventBus.subscribe('app-preferences:changed', (event) => {
 
 applicationEventBus.subscribe('polymarket-event-sync:status', (event) => {
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send('sync:status', event.status);
+    window.webContents.send('event-sync:status', event.status);
   }
 });
 

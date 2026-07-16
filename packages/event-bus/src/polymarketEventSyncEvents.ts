@@ -1,7 +1,7 @@
-import type { SyncStatus } from '@polytrader/shared';
+import type { EventSyncStatus } from '@polytrader/shared';
 
 interface PolymarketEventSyncStatusEvent {
-  status: SyncStatus;
+  status: EventSyncStatus;
   at: string;
 }
 

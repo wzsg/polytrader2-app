@@ -1,32 +1,23 @@
 import path from 'path';
 import type { Low } from 'lowdb';
 import { JSONFilePreset } from 'lowdb/node';
+import type {
+  CacheEntry,
+  CacheLoader,
+  CacheStore,
+  FileCacheDatabase,
+  FileCacheStoreOptions,
+} from './types.js';
 
-interface KvStoreEntry {
-  value: unknown;
-  updatedAt: number;
-  expiresAt: number | null;
-}
+const DEFAULT_STORE_FILE = 'cache-store.json';
 
-interface KvStoreDatabase {
-  entries: Record<string, KvStoreEntry>;
-}
-
-interface KvStoreOptions {
-  storeFile?: string;
-}
-
-type KvStoreLoader<T> = () => Promise<T>;
-
-const DEFAULT_STORE_FILE = 'kv-store.json';
-
-class KvStore {
+class FileCacheStore implements CacheStore {
   private readonly _storeFile: string;
-  private _dbPromise: Promise<Low<KvStoreDatabase>> | null;
+  private _dbPromise: Promise<Low<FileCacheDatabase>> | null;
   private _writeQueue: Promise<void>;
   private readonly _pendingLoads: Map<string, Promise<unknown>>;
 
-  public constructor(options: KvStoreOptions = {}) {
+  public constructor(options: FileCacheStoreOptions = {}) {
     this._storeFile = options.storeFile ?? DEFAULT_STORE_FILE;
     this._dbPromise = null;
     this._writeQueue = Promise.resolve();
@@ -35,7 +26,7 @@ class KvStore {
 
   public async initialize(userDataPath: string): Promise<void> {
     const storePath = path.join(userDataPath, this._storeFile);
-    this._dbPromise = JSONFilePreset<KvStoreDatabase>(storePath, this.createDefaultData()).then(
+    this._dbPromise = JSONFilePreset<FileCacheDatabase>(storePath, this._createDefaultData()).then(
       (db) => {
         db.data.entries ??= {};
         return db;
@@ -45,38 +36,36 @@ class KvStore {
   }
 
   public async getValue<T>(key: string): Promise<T | null> {
-    const entry = await this.getEntry(key);
-    if (!entry || !this.isFresh(entry)) return null;
+    const entry = await this._getEntry(key);
+    if (!entry || !this._isFresh(entry)) return null;
     return entry.value as T;
   }
 
   public async setValue<T>(key: string, value: T, ttlMs: number | null): Promise<void> {
-    this.assertValidKey(key);
-    const normalizedTtlMs = this.normalizeTtlMs(ttlMs);
+    this._assertValidKey(key);
+    const normalizedTtlMs = this._normalizeTtlMs(ttlMs);
     const now = Date.now();
 
-    await this.enqueueWrite(async (db) => {
+    await this._enqueueWrite(async (db) => {
       db.data.entries[key] = {
         value,
         updatedAt: now,
-        expiresAt: this.resolveExpiresAt(now, normalizedTtlMs),
+        expiresAt: this._resolveExpiresAt(now, normalizedTtlMs),
       };
     });
   }
 
   public async deleteValue(key: string): Promise<void> {
-    this.assertValidKey(key);
-    await this.enqueueWrite(async (db) => {
+    this._assertValidKey(key);
+    await this._enqueueWrite(async (db) => {
       delete db.data.entries[key];
     });
   }
 
   public async clearExpiredValues(now = Date.now()): Promise<void> {
-    await this.enqueueWrite(async (db) => {
+    await this._enqueueWrite(async (db) => {
       for (const [key, entry] of Object.entries(db.data.entries)) {
-        if (entry.expiresAt !== null && entry.expiresAt <= now) {
-          delete db.data.entries[key];
-        }
+        if (entry.expiresAt !== null && entry.expiresAt <= now) delete db.data.entries[key];
       }
     });
   }
@@ -84,17 +73,16 @@ class KvStore {
   public async getOrSetValue<T>(
     key: string,
     ttlMs: number | null,
-    loader: KvStoreLoader<T>,
+    loader: CacheLoader<T>,
   ): Promise<T> {
-    const stored = await this.getEntry(key);
-    if (stored && this.isFresh(stored)) return stored.value as T;
+    const stored = await this._getEntry(key);
+    if (stored && this._isFresh(stored)) return stored.value as T;
 
     const pending = this._pendingLoads.get(key);
     if (pending) return pending as Promise<T>;
 
-    const loadPromise = this.loadAndCacheValue(key, ttlMs, loader);
+    const loadPromise = this._loadAndCacheValue(key, ttlMs, loader);
     this._pendingLoads.set(key, loadPromise);
-
     try {
       return await loadPromise;
     } finally {
@@ -102,85 +90,75 @@ class KvStore {
     }
   }
 
-  private createDefaultData(): KvStoreDatabase {
+  private _createDefaultData(): FileCacheDatabase {
     return { entries: {} };
   }
 
-  private assertValidKey(key: string): void {
-    if (!key.trim()) {
-      throw new Error('KV key is required');
-    }
+  private _assertValidKey(key: string): void {
+    if (!key.trim()) throw new Error('Cache key is required');
   }
 
-  private normalizeTtlMs(ttlMs: number | null): number | null {
-    if (ttlMs === null) {
-      return null;
-    }
+  private _normalizeTtlMs(ttlMs: number | null): number | null {
+    if (ttlMs === null) return null;
     if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
-      throw new Error('KV TTL must be a positive number or null');
+      throw new Error('Cache TTL must be a positive number or null');
     }
     return Math.trunc(ttlMs);
   }
 
-  private resolveExpiresAt(now: number, ttlMs: number | null): number | null {
+  private _resolveExpiresAt(now: number, ttlMs: number | null): number | null {
     return ttlMs === null ? null : now + ttlMs;
   }
 
-  private async getDb(): Promise<Low<KvStoreDatabase>> {
-    if (!this._dbPromise) {
-      throw new Error('KV store is not initialized');
-    }
-
+  private async _getDb(): Promise<Low<FileCacheDatabase>> {
+    if (!this._dbPromise) throw new Error('File cache store is not initialized');
     const db = await this._dbPromise;
     db.data.entries ??= {};
     return db;
   }
 
-  private async enqueueWrite(
-    operation: (db: Low<KvStoreDatabase>) => Promise<void>,
+  private async _enqueueWrite(
+    operation: (db: Low<FileCacheDatabase>) => Promise<void>,
   ): Promise<void> {
     const run = this._writeQueue
       .catch(() => undefined)
       .then(async () => {
-        const db = await this.getDb();
+        const db = await this._getDb();
         await operation(db);
         await db.write();
       });
-
     this._writeQueue = run.then(
       () => undefined,
       () => undefined,
     );
-
-    return run;
+    await run;
   }
 
-  private isFresh(entry: KvStoreEntry | undefined, now = Date.now()): entry is KvStoreEntry {
+  private _isFresh(entry: CacheEntry | undefined, now = Date.now()): entry is CacheEntry {
     return Boolean(entry && (entry.expiresAt === null || entry.expiresAt > now));
   }
 
-  private async getEntry(key: string): Promise<KvStoreEntry | null> {
-    this.assertValidKey(key);
-    const db = await this.getDb();
+  private async _getEntry(key: string): Promise<CacheEntry | null> {
+    this._assertValidKey(key);
+    const db = await this._getDb();
     return db.data.entries[key] ?? null;
   }
 
-  private async loadAndCacheValue<T>(
+  private async _loadAndCacheValue<T>(
     key: string,
     ttlMs: number | null,
-    loader: KvStoreLoader<T>,
+    loader: CacheLoader<T>,
   ): Promise<T> {
     try {
       const fresh = await loader();
       await this.setValue(key, fresh, ttlMs);
       return fresh;
-    } catch (err) {
-      const stale = await this.getEntry(key);
+    } catch (error) {
+      const stale = await this._getEntry(key);
       if (stale) return stale.value as T;
-      throw err;
+      throw error;
     }
   }
 }
 
-export { KvStore };
-export type { KvStoreDatabase, KvStoreEntry, KvStoreLoader, KvStoreOptions };
+export { FileCacheStore };

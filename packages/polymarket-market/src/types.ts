@@ -17,6 +17,10 @@ interface MarketServiceCacheStore {
   ): Promise<T>;
 }
 
+interface MarketServiceListCacheStore extends MarketServiceCacheStore {
+  clear(): void;
+}
+
 interface MarketServiceOptions {
   apiClient: PolymarketApiClient;
   eventRepository: EventRepository;
@@ -24,9 +28,16 @@ interface MarketServiceOptions {
   metaRepository: MetaRepository;
   marketTradeRepositoryFactory: MarketTradeRepositoryCreator;
   cacheStore: MarketServiceCacheStore;
+  listCacheStore: MarketServiceListCacheStore;
+  listCacheTtlMsProvider: () => number;
   eventBus?: ApplicationEventBus;
   configBaseUrl?: string;
   configTtlMs?: number;
 }
 
-export type { MarketServiceCacheLoader, MarketServiceCacheStore, MarketServiceOptions };
+export type {
+  MarketServiceCacheLoader,
+  MarketServiceCacheStore,
+  MarketServiceListCacheStore,
+  MarketServiceOptions,
+};

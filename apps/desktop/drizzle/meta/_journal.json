@@ -99,6 +99,13 @@
       "when": 1783800000000,
       "tag": "0013_add_event_sync_batch_size",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1784160000000,
+      "tag": "0014_rename_event_sync_meta_keys",
+      "breakpoints": true
     }
   ]
 }

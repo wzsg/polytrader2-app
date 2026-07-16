@@ -12,6 +12,8 @@ files:
   - package.json
 
 extraResources:
+  - from: out/mcp-stdio-bridge/mcp-stdio-bridge.js
+    to: mcp-stdio-bridge/mcp-stdio-bridge.js
   - from: resources/strategy-runtime
     to: strategy-runtime
     filter:

@@ -26,11 +26,12 @@ import EsportsEventsView from './views/EsportsEventsView.vue';
 import TitleBar from '../shared/components/TitleBar.vue';
 import { useFilters } from '../shared/composables/useFilters';
 import { preloadSportsMetadata } from '../shared/composables/sportsMetadata';
-import { useSync } from '../shared/composables/useSync';
+import { useEventSync } from '../shared/composables/useEventSync';
 import { useWatchlist } from '../shared/composables/useWatchlist';
 import { translateUiKey } from '../shared/i18n';
 import { displayMarkets, getSingleOpenMarket } from '../shared/utils/markets';
 import { getMarketOutcomes } from '../shared/utils/apiEvent';
+import { createRequestId } from '../shared/utils/request';
 
 interface ReloadableListView {
   reload: () => Promise<void>;
@@ -58,10 +59,13 @@ const authState = ref<AuthState>({
   status: 'disabled',
   user: null,
   email: null,
-  syncState: 'idle',
+  dataSyncState: 'idle',
+  dataSyncError: null,
   error: null,
 });
 let unsubscribeCloseRequested: (() => void) | null = null;
+let eventDetailRequestId = '';
+let eventTradingRequestId = '';
 let unsubscribeNavigate: (() => void) | null = null;
 let unsubscribeAuth: (() => void) | null = null;
 let unsubscribeAppUpdate: (() => void) | null = null;
@@ -87,20 +91,22 @@ const newAppVersion = computed(() => {
   return version.startsWith('v') ? version : `v${version}`;
 });
 
-const { syncState, syncStatus, setupSync, toggleSync } = useSync(async () => {
-  if (activeNav.value === 'events') {
-    await eventsListRef.value?.reload();
-  } else if (activeNav.value === 'watchlist') {
-    await watchlistRef.value?.reload();
-  } else if (activeNav.value === 'crypto') {
-    await cryptoEventsRef.value?.reload();
-  } else if (activeNav.value === 'sports') {
-    await sportsEventsRef.value?.reload();
-  } else if (activeNav.value === 'esports') {
-    await esportsEventsRef.value?.reload();
-  }
-  await refreshOpenWatchlistEventCount();
-});
+const { eventSyncState, eventSyncStatus, setupEventSync, toggleEventSync } = useEventSync(
+  async () => {
+    if (activeNav.value === 'events') {
+      await eventsListRef.value?.reload();
+    } else if (activeNav.value === 'watchlist') {
+      await watchlistRef.value?.reload();
+    } else if (activeNav.value === 'crypto') {
+      await cryptoEventsRef.value?.reload();
+    } else if (activeNav.value === 'sports') {
+      await sportsEventsRef.value?.reload();
+    } else if (activeNav.value === 'esports') {
+      await esportsEventsRef.value?.reload();
+    }
+    await refreshOpenWatchlistEventCount();
+  },
+);
 
 const authStatusText = computed(() => {
   if (!authState.value.configured || authState.value.status === 'disabled') return '';
@@ -164,13 +170,23 @@ function showEventDetailPanel(event: EventListItem, metadata?: unknown): void {
 }
 
 async function openEventDetail(event: EventListItem, metadata?: unknown): Promise<void> {
+  const requestId = createRequestId();
+  eventDetailRequestId = requestId;
   if (activeNav.value === 'crypto') {
     try {
-      const markets = await window.api.listEventMarkets(event.id);
-      const single = getSingleOpenMarket({ markets });
+      const marketsResponse = await window.api.listEventMarkets({
+        requestId,
+        data: { eventId: event.id },
+      });
+      if (marketsResponse.requestId !== eventDetailRequestId) return;
+      const single = getSingleOpenMarket({ markets: marketsResponse.data });
       if (single) {
-        const childEvents = await window.api.listChildEvents(event.id);
-        if (!childEvents.length) {
+        const childrenResponse = await window.api.listChildEvents({
+          requestId,
+          data: { parentEventId: event.id },
+        });
+        if (childrenResponse.requestId !== eventDetailRequestId) return;
+        if (!childrenResponse.data.length) {
           openTradingWindowForMarket(single, event.id, null, null, metadata);
           return;
         }
@@ -191,16 +207,26 @@ function getDefaultOpenMarket(
 }
 
 async function openEventTrading(event: EventListItem, metadata?: unknown): Promise<void> {
+  const requestId = createRequestId();
+  eventTradingRequestId = requestId;
   try {
-    const markets = await window.api.listEventMarkets(event.id);
-    const market = getDefaultOpenMarket(markets);
+    const marketsResponse = await window.api.listEventMarkets({
+      requestId,
+      data: { eventId: event.id },
+    });
+    if (marketsResponse.requestId !== eventTradingRequestId) return;
+    const market = getDefaultOpenMarket(marketsResponse.data);
     if (market) {
       openTradingWindowForMarket(market, event.id, null, null, metadata);
       return;
     }
 
-    const childEvents = await window.api.listChildEvents(event.id);
-    for (const childEvent of childEvents) {
+    const childrenResponse = await window.api.listChildEvents({
+      requestId,
+      data: { parentEventId: event.id },
+    });
+    if (childrenResponse.requestId !== eventTradingRequestId) return;
+    for (const childEvent of childrenResponse.data) {
       const childMarket = getDefaultOpenMarket(childEvent.markets as DbMarket[]);
       if (!childMarket) continue;
       openTradingWindowForMarket(childMarket, childEvent.id, null, null, metadata);
@@ -279,7 +305,7 @@ onMounted(async () => {
     }
   });
   developerModeEnabled.value = (await window.api.getDeveloperModeConfig()).enabled;
-  setupSync();
+  setupEventSync();
   preloadSportsMetadata();
   await loadPersistedFilters();
   await refreshOpenWatchlistEventCount();
@@ -322,8 +348,6 @@ onUnmounted(() => {
         :developer-mode-enabled="developerModeEnabled"
         :auth-state="authState"
         :open-watchlist-event-count="openWatchlistEventCount"
-        :sync-state="syncState"
-        :sync-status="syncStatus"
         @change-nav="handleNavChange"
         @open-auth="authPanelOpen = true"
       />
@@ -335,10 +359,10 @@ onUnmounted(() => {
           <StrategiesView v-else-if="activeNav === 'strategies'" />
           <SettingsView
             v-else-if="activeNav === 'settings'"
-            :sync-state="syncState"
-            :sync-status="syncStatus"
+            :event-sync-state="eventSyncState"
+            :event-sync-status="eventSyncStatus"
             :auth-state="authState"
-            @toggle-sync="toggleSync"
+            @toggle-event-sync="toggleEventSync"
             @developer-mode-change="handleDeveloperModeChange"
           />
           <DeveloperModeView v-else-if="activeNav === 'developer' && developerModeEnabled" />

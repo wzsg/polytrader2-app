@@ -9,7 +9,7 @@ import type {
   BrowserNavigationState,
   BrowserProviderResponseInput,
   BrowserViewBounds,
-  CacheStats,
+  EventCacheStats,
   ClobOrder,
   ClobTrade,
   CryptoCategoryConfig,
@@ -23,6 +23,8 @@ import type {
   EventStatusFilter,
   Filters,
   GammaEventRaw,
+  IpcRequest,
+  IpcResponse,
   ListEventsParams,
   ManualPlaceOrderInput,
   MarketDetailData,
@@ -62,8 +64,8 @@ import type {
   SportsEventScope,
   SportsEventsResult,
   SportsMetadataItem,
-  SyncScheduleConfig,
-  SyncStatus,
+  EventSyncScheduleConfig,
+  EventSyncStatus,
   PolymarketWalletImportInput,
   PolymarketBridgeDepositInput,
   PolymarketBridgeQuoteInput,
@@ -83,6 +85,7 @@ import type {
   PolymarketWalletUpdateInput,
   TradingAccountDataEvent,
   TradingAccountDataQuery,
+  TradingAccountScopedData,
   TradingAccountPositionMergeInput,
   TradingAccountPositionOperationResult,
   TradingAccountPositionRedeemInput,
@@ -94,7 +97,7 @@ import type {
   TradingStrategyState,
   TradingStrategyStateEvent,
   TradingWindowInput,
-  UserSyncResult,
+  DataSyncResult,
   WorkflowTaskRecord,
 } from './types/index.js';
 import type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
@@ -118,7 +121,7 @@ export type {
   BrowserProviderRequestKind,
   BrowserWalletConnectionState,
   BrowserViewBounds,
-  CacheStats,
+  EventCacheStats,
   CryptoCategoryConfig,
   CryptoEventsResult,
   DbMarket,
@@ -153,7 +156,7 @@ export type {
   PriceHistoryPoint,
   OrderBook,
   SortOrder,
-  SyncStatus,
+  EventSyncStatus,
   WsMessage,
   ClobOrder,
   ClobTrade,
@@ -174,8 +177,8 @@ export type {
   TradingMarketSubscribeOptions,
   TradingMarketSnapshot,
   TradingWindowInput,
-  UserSyncResult,
-  UserSyncState,
+  DataSyncResult,
+  DataSyncState,
   ManualPlaceOrderInput,
   StrategyBotCreateInput,
   StrategyBotDetail,
@@ -191,7 +194,7 @@ export type {
   StrategyListItem,
   StrategyUpdateInput,
   StrategyVersionSummary,
-  SyncScheduleConfig,
+  EventSyncScheduleConfig,
   StrategyRunDetail,
   StrategyRunListItem,
   StrategyRunListParams,
@@ -275,13 +278,19 @@ interface TradingStrategyIpcApi {
 interface TradingAccountIpcApi {
   getStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
   getData: (query?: TradingAccountDataQuery) => Promise<ApiResult<TradingRuntimeAccountState>>;
-  getOrders: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobOrder[]>>;
+  getOrders: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<TradingAccountScopedData<ClobOrder>>>;
   cancelOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
   cancelOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
   deleteFailedOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
   cancelAllOrders: (walletId: string) => Promise<ApiResult<unknown>>;
-  getTrades: (query?: TradingAccountDataQuery) => Promise<ApiResult<ClobTrade[]>>;
-  getPositions: (query?: TradingAccountDataQuery) => Promise<ApiResult<DataPosition[]>>;
+  getTrades: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<TradingAccountScopedData<ClobTrade>>>;
+  getPositions: (
+    query?: TradingAccountDataQuery,
+  ) => Promise<ApiResult<TradingAccountScopedData<DataPosition>>>;
   placeOrder: (input: ManualPlaceOrderInput) => Promise<ApiResult<unknown>>;
   splitPosition: (
     input: TradingAccountPositionSplitInput,
@@ -349,7 +358,7 @@ export interface IpcApi {
   signInWithProvider: (provider: AuthProvider) => Promise<ApiResult<AuthProviderStartResult>>;
   resendSignupConfirmation: (email: string) => Promise<ApiResult<void>>;
   signOut: () => Promise<ApiResult<AuthState>>;
-  syncUserData: () => Promise<ApiResult<UserSyncResult>>;
+  runDataSync: () => Promise<ApiResult<DataSyncResult>>;
   onAuthChanged: (callback: (state: AuthState) => void) => () => void;
   getAppPreferences: () => Promise<AppPreferences>;
   setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
@@ -372,11 +381,13 @@ export interface IpcApi {
   unlockInitialSetup: (password: string) => Promise<ApiResult<SetupState>>;
   completeInitialSetup: () => Promise<void>;
   cancelInitialSetup: () => Promise<void>;
-  onSetupSyncStatus: (callback: (status: SyncStatus) => void) => () => void;
-  startSync: () => void;
-  onSyncStatus: (callback: (status: SyncStatus) => void) => void;
-  getSyncScheduleConfig: () => Promise<SyncScheduleConfig>;
-  setSyncScheduleConfig: (config: Partial<SyncScheduleConfig>) => Promise<SyncScheduleConfig>;
+  onSetupEventSyncStatus: (callback: (status: EventSyncStatus) => void) => () => void;
+  startEventSync: () => void;
+  onEventSyncStatus: (callback: (status: EventSyncStatus) => void) => () => void;
+  getEventSyncScheduleConfig: () => Promise<EventSyncScheduleConfig>;
+  setEventSyncScheduleConfig: (
+    config: Partial<EventSyncScheduleConfig>,
+  ) => Promise<EventSyncScheduleConfig>;
   getMcpServerConfig: () => Promise<McpServerConfig>;
   setMcpServerConfig: (config: Partial<McpServerConfig>) => Promise<McpServerConfig>;
   resetMcpServerToken: () => Promise<McpServerConfig>;
@@ -387,13 +398,15 @@ export interface IpcApi {
   listDeveloperOrderRecords: (limit?: number) => Promise<DeveloperOrderRecord[]>;
   listDeveloperWorkflowTasks: (limit?: number) => Promise<WorkflowTaskRecord[]>;
   listEvents: (params: ListEventsParams) => Promise<EventListItem[]>;
-  listChildEvents: (parentEventId: string) => Promise<EventDetailItem[]>;
-  listEventMarkets: (eventId: string) => Promise<DbMarket[]>;
+  listChildEvents: (
+    request: IpcRequest<{ parentEventId: string }>,
+  ) => Promise<IpcResponse<EventDetailItem[]>>;
+  listEventMarkets: (request: IpcRequest<{ eventId: string }>) => Promise<IpcResponse<DbMarket[]>>;
   countEvents: (params: ListEventsParams) => Promise<number>;
   getTotalCount: () => Promise<number>;
   countEventsByTags: (tagIds: string[]) => Promise<number>;
   countActiveByTags: (tagIds: string[]) => Promise<number>;
-  getCacheStats: () => Promise<CacheStats>;
+  getEventCacheStats: () => Promise<EventCacheStats>;
   countActive: () => Promise<number>;
   getWatchlistEventIds: () => Promise<string[]>;
   addToWatchlist: (eventId: string) => Promise<boolean>;
@@ -402,7 +415,7 @@ export interface IpcApi {
   countOpenWatchlistEvents: () => Promise<number>;
   loadFilters: () => Promise<Partial<Filters> | null>;
   saveFilters: (data: Partial<Filters>) => Promise<void>;
-  fetchEvent: (eventId: string) => Promise<GammaEventRaw>;
+  fetchEvent: (request: IpcRequest<{ eventId: string }>) => Promise<IpcResponse<GammaEventRaw>>;
   fetchCryptoCategory: () => Promise<CryptoCategoryConfig>;
   fetchEventCategory: () => Promise<EventCategoryConfig>;
   fetchSportsCategory: () => Promise<SportsCategoryConfig>;

@@ -25,10 +25,6 @@ function registerAuthHandlers(ipcMain: IpcMain): void {
     'auth:signOut',
     wrap(() => supabaseAuthService.signOut()),
   );
-  ipcMain.handle(
-    'auth:syncUserData',
-    wrap(() => supabaseAuthService.syncUserData()),
-  );
 }
 
 export { registerAuthHandlers };

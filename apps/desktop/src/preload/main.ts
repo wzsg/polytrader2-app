@@ -24,7 +24,7 @@ const mainWindowApi = {
   signInWithProvider: (provider) => ipcRenderer.invoke('auth:signInWithProvider', provider),
   resendSignupConfirmation: (email) => ipcRenderer.invoke('auth:resendSignupConfirmation', email),
   signOut: () => ipcRenderer.invoke('auth:signOut'),
-  syncUserData: () => ipcRenderer.invoke('auth:syncUserData'),
+  runDataSync: () => ipcRenderer.invoke('data-sync:run'),
   onAuthChanged: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
       callback(input as Parameters<typeof callback>[0]);
@@ -36,12 +36,15 @@ const mainWindowApi = {
   chooseDataStorageDirectory: (defaultPath) =>
     ipcRenderer.invoke('data-storage:chooseDirectory', defaultPath),
   migrateDataStorage: (dataDirectory) => ipcRenderer.invoke('data-storage:migrate', dataDirectory),
-  startSync: () => ipcRenderer.send('sync:start'),
-  onSyncStatus: (callback) => {
-    ipcRenderer.on('sync:status', (_event, data) => callback(data));
+  startEventSync: () => ipcRenderer.send('event-sync:start'),
+  onEventSyncStatus: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data as Parameters<typeof callback>[0]);
+    ipcRenderer.on('event-sync:status', listener);
+    return () => ipcRenderer.removeListener('event-sync:status', listener);
   },
-  getSyncScheduleConfig: () => ipcRenderer.invoke('sync:schedule:get'),
-  setSyncScheduleConfig: (config) => ipcRenderer.invoke('sync:schedule:set', config),
+  getEventSyncScheduleConfig: () => ipcRenderer.invoke('event-sync:schedule:get'),
+  setEventSyncScheduleConfig: (config) => ipcRenderer.invoke('event-sync:schedule:set', config),
   getMcpServerConfig: () => ipcRenderer.invoke('mcp:getConfig'),
   setMcpServerConfig: (config) => ipcRenderer.invoke('mcp:setConfig', config),
   resetMcpServerToken: () => ipcRenderer.invoke('mcp:resetToken'),
@@ -52,13 +55,13 @@ const mainWindowApi = {
   listDeveloperOrderRecords: (limit) => ipcRenderer.invoke('developer:listOrderRecords', limit),
   listDeveloperWorkflowTasks: (limit) => ipcRenderer.invoke('developer:listWorkflowTasks', limit),
   listEvents: (params) => ipcRenderer.invoke('db:list', params),
-  listChildEvents: (parentEventId) => ipcRenderer.invoke('db:listChildren', parentEventId),
-  listEventMarkets: (eventId) => ipcRenderer.invoke('db:listEventMarkets', eventId),
+  listChildEvents: (request) => ipcRenderer.invoke('db:listChildren', request),
+  listEventMarkets: (request) => ipcRenderer.invoke('db:listEventMarkets', request),
   countEvents: (params) => ipcRenderer.invoke('db:count', params),
   getTotalCount: () => ipcRenderer.invoke('db:total'),
   countEventsByTags: (tagIds) => ipcRenderer.invoke('db:countByTags', tagIds),
   countActiveByTags: (tagIds) => ipcRenderer.invoke('db:countActiveByTags', tagIds),
-  getCacheStats: () => ipcRenderer.invoke('db:cacheStats'),
+  getEventCacheStats: () => ipcRenderer.invoke('db:eventCacheStats'),
   countActive: () => ipcRenderer.invoke('db:active'),
   getWatchlistEventIds: () => ipcRenderer.invoke('watchlist:list'),
   addToWatchlist: (eventId) => ipcRenderer.invoke('watchlist:add', eventId),
@@ -67,7 +70,7 @@ const mainWindowApi = {
   countOpenWatchlistEvents: () => ipcRenderer.invoke('watchlist:countOpen'),
   loadFilters: () => ipcRenderer.invoke('filters:load'),
   saveFilters: (data) => ipcRenderer.invoke('filters:save', data),
-  fetchEvent: (eventId) => ipcRenderer.invoke('api:fetchEvent', eventId),
+  fetchEvent: (request) => ipcRenderer.invoke('api:fetchEvent', request),
   fetchCryptoCategory: () => ipcRenderer.invoke('api:fetchCryptoCategory'),
   fetchEventCategory: () => ipcRenderer.invoke('api:fetchEventCategory'),
   fetchSportsCategory: () => ipcRenderer.invoke('api:fetchSportsCategory'),

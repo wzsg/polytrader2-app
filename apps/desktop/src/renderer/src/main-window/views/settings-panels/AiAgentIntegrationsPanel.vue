@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { Bot, Plus, RefreshCw, Trash2 } from '@lucide/vue';
+import { Plus, RefreshCw, Trash2 } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { AiAgentConfigState, AiAgentId, AiAgentIntegrationStatus } from '@polytrader/shared';
+import claudeIconUrl from '@/assets/ai-agent/claude-ai-icon.png';
+import codexIconUrl from '@/assets/ai-agent/codex-icon.png';
+import cursorIconUrl from '@/assets/ai-agent/cursor-ai-code-icon.png';
+import openCodeIconUrl from '@/assets/ai-agent/opencode.png';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
+
+const agentIconUrls: Record<AiAgentId, string> = {
+  codex: codexIconUrl,
+  'claude-desktop': claudeIconUrl,
+  opencode: openCodeIconUrl,
+  cursor: cursorIconUrl,
+};
 
 const statuses = ref<AiAgentIntegrationStatus[]>([]);
 const loading = ref(false);
@@ -93,17 +104,24 @@ onMounted(loadStatuses);
 
     <div class="border-border bg-detail-bg overflow-hidden rounded-lg border">
       <div
+        v-if="loading && statuses.length === 0"
+        class="flex min-h-28 items-center justify-center px-5 py-6"
+      >
+        <LoadingSpinner :size="20" :title="t('settings.detectAiAgents')" />
+      </div>
+      <div
         v-for="(status, index) in statuses"
         :key="status.id"
         class="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
         :class="{ 'border-border border-t': index > 0 }"
       >
         <div class="flex min-w-0 items-start gap-3">
-          <span
-            class="bg-primary/15 text-primary-light mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
-          >
-            <Bot :size="17" />
-          </span>
+          <img
+            :src="agentIconUrls[status.id]"
+            :alt="status.displayName"
+            class="mt-0.5 h-8 w-8 shrink-0 rounded-md object-cover"
+            draggable="false"
+          />
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
               <p class="text-sm font-medium text-white">{{ status.displayName }}</p>

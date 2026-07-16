@@ -84,7 +84,7 @@ function registerSetupHandlers(ipcMain: IpcMain, options: RegisterSetupHandlersO
 
   if (!setupStatusSubscriptionRegistered) {
     applicationEventBus.subscribe('polymarket-event-sync:status', (event) => {
-      setupService.setLastSyncStatus(event.status);
+      setupService.setLastEventSyncStatus(event.status);
     });
     setupStatusSubscriptionRegistered = true;
   }

@@ -10,6 +10,7 @@ import {
   resolveTimeframeDurationMinutes,
 } from './useCryptoCategory';
 import { useWatchlist } from './useWatchlist';
+import { createRequestId } from '../utils/request';
 
 const PAGE_SIZE = 50;
 
@@ -62,6 +63,7 @@ export function useCryptoEvents() {
   const error = ref('');
 
   let ready = false;
+  let activeRequestId = '';
 
   const totalPages = computed(() => Math.max(1, Math.ceil(filteredCount.value / PAGE_SIZE)));
   const pageInfo = computed(() =>
@@ -132,6 +134,8 @@ export function useCryptoEvents() {
   }
 
   async function loadEvents(): Promise<void> {
+    const requestId = createRequestId();
+    activeRequestId = requestId;
     loading.value = true;
     error.value = '';
     try {
@@ -155,14 +159,16 @@ export function useCryptoEvents() {
         limit: PAGE_SIZE,
         offset: (currentPage.value - 1) * PAGE_SIZE,
       });
+      if (requestId !== activeRequestId) return;
       pageEvents.value = result.events;
       filteredCount.value = result.filteredCount;
       totalCount.value = result.totalCount;
       activeCount.value = result.activeCount;
     } catch (err) {
+      if (requestId !== activeRequestId) return;
       error.value = err instanceof Error ? err.message : String(err);
     } finally {
-      loading.value = false;
+      if (requestId === activeRequestId) loading.value = false;
     }
   }
 

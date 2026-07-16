@@ -41,7 +41,7 @@ function confirmMainWindowClose(): void {
   }
   closeAllStrategyEditorWindows();
   closeBrowserWindow();
-  mainWindow.close();
+  app.quit();
 }
 
 function prepareMainWindowForUpdateInstallation(): void {

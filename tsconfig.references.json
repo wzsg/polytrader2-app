@@ -6,7 +6,7 @@
     { "path": "./packages/event-bus" },
     { "path": "./packages/app-preferences" },
     { "path": "./packages/mcp-server" },
-    { "path": "./packages/kv-store" },
+    { "path": "./packages/cache-store" },
     { "path": "./packages/contracts/repository-contract" },
     { "path": "./packages/repositories/sqlite-repository" },
     { "path": "./packages/repositories/duckdb-repository" },

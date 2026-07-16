@@ -14,17 +14,20 @@ const SERVER_TABLE = '[mcp_servers.polytrader2]';
 class CodexIntegrationAdapter implements AiAgentAdapter {
   private readonly _configPath: string;
   private readonly _knownExecutablePaths: string[];
+  private readonly _desktopApplicationPaths: string[];
   private readonly _commandRunner: AgentCommandRunner;
   private readonly _configWriter: ManagedConfigWriter;
 
   public constructor(
     configPath: string,
     knownExecutablePaths: string[],
+    desktopApplicationPaths: string[],
     commandRunner: AgentCommandRunner,
     configWriter: ManagedConfigWriter,
   ) {
     this._configPath = configPath;
     this._knownExecutablePaths = knownExecutablePaths;
+    this._desktopApplicationPaths = desktopApplicationPaths;
     this._commandRunner = commandRunner;
     this._configWriter = configWriter;
   }
@@ -34,11 +37,13 @@ class CodexIntegrationAdapter implements AiAgentAdapter {
   }
 
   public async detect(connection?: McpConnectionConfig): Promise<AiAgentIntegrationStatus> {
-    const executablePath = await this._commandRunner.findExecutable(
+    const installation = await this._commandRunner.findPreferredInstallation(
       'codex',
       this._knownExecutablePaths,
+      this._desktopApplicationPaths,
     );
-    const version = executablePath ? await this._commandRunner.readVersion(executablePath) : null;
+    const executablePath = installation?.path ?? null;
+    const version = installation?.version ?? null;
     try {
       const content = await this._configWriter.readTextFile(this._configPath);
       const block = await this._configWriter.readManagedTomlBlock(
