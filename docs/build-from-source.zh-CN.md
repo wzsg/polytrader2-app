@@ -107,13 +107,14 @@ pnpm --filter @polytrader2/app run smoke:crypto-events
 
 桌面应用会从当前工作目录或应用路径加载 `.env` 文件。生产环境示例位于 `apps/desktop/.env.production.example`。
 
-| 变量 | 用途 |
-| --- | --- |
-| `SUPABASE_URL` / `VITE_SUPABASE_URL` | 可选 Supabase 项目 URL，用于账号同步和认证。 |
-| `SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` | 可选 Supabase publishable key。 |
-| `P2_ENABLE_STRATEGY_AUTOMATION` | 启用策略和机器人 UI。开发模式下除非显式设置为 `0`，否则默认启用；生产构建需要设置 `1` 才启用。 |
-| `P2_ENABLE_TURNSTILE` | 设置为 `1` 时在认证表单启用 Cloudflare Turnstile。 |
-| `VITE_TURNSTILE_SITE_KEY` | Renderer 认证表单使用的 Turnstile site key。 |
+| 变量                                                         | 用途                                                                                                  |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL` / `VITE_SUPABASE_URL`                         | 可选 Supabase 项目 URL，用于账号同步和认证。                                                          |
+| `SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` | 可选 Supabase publishable key。                                                                       |
+| `P2_ENABLE_ACCOUNT_DATA_SYNC`                                | 启用账户认证和云端数据同步。开发模式下除非显式设置为 `0`，否则默认启用；生产构建需要设置 `1` 才启用。 |
+| `P2_ENABLE_STRATEGY_AUTOMATION`                              | 启用策略和机器人 UI。开发模式下除非显式设置为 `0`，否则默认启用；生产构建需要设置 `1` 才启用。        |
+| `P2_ENABLE_TURNSTILE`                                        | 设置为 `1` 时在认证表单启用 Cloudflare Turnstile。                                                    |
+| `VITE_TURNSTILE_SITE_KEY`                                    | Renderer 认证表单使用的 Turnstile site key。                                                          |
 
 ## 本地数据
 

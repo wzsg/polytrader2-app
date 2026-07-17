@@ -19,10 +19,16 @@ const strategyAutomationFlag =
 const strategyAutomationEnabled =
   strategyAutomationFlag === '1' ||
   (strategyAutomationFlag !== '0' && process.env.npm_lifecycle_event === 'dev');
+const accountDataSyncFlag =
+  process.env.P2_ENABLE_ACCOUNT_DATA_SYNC ?? viteEnv.P2_ENABLE_ACCOUNT_DATA_SYNC;
+const accountDataSyncEnabled =
+  accountDataSyncFlag === '1' ||
+  (accountDataSyncFlag !== '0' && process.env.npm_lifecycle_event === 'dev');
 const turnstileEnabled =
   process.env.P2_ENABLE_TURNSTILE === '1' || viteEnv.P2_ENABLE_TURNSTILE === '1';
 
 const featureDefines = {
+  __ACCOUNT_DATA_SYNC_ENABLED__: JSON.stringify(accountDataSyncEnabled),
   __STRATEGY_AUTOMATION_ENABLED__: JSON.stringify(strategyAutomationEnabled),
   __TURNSTILE_ENABLED__: JSON.stringify(turnstileEnabled),
 };

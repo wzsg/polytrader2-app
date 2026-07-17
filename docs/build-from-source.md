@@ -107,13 +107,14 @@ pnpm --filter @polytrader2/app run smoke:crypto-events
 
 The desktop app can load `.env` files from the working directory or app path. A production example is available at `apps/desktop/.env.production.example`.
 
-| Variable | Purpose |
-| --- | --- |
-| `SUPABASE_URL` / `VITE_SUPABASE_URL` | Optional Supabase project URL for account sync and auth. |
-| `SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Optional Supabase publishable key. |
-| `P2_ENABLE_STRATEGY_AUTOMATION` | Enables strategy and bot UI. In dev, it is enabled unless explicitly set to `0`; for production set `1` to enable. |
-| `P2_ENABLE_TURNSTILE` | Enables Cloudflare Turnstile on the auth form when set to `1`. |
-| `VITE_TURNSTILE_SITE_KEY` | Turnstile site key for the renderer auth form. |
+| Variable                                                     | Purpose                                                                                                                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL` / `VITE_SUPABASE_URL`                         | Optional Supabase project URL for account sync and auth.                                                                                  |
+| `SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Optional Supabase publishable key.                                                                                                        |
+| `P2_ENABLE_ACCOUNT_DATA_SYNC`                                | Enables account authentication and cloud data sync. In dev, it is enabled unless explicitly set to `0`; for production set `1` to enable. |
+| `P2_ENABLE_STRATEGY_AUTOMATION`                              | Enables strategy and bot UI. In dev, it is enabled unless explicitly set to `0`; for production set `1` to enable.                        |
+| `P2_ENABLE_TURNSTILE`                                        | Enables Cloudflare Turnstile on the auth form when set to `1`.                                                                            |
+| `VITE_TURNSTILE_SITE_KEY`                                    | Turnstile site key for the renderer auth form.                                                                                            |
 
 ## Local Data
 

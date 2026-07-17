@@ -69,6 +69,11 @@ class SupabaseAuthService {
   }
 
   public initialize(): void {
+    if (!__ACCOUNT_DATA_SYNC_ENABLED__) {
+      this._ready = true;
+      this._disable('Account data sync is disabled');
+      return;
+    }
     if (this._initializing) return;
     this._initializing = this._initializeClient();
   }
@@ -159,16 +164,19 @@ class SupabaseAuthService {
   }
 
   public async runDataSync(): Promise<DataSyncResult> {
+    if (!__ACCOUNT_DATA_SYNC_ENABLED__) throw new Error('Account data sync is disabled');
     const userId = this._user?.id;
     if (!userId) throw new Error('Sign in before syncing data');
     return dataSyncService.syncDataForUser(userId);
   }
 
   public runDataSyncInBackground(): void {
+    if (!__ACCOUNT_DATA_SYNC_ENABLED__) return;
     dataSyncService.syncDataInBackground(this._user?.id);
   }
 
   public async handleDeepLinkUrl(input: string): Promise<void> {
+    if (!__ACCOUNT_DATA_SYNC_ENABLED__) return;
     const url = this._parseAuthCallbackUrl(input);
     if (!url) return;
     if (!this._ready) {
@@ -274,6 +282,7 @@ class SupabaseAuthService {
   }
 
   private async _syncSignedInUser(): Promise<void> {
+    if (!__ACCOUNT_DATA_SYNC_ENABLED__) return;
     const userId = this._user?.id;
     if (!userId) return;
     try {

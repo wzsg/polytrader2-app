@@ -23,6 +23,7 @@ interface TurnstileApi {
 }
 
 declare global {
+  const __ACCOUNT_DATA_SYNC_ENABLED__: boolean;
   const __APP_VERSION__: string;
   const __STRATEGY_AUTOMATION_ENABLED__: boolean;
   const __TURNSTILE_ENABLED__: boolean;
