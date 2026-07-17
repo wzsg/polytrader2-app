@@ -29,6 +29,7 @@ export function useWalletsView() {
   const nameAutoFilled = ref(false);
   const deleteConfirmOpen = ref(false);
   const deleteConfirmError = ref('');
+  const deleteConfirmationName = ref('');
   const deleting = ref(false);
   const deletingWallet = ref<PolymarketWalletSummary | null>(null);
   let unsubscribeWalletEvent: (() => void) | null = null;
@@ -38,6 +39,10 @@ export function useWalletsView() {
   const walletLimitReached = computed(() => accounts.value.length >= POLYMARKET_WALLET_LIMIT);
   const walletLimitMessage = computed(() =>
     t('account.limitReached', { count: POLYMARKET_WALLET_LIMIT }),
+  );
+  const isDeleteConfirmationValid = computed(
+    () =>
+      deletingWallet.value !== null && deleteConfirmationName.value === deletingWallet.value.name,
   );
 
   const form = reactive<PolymarketWalletImportInput>({
@@ -76,10 +81,10 @@ export function useWalletsView() {
   function nextDefaultAccountName(): string {
     const names = new Set(accounts.value.map((account) => account.name.trim()));
     let index = 1;
-    let name = `Polymarket Wallet ${index}`;
+    let name = `Wallet ${index}`;
     while (names.has(name)) {
       index += 1;
-      name = `Polymarket Wallet ${index}`;
+      name = `Wallet ${index}`;
     }
     return name;
   }
@@ -363,6 +368,7 @@ export function useWalletsView() {
 
   function requestDeleteAccount(account: PolymarketWalletSummary): void {
     deletingWallet.value = account;
+    deleteConfirmationName.value = '';
     deleteConfirmError.value = '';
     deleteConfirmOpen.value = true;
   }
@@ -371,11 +377,12 @@ export function useWalletsView() {
     if (deleting.value) return;
     deleteConfirmOpen.value = false;
     deletingWallet.value = null;
+    deleteConfirmationName.value = '';
     deleteConfirmError.value = '';
   }
 
   async function confirmDeleteAccount(): Promise<void> {
-    if (!deletingWallet.value) return;
+    if (!deletingWallet.value || !isDeleteConfirmationValid.value) return;
     deleting.value = true;
     deleteConfirmError.value = '';
     const res = await window.api.wallet.delete(deletingWallet.value.id);
@@ -388,6 +395,7 @@ export function useWalletsView() {
     deleting.value = false;
     deleteConfirmOpen.value = false;
     deletingWallet.value = null;
+    deleteConfirmationName.value = '';
   }
 
   async function openPolymarketBrowser(walletId?: string): Promise<void> {
@@ -470,8 +478,10 @@ export function useWalletsView() {
     dialogMode,
     deleteConfirmOpen,
     deleteConfirmError,
+    deleteConfirmationName,
     deleting,
     deletingWallet,
+    isDeleteConfirmationValid,
     isFirstAccountDefaultLocked,
     walletLimitReached,
     walletLimitMessage,

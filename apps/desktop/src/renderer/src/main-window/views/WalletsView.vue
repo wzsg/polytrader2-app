@@ -69,8 +69,10 @@ const {
   dialogMode,
   deleteConfirmOpen,
   deleteConfirmError,
+  deleteConfirmationName,
   deleting,
   deletingWallet,
+  isDeleteConfirmationValid,
   isFirstAccountDefaultLocked,
   walletLimitReached,
   walletLimitMessage,
@@ -1175,15 +1177,6 @@ watch(detailPanelCollapsed, (next) => writeDetailPanelCollapsed(next));
                   >
                     <Upload :size="13" />
                   </button>
-                  <button
-                    type="button"
-                    class="border-border text-muted hover:text-text inline-flex h-7 w-7 items-center justify-center rounded border transition-colors hover:bg-[#23233a]"
-                    :title="t('account.openPolymarket')"
-                    :aria-label="t('account.openPolymarket')"
-                    @click.stop="openPolymarketBrowser(account.id)"
-                  >
-                    <Globe2 :size="13" />
-                  </button>
                 </div>
               </td>
             </tr>
@@ -1667,6 +1660,31 @@ watch(detailPanelCollapsed, (next) => writeDetailPanelCollapsed(next));
             <p class="text-text text-[13px] leading-6">
               {{ t('account.deleteMessage', { name: deletingWallet?.name || '' }) }}
             </p>
+            <label
+              for="delete-account-confirmation-name"
+              class="text-text mt-4 block text-[13px] font-medium"
+            >
+              {{ t('account.deleteConfirmationLabel') }}
+            </label>
+            <p class="text-muted-light mt-1 text-[12px] leading-5">
+              {{
+                t('account.deleteConfirmationHint', {
+                  name: deletingWallet?.name || '',
+                })
+              }}
+            </p>
+            <input
+              id="delete-account-confirmation-name"
+              v-model="deleteConfirmationName"
+              type="text"
+              class="border-border bg-input text-text focus:border-primary mt-2 h-9 w-full rounded-md border px-3 text-[13px] transition-colors outline-none"
+              :placeholder="t('account.deleteConfirmationPlaceholder')"
+              :disabled="deleting"
+              autocomplete="off"
+              spellcheck="false"
+              autofocus
+              @keydown.enter.prevent="confirmDeleteAccount"
+            />
             <p
               v-if="deleteConfirmError"
               class="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
@@ -1687,7 +1705,7 @@ watch(detailPanelCollapsed, (next) => writeDetailPanelCollapsed(next));
             <button
               type="button"
               class="bg-danger inline-flex h-9 items-center rounded-md px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#c92f3a] disabled:opacity-50"
-              :disabled="deleting"
+              :disabled="deleting || !isDeleteConfirmationValid"
               @click="confirmDeleteAccount"
             >
               <LoaderCircle v-if="deleting" :size="15" class="animate-spin" />
