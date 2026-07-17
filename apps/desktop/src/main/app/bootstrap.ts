@@ -30,6 +30,7 @@ import {
   polymarketMarketService,
   syncPolymarketMarketServicePreferences,
 } from '../services/polymarketMarketService.js';
+import { rendererEventSyncStatusBroadcastGate } from '../services/eventSyncStatusBroadcastGate.js';
 import { botRuntimeService, strategyRunHistoryService } from '../services/strategyRuntime.js';
 import { tradingAccountService } from '../services/tradingAccountService.js';
 import { tradingMarketService } from '../services/tradingMarketService.js';
@@ -140,14 +141,24 @@ function registerAuthProtocol(): void {
 function stopAppServices(): Promise<void> {
   if (appServicesStopping) return appServicesStopping;
   appServicesStopping = (async () => {
+    rendererEventSyncStatusBroadcastGate.disable();
+    const eventSyncStopping = polymarketMarketService
+      .shutdownEventSync()
+      .catch((error: unknown) => {
+        console.warn('Failed to stop event sync', error);
+      });
+    const workflowStopping = desktopWorkflowService.stop().catch((error: unknown) => {
+      console.warn('Failed to stop workflow service', error);
+    });
     await mcpServerManager.stop().catch((error) => {
       console.warn('Failed to stop MCP server manager', error);
     });
     tradingAccountService.stop();
-    desktopWorkflowService.stop();
     await botRuntimeService.stopAll().catch((error) => {
       console.warn('Failed to stop bot runtime service', error);
     });
+    await eventSyncStopping;
+    await workflowStopping;
     tradingMarketService.dispose();
     tradingStrategyService.dispose();
     polymarketMarketService.stopAllMarketTradeSync();

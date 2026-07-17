@@ -29,14 +29,20 @@ type WorkflowGroupConfig =
 interface WorkflowHandlerContext {
   task: WorkflowTaskRecord;
   payload: unknown;
+  signal: AbortSignal;
 }
 
 type WorkflowHandler = (context: WorkflowHandlerContext) => Promise<unknown>;
+
+interface WorkflowHandlerOptions {
+  cancelOnStop?: boolean;
+}
 
 export type {
   WorkflowEnqueueInput,
   WorkflowGroupConfig,
   WorkflowHandler,
   WorkflowHandlerContext,
+  WorkflowHandlerOptions,
   WorkflowRuntimeOptions,
 };

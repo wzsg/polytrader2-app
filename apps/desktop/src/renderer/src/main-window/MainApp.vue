@@ -70,6 +70,8 @@ let eventTradingRequestId = '';
 let unsubscribeNavigate: (() => void) | null = null;
 let unsubscribeAuth: (() => void) | null = null;
 let unsubscribeAppUpdate: (() => void) | null = null;
+let unsubscribeEventSync: (() => void) | null = null;
+let mainAppUnmounted = false;
 
 const { loadPersistedFilters } = useFilters();
 const selectedEventId = computed(() => selectedEvent.value?.id ?? null);
@@ -94,6 +96,7 @@ const newAppVersion = computed(() => {
 
 const { eventSyncState, eventSyncStatus, setupEventSync, toggleEventSync } = useEventSync(
   async () => {
+    if (mainAppUnmounted) return;
     if (activeNav.value === 'events') {
       await eventsListRef.value?.reload();
     } else if (activeNav.value === 'watchlist') {
@@ -105,6 +108,7 @@ const { eventSyncState, eventSyncStatus, setupEventSync, toggleEventSync } = use
     } else if (activeNav.value === 'esports') {
       await esportsEventsRef.value?.reload();
     }
+    if (mainAppUnmounted) return;
     await refreshOpenWatchlistEventCount();
   },
 );
@@ -294,12 +298,16 @@ onMounted(async () => {
   unsubscribeCloseRequested = window.api.onMainWindowCloseRequested(requestCloseConfirm);
   unsubscribeNavigate = window.api.onMainWindowNavigate((nav) => handleNavChange(nav));
   if (accountDataSyncEnabled) {
-    authState.value = await window.api.getAuthState();
+    const nextAuthState = await window.api.getAuthState();
+    if (mainAppUnmounted) return;
+    authState.value = nextAuthState;
     unsubscribeAuth = window.api.onAuthChanged((state) => {
       authState.value = state;
     });
   }
-  appUpdateState.value = await window.api.getAppUpdateState();
+  const nextAppUpdateState = await window.api.getAppUpdateState();
+  if (mainAppUnmounted) return;
+  appUpdateState.value = nextAppUpdateState;
   unsubscribeAppUpdate = window.api.onAppUpdateStateChanged((state) => {
     appUpdateState.value = state;
     if (state.status !== 'downloaded') {
@@ -307,18 +315,23 @@ onMounted(async () => {
       updateInstallRequested.value = false;
     }
   });
-  developerModeEnabled.value = (await window.api.getDeveloperModeConfig()).enabled;
-  setupEventSync();
+  const developerModeConfig = await window.api.getDeveloperModeConfig();
+  if (mainAppUnmounted) return;
+  developerModeEnabled.value = developerModeConfig.enabled;
+  unsubscribeEventSync = setupEventSync();
   preloadSportsMetadata();
   await loadPersistedFilters();
+  if (mainAppUnmounted) return;
   await refreshOpenWatchlistEventCount();
 });
 
 onUnmounted(() => {
+  mainAppUnmounted = true;
   unsubscribeCloseRequested?.();
   unsubscribeNavigate?.();
   unsubscribeAuth?.();
   unsubscribeAppUpdate?.();
+  unsubscribeEventSync?.();
 });
 </script>
 

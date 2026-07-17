@@ -87,7 +87,7 @@ export const messages = {
     nav: {
       browse: 'Browse',
       trading: 'Trading',
-      polymarket: 'Polymarket',
+      wallet: 'Wallet',
       system: 'System',
       watchlist: 'Watchlist',
       events: 'Events',
@@ -540,6 +540,9 @@ export const messages = {
       deleteTitle: 'Confirm Wallet Deletion',
       deleteSubtitle: 'Wallets with strategy run history cannot be deleted.',
       deleteMessage: 'Delete wallet {name}? This action cannot be undone.',
+      deleteConfirmationLabel: 'Wallet name',
+      deleteConfirmationHint: 'Enter {name} exactly to confirm deletion.',
+      deleteConfirmationPlaceholder: 'Enter the full wallet name',
     },
     bridge: {
       deposit: 'Deposit',
@@ -946,7 +949,7 @@ export const messages = {
     nav: {
       browse: '浏览',
       trading: '交易',
-      polymarket: 'Polymarket',
+      wallet: '钱包',
       system: '系统',
       watchlist: '自选列表',
       events: '事件列表',
@@ -1389,6 +1392,9 @@ export const messages = {
       deleteTitle: '确认删除钱包',
       deleteSubtitle: '有策略运行记录的钱包不能删除。',
       deleteMessage: '确定要删除钱包 {name} 吗？这个操作不能撤销。',
+      deleteConfirmationLabel: '钱包名称',
+      deleteConfirmationHint: '请输入完整的钱包名称 {name} 以确认删除。',
+      deleteConfirmationPlaceholder: '输入完整的钱包名称',
     },
     bridge: {
       deposit: '存款',

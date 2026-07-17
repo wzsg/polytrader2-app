@@ -37,6 +37,7 @@ async function main() {
       eventRepository: createSqliteEventRepository(),
       eventSyncWorkflowScheduler: {
         enqueuePolymarketEventSync: async () => undefined,
+        cancelPolymarketEventSync: async () => undefined,
       },
       marketTradeRepositoryFactory: () => {
         throw new Error('Market trade repository is not used by this smoke test');

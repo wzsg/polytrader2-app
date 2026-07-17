@@ -4,5 +4,6 @@ export type {
   WorkflowGroupConfig,
   WorkflowHandler,
   WorkflowHandlerContext,
+  WorkflowHandlerOptions,
   WorkflowRuntimeOptions,
 } from './types.js';

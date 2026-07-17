@@ -23,7 +23,6 @@ interface R2SnapshotResponse {
 interface R2SnapshotInput {
   source: Readable;
   input: Readable;
-  decompressor: ReturnType<typeof createGunzip> | null;
 }
 
 class R2EventSnapshotClient {
@@ -54,18 +53,16 @@ class R2EventSnapshotClient {
     let snapshotInput: R2SnapshotInput | null = null;
     let lines: ReturnType<typeof createInterface> | null = null;
     const abort = () => {
-      const error = this.createAbortError();
-      body.destroy(error);
-      snapshotInput?.source.destroy(error);
-      snapshotInput?.input.destroy(error);
-      snapshotInput?.decompressor?.destroy(error);
       lines?.close();
+      this.destroySnapshotInput(snapshotInput);
+      body.destroy();
     };
 
     signal.addEventListener('abort', abort, { once: true });
     try {
       if (signal.aborted) throw this.createAbortError();
       snapshotInput = await this.prepareSnapshotInput(body);
+      if (signal.aborted) throw this.createAbortError();
       lines = createInterface({
         input: snapshotInput.input,
         crlfDelay: Infinity,
@@ -86,21 +83,24 @@ class R2EventSnapshotClient {
         pendingLine = null;
         events.push(event);
         if (normalizedBatchSize > 0 && events.length >= normalizedBatchSize) {
+          if (signal.aborted) throw this.createAbortError();
           yield { events, totalEvents: snapshot.totalEvents };
           events = [];
         }
       }
 
+      if (signal.aborted) throw this.createAbortError();
       if (pendingLine !== null) {
         events.push(JSON.parse(pendingLine) as GammaEventRaw);
       }
-      if (events.length) yield { events, totalEvents: snapshot.totalEvents };
+      if (events.length) {
+        if (signal.aborted) throw this.createAbortError();
+        yield { events, totalEvents: snapshot.totalEvents };
+      }
     } finally {
       signal.removeEventListener('abort', abort);
       lines?.close();
-      snapshotInput?.source.destroy();
-      snapshotInput?.input.destroy();
-      snapshotInput?.decompressor?.destroy();
+      this.destroySnapshotInput(snapshotInput);
       body.destroy();
     }
   }
@@ -121,15 +121,20 @@ class R2EventSnapshotClient {
 
     const source = Readable.from(this.replaySnapshotBody(prefixChunks, iterator));
     if (!this.hasGzipMagicBytes(prefixChunks)) {
-      return { source, input: source, decompressor: null };
+      return { source, input: source };
     }
 
     const decompressor = createGunzip();
     return {
       source,
       input: source.pipe(decompressor),
-      decompressor,
     };
+  }
+
+  private destroySnapshotInput(snapshotInput: R2SnapshotInput | null): void {
+    if (!snapshotInput) return;
+    snapshotInput.input.destroy();
+    if (snapshotInput.source !== snapshotInput.input) snapshotInput.source.destroy();
   }
 
   private async *replaySnapshotBody(

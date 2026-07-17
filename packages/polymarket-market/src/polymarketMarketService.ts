@@ -43,6 +43,7 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   private readonly _marketTradeSyncService: MarketTradeSyncService;
   private readonly _eventBus: ApplicationEventBus | null;
   private _locale: AppLocale;
+  private _eventSyncShutdown = false;
 
   public constructor(options: MarketServiceOptions) {
     super();
@@ -120,6 +121,7 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   }
 
   public startEventSync(): Promise<void> {
+    if (this._eventSyncShutdown) return Promise.reject(this.createAbortError());
     return this._eventSyncScheduler.enqueue('manual', { replacePending: true });
   }
 
@@ -127,7 +129,17 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     trigger: EventSyncTrigger,
     options?: { replacePending?: boolean },
   ): Promise<void> {
+    if (this._eventSyncShutdown) return Promise.reject(this.createAbortError());
     return this._eventSyncScheduler.enqueue(trigger, options);
+  }
+
+  public async stopEventSync(): Promise<void> {
+    await Promise.all([this._eventSyncScheduler.cancel(), this._eventSyncService.abortAndWait()]);
+  }
+
+  public async shutdownEventSync(): Promise<void> {
+    this._eventSyncShutdown = true;
+    await Promise.all([this._eventSyncScheduler.shutdown(), this._eventSyncService.abortAndWait()]);
   }
 
   public setEventSyncLocale(locale: AppLocale): void {
@@ -145,12 +157,14 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
   }
 
   public readEventSyncScheduleConfig(): Promise<EventSyncScheduleConfig> {
+    if (this._eventSyncShutdown) return Promise.reject(this.createAbortError());
     return this._eventSyncScheduler.readConfig();
   }
 
   public writeEventSyncScheduleConfig(
     config: Partial<EventSyncScheduleConfig>,
   ): Promise<EventSyncScheduleConfig> {
+    if (this._eventSyncShutdown) return Promise.reject(this.createAbortError());
     return this._eventSyncScheduler.writeConfig(config);
   }
 
@@ -158,13 +172,15 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     config?: EventSyncScheduleConfig,
     initialTrigger: EventSyncTrigger | null = 'startup',
   ): Promise<void> {
+    if (this._eventSyncShutdown) return Promise.reject(this.createAbortError());
     return this._eventSyncScheduler.apply(config, initialTrigger);
   }
 
   public runEventSyncWorkflow(
     input: EventSyncWorkflowInput,
-    signal: AbortSignal,
+    signal?: AbortSignal,
   ): Promise<EventSyncResult> {
+    if (this._eventSyncShutdown) return Promise.reject(this.createAbortError());
     return this._eventSyncService.run(input, signal);
   }
 
@@ -193,6 +209,12 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
 
   private handleMarketTradeSyncStatus(status: MarketTradeSyncStatus): void {
     this.emit('market-trade-sync-status', status);
+  }
+
+  private createAbortError(): Error {
+    const error = new Error('Event sync is shutting down');
+    error.name = 'AbortError';
+    return error;
   }
 }
 

@@ -47,6 +47,7 @@ interface EventSyncWorkflowScheduler {
     input: EventSyncWorkflowInput,
     options?: { replacePending?: boolean },
   ): Promise<void>;
+  cancelPolymarketEventSync(): Promise<void>;
 }
 
 interface EventSyncServiceOptions {
@@ -65,7 +66,8 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
   private readonly _metaRepository: MetaRepository;
   private readonly _client: EventSyncClient;
   private _batchSize: number;
-  private _isSyncing = false;
+  private _activeController: AbortController | null = null;
+  private _activeRunPromise: Promise<EventSyncResult> | null = null;
 
   public constructor(options: EventSyncServiceOptions) {
     super();
@@ -79,20 +81,61 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
     this._batchSize = this.normalizeBatchSize(batchSize);
   }
 
-  public async run(input: EventSyncWorkflowInput, signal: AbortSignal): Promise<EventSyncResult> {
-    if (this._isSyncing) throw new Error('Event sync is already running');
+  public run(input: EventSyncWorkflowInput, signal?: AbortSignal): Promise<EventSyncResult> {
+    if (this._activeRunPromise) {
+      return Promise.reject(new Error('Event sync is already running'));
+    }
 
+    const controller = new AbortController();
+    const forwardAbort = (): void => controller.abort();
+    let removeAbortListener = false;
+    if (signal?.aborted) {
+      controller.abort();
+    } else if (signal) {
+      signal.addEventListener('abort', forwardAbort, { once: true });
+      removeAbortListener = true;
+    }
+
+    this._activeController = controller;
+    const runPromise = this.runSync(input, controller.signal).finally(() => {
+      if (removeAbortListener) signal?.removeEventListener('abort', forwardAbort);
+      if (this._activeRunPromise !== runPromise) return;
+      this._activeController = null;
+      this._activeRunPromise = null;
+    });
+    this._activeRunPromise = runPromise;
+    return runPromise;
+  }
+
+  public async abortAndWait(): Promise<void> {
+    const controller = this._activeController;
+    const runPromise = this._activeRunPromise;
+    if (!runPromise) return;
+
+    if (controller && !controller.signal.aborted) controller.abort();
+    try {
+      await runPromise;
+    } catch (error) {
+      if (!this.isAbortError(error)) throw error;
+    }
+  }
+
+  private async runSync(
+    input: EventSyncWorkflowInput,
+    signal: AbortSignal,
+  ): Promise<EventSyncResult> {
     const result = this.createResult(input);
     const seenEventIds: string[] = [];
     let totalEvents: number | null = null;
-    this._isSyncing = true;
     try {
+      this.throwIfAborted(signal);
       this.emitSyncingStatus(0, 0, null);
       for await (const data of this._client.streamOpenEvents(
         signal,
         input.locale,
         this._batchSize,
       )) {
+        this.throwIfAborted(signal);
         const events = data.events || [];
         if (events.length === 0) continue;
 
@@ -103,9 +146,11 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
         this.applyBulkUpsertStats(result, stats);
         result.pagesFetched++;
         result.eventsFetched += events.length;
+        this.throwIfAborted(signal);
         this.emitSyncingStatus(result.pagesFetched, result.eventsFetched, totalEvents);
       }
 
+      this.throwIfAborted(signal);
       if (!seenEventIds.length) {
         throw new Error('Event snapshot did not include any events');
       }
@@ -152,8 +197,6 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
         });
       }
       throw err;
-    } finally {
-      this._isSyncing = false;
     }
   }
 
@@ -223,7 +266,16 @@ class EventSyncService extends EventEmitter<EventSyncEventMap> {
   }
 
   private isAbortError(error: unknown): boolean {
-    return error instanceof Error && error.name === 'AbortError';
+    return (
+      typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
+    );
+  }
+
+  private throwIfAborted(signal: AbortSignal): void {
+    if (!signal.aborted) return;
+    const error = new Error('The operation was aborted');
+    error.name = 'AbortError';
+    throw error;
   }
 
   private errorMessage(error: unknown): string {
@@ -236,6 +288,8 @@ class EventSyncScheduler {
   private readonly _metaRepository: MetaRepository;
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _locale: AppLocale = DEFAULT_LOCALE;
+  private _shutdown = false;
+  private _operationTail: Promise<void> = Promise.resolve();
 
   public constructor(
     workflowScheduler: EventSyncWorkflowScheduler,
@@ -249,17 +303,16 @@ class EventSyncScheduler {
     this._locale = locale;
   }
 
-  public async enqueue(
-    trigger: EventSyncTrigger,
-    options?: { replacePending?: boolean },
-  ): Promise<void> {
-    await this._workflowScheduler.enqueuePolymarketEventSync(
-      {
-        locale: this._locale,
-        trigger,
-      },
-      options,
-    );
+  public enqueue(trigger: EventSyncTrigger, options?: { replacePending?: boolean }): Promise<void> {
+    if (this._shutdown) return Promise.reject(this.createAbortError());
+    const input: EventSyncWorkflowInput = {
+      locale: this._locale,
+      trigger,
+    };
+    return this.queueOperation(async () => {
+      if (this._shutdown) throw this.createAbortError();
+      await this._workflowScheduler.enqueuePolymarketEventSync(input, options);
+    });
   }
 
   public async readConfig(): Promise<EventSyncScheduleConfig> {
@@ -286,15 +339,20 @@ class EventSyncScheduler {
     config?: EventSyncScheduleConfig,
     initialTrigger: EventSyncTrigger | null = 'startup',
   ): Promise<void> {
+    if (this._shutdown) throw this.createAbortError();
     const next = config ?? (await this.readConfig());
+    if (this._shutdown) throw this.createAbortError();
     this.clear();
     if (!next.enabled) return;
 
     if (initialTrigger) {
       await this.enqueue(initialTrigger);
     }
+    if (this._shutdown) throw this.createAbortError();
     this._timer = setInterval(() => {
+      if (this._shutdown) return;
       void this.enqueue('schedule').catch((error) => {
+        if (this.isAbortError(error)) return;
         console.warn('Failed to enqueue scheduled event sync', error);
       });
     }, next.intervalMinutes * 60_000);
@@ -305,6 +363,25 @@ class EventSyncScheduler {
       clearInterval(this._timer);
       this._timer = null;
     }
+  }
+
+  public cancel(): Promise<void> {
+    return this.queueOperation(() => this._workflowScheduler.cancelPolymarketEventSync());
+  }
+
+  public shutdown(): Promise<void> {
+    this._shutdown = true;
+    this.clear();
+    return this.queueOperation(() => this._workflowScheduler.cancelPolymarketEventSync());
+  }
+
+  private queueOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this._operationTail.then(operation);
+    this._operationTail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 
   private clampIntervalMinutes(value: unknown): number {
@@ -320,6 +397,18 @@ class EventSyncScheduler {
       enabled: config?.enabled === true,
       intervalMinutes: this.clampIntervalMinutes(config?.intervalMinutes),
     };
+  }
+
+  private createAbortError(): Error {
+    const error = new Error('Event sync scheduler is shutting down');
+    error.name = 'AbortError';
+    return error;
+  }
+
+  private isAbortError(error: unknown): boolean {
+    return (
+      typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
+    );
   }
 }
 

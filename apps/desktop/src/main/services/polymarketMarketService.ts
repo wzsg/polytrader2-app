@@ -9,6 +9,7 @@ import {
 } from '@polytrader/sqlite-repository';
 import { applicationEventBus } from './applicationEventBus.js';
 import { appPreferencesService } from './appPreferencesService.js';
+import { rendererEventSyncStatusBroadcastGate } from './eventSyncStatusBroadcastGate.js';
 import { fileCacheStore } from './fileCacheStore.js';
 import { desktopWorkflowService } from './workflowService.js';
 import { eventListCache, getEventListCacheTtlMs } from './eventListCache.js';
@@ -71,8 +72,11 @@ applicationEventBus.subscribe('app-preferences:changed', (event) => {
 });
 
 applicationEventBus.subscribe('polymarket-event-sync:status', (event) => {
+  if (!rendererEventSyncStatusBroadcastGate.isEnabled) return;
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send('event-sync:status', event.status);
+    if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+      window.webContents.send('event-sync:status', event.status);
+    }
   }
 });
 

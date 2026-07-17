@@ -81,10 +81,11 @@ class DesktopWorkflowService {
   public registerPolymarketEventSyncHandler(
     handler: (input: EventSyncWorkflowInput, signal: AbortSignal) => Promise<unknown>,
   ): void {
-    this._runtime.register(POLYMARKET_EVENT_SYNC_WORKFLOW, async (context) => {
-      const controller = new AbortController();
-      return handler(this._parsePolymarketEventSyncInput(context), controller.signal);
-    });
+    this._runtime.register(
+      POLYMARKET_EVENT_SYNC_WORKFLOW,
+      async (context) => handler(this._parsePolymarketEventSyncInput(context), context.signal),
+      { cancelOnStop: true },
+    );
   }
 
   public async enqueuePolymarketEventSync(
@@ -109,8 +110,12 @@ class DesktopWorkflowService {
     this._runtime.start();
   }
 
-  public stop(): void {
-    this._runtime.stop();
+  public cancelPolymarketEventSync(): Promise<void> {
+    return this._runtime.cancelGroup(POLYMARKET_EVENT_SYNC_WORKFLOW);
+  }
+
+  public stop(): Promise<void> {
+    return this._runtime.stop();
   }
 
   private _parsePolymarketWalletInitializationInput(

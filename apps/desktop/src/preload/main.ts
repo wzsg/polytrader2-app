@@ -37,6 +37,7 @@ const mainWindowApi = {
     ipcRenderer.invoke('data-storage:chooseDirectory', defaultPath),
   migrateDataStorage: (dataDirectory) => ipcRenderer.invoke('data-storage:migrate', dataDirectory),
   startEventSync: () => ipcRenderer.send('event-sync:start'),
+  stopEventSync: () => ipcRenderer.invoke('event-sync:stop'),
   onEventSyncStatus: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
       callback(data as Parameters<typeof callback>[0]);

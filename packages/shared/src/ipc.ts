@@ -383,6 +383,7 @@ export interface IpcApi {
   cancelInitialSetup: () => Promise<void>;
   onSetupEventSyncStatus: (callback: (status: EventSyncStatus) => void) => () => void;
   startEventSync: () => void;
+  stopEventSync: () => Promise<void>;
   onEventSyncStatus: (callback: (status: EventSyncStatus) => void) => () => void;
   getEventSyncScheduleConfig: () => Promise<EventSyncScheduleConfig>;
   setEventSyncScheduleConfig: (

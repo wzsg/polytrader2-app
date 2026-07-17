@@ -114,6 +114,9 @@ const sectionItems: Array<{ id: SettingsSection; labelKey: string; icon: unknown
 ];
 
 const isEventSyncing = () => props.eventSyncState === 'syncing';
+const isEventSyncStopping = () => props.eventSyncState === 'stopping';
+const isEventSyncBusy = () =>
+  isEventSyncing() || isEventSyncStopping() || props.eventSyncState === 'finalizing';
 
 function sectionClass(section: SettingsSection): string {
   return activeSection.value === section
@@ -510,7 +513,7 @@ onMounted(async () => {
             <button
               type="button"
               class="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="dataStorageMigrating || isEventSyncing()"
+              :disabled="dataStorageMigrating || isEventSyncBusy()"
               @click="changeDataStorageDirectory"
             >
               <LoadingSpinner
@@ -586,7 +589,7 @@ onMounted(async () => {
                 step="1"
                 class="border-border bg-bg text-text focus:border-primary h-9 w-28 rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 :value="currentEventSyncBatchSize"
-                :disabled="eventSyncBatchSizeSaving || isEventSyncing()"
+                :disabled="eventSyncBatchSizeSaving || isEventSyncBusy()"
                 :title="t('settings.eventSyncBatchSize')"
                 :aria-label="t('settings.eventSyncBatchSize')"
                 @change="updateEventSyncBatchSize"
@@ -603,14 +606,24 @@ onMounted(async () => {
             <button
               type="button"
               class="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors"
-              :class="isEventSyncing() ? 'bg-primary/60' : 'bg-primary hover:bg-primary-hover'"
-              :disabled="isEventSyncing()"
+              :class="
+                isEventSyncing()
+                  ? 'bg-danger hover:bg-danger/90'
+                  : isEventSyncBusy()
+                    ? 'bg-primary/60 disabled:cursor-not-allowed'
+                    : 'bg-primary hover:bg-primary-hover'
+              "
+              :disabled="eventSyncState === 'finalizing' || isEventSyncStopping()"
               @click="emit('toggle-event-sync')"
             >
-              <RefreshCw :size="16" :class="{ 'animate-spin': isEventSyncing() }" />
-              {{ t('settings.startEventSync') }}
+              <RefreshCw :size="16" :class="{ 'animate-spin': isEventSyncBusy() }" />
+              {{
+                isEventSyncing() || isEventSyncStopping()
+                  ? t('common.stop')
+                  : t('settings.startEventSync')
+              }}
             </button>
-            <LoadingSpinner v-if="isEventSyncing()" :title="t('settings.syncEventData')" />
+            <LoadingSpinner v-if="isEventSyncBusy()" :title="t('settings.syncEventData')" />
             <span class="text-muted text-sm">
               {{ eventSyncStatus || t('settings.eventNotSyncedYet') }}
             </span>
