@@ -87,7 +87,7 @@ export const messages = {
     nav: {
       browse: 'Browse',
       trading: 'Trading',
-      polymarket: 'Polymarket',
+      wallet: 'Wallet',
       system: 'System',
       watchlist: 'Watchlist',
       events: 'Events',
@@ -949,7 +949,7 @@ export const messages = {
     nav: {
       browse: '浏览',
       trading: '交易',
-      polymarket: 'Polymarket',
+      wallet: '钱包',
       system: '系统',
       watchlist: '自选列表',
       events: '事件列表',

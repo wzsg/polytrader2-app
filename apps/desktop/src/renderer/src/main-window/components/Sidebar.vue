@@ -117,7 +117,7 @@ function authHint(): string {
       <div
         class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"
       >
-        {{ t('nav.polymarket') }}
+        {{ t('nav.wallet') }}
       </div>
       <button
         v-for="item in accountItems"
