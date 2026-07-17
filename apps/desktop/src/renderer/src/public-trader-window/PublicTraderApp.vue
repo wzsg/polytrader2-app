@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RefreshCw, UserRound } from '@lucide/vue';
+import { Check, Copy, RefreshCw, UserRound } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type {
@@ -9,6 +9,7 @@ import type {
 } from '@polytrader/shared';
 import TitleBar from '@/shared/components/TitleBar.vue';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
+import { writeClipboardText } from '@/shared/utils/clipboard';
 import {
   formatAddress,
   formatNumber,
@@ -35,8 +36,10 @@ const loadingMoreTrades = ref(false);
 const hasMorePositions = ref(false);
 const hasMoreTrades = ref(false);
 const profileImageFailed = ref(false);
+const addressCopied = ref(false);
 const activityNow = ref(Date.now());
 let activityTimerId: number | undefined;
+let addressCopiedTimerId: number | undefined;
 
 const displayName = computed(() => {
   const current = profile.value;
@@ -145,6 +148,16 @@ function rowKey(input: PublicTraderPosition | PublicTraderTrade, index: number):
   return `${input.conditionId}:${input.asset}:${'timestamp' in input ? input.timestamp : index}`;
 }
 
+async function copyAddress(): Promise<void> {
+  if (!address) return;
+  await writeClipboardText(address);
+  addressCopied.value = true;
+  if (addressCopiedTimerId !== undefined) window.clearTimeout(addressCopiedTimerId);
+  addressCopiedTimerId = window.setTimeout(() => {
+    addressCopied.value = false;
+  }, 1200);
+}
+
 onMounted(() => {
   activityTimerId = window.setInterval(() => {
     activityNow.value = Date.now();
@@ -154,6 +167,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (activityTimerId !== undefined) window.clearInterval(activityTimerId);
+  if (addressCopiedTimerId !== undefined) window.clearTimeout(addressCopiedTimerId);
 });
 </script>
 
@@ -200,9 +214,21 @@ onUnmounted(() => {
                     ✓
                   </span>
                 </div>
-                <p class="text-muted mt-1 font-mono text-sm" :title="address">
-                  {{ formatAddress(address) }}
-                </p>
+                <div class="mt-1 flex items-center gap-1.5">
+                  <p class="text-muted min-w-0 truncate font-mono text-sm" :title="address">
+                    {{ formatAddress(address) }}
+                  </p>
+                  <button
+                    type="button"
+                    class="text-muted hover:bg-btn-secondary hover:text-text inline-flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors"
+                    :title="addressCopied ? t('common.copied') : t('common.copy')"
+                    :aria-label="addressCopied ? t('common.copied') : t('common.copy')"
+                    @click="copyAddress"
+                  >
+                    <Check v-if="addressCopied" :size="14" />
+                    <Copy v-else :size="14" />
+                  </button>
+                </div>
                 <p v-if="profile?.xUsername" class="text-muted mt-1 text-sm">
                   @{{ profile.xUsername }}
                 </p>
