@@ -19,7 +19,20 @@
 - 普通 push / PR 不生成正式版本号，也不发布 GitHub Release。
 - 正式版本号只来自 Git tag。
 - 推送 `v*` tag 后，`.github/workflows/release.yml` 会把 tag 中的版本号写入 `apps/desktop/package.json`，再构建 Windows 和 macOS 安装包。
+- `Release` workflow 会读取上一个正式版本 tag 到当前 tag 之间的非合并提交，并把每条提交标题写入 GitHub Release 的 `What's Changed`。
 - `Release` workflow 会先创建 draft release；Windows 和 macOS 资产全部构建、签名并上传成功后，会自动将该 release 发布为 Latest。
+
+## Release Notes 约定
+
+GitHub Release 的更新说明由 `.github/workflows/release.yml` 自动生成，不需要发布者在 Releases 页面逐条手写。生成内容包括：
+
+- 上一个正式版本到当前版本之间的非合并提交标题。
+- 每条提交的短 SHA，便于追踪具体修改。
+- 当前版本与上一个正式版本之间的完整比较链接。
+
+由于提交标题会直接出现在面向用户的 Release Notes 中，提交时应使用简洁、明确的英文描述，说明实际用户价值或行为变化，例如 `Add system performance warnings`。避免使用 `Update code`、`Misc changes` 或仅写版本号等无法说明修改内容的标题。
+
+合并 `develop` 到 `master` 的发布 PR 标题仍可使用版本号，但 Release Notes 不再依赖该 PR 标题，因此不会只显示 `Release vX.Y.Z`。
 
 ## 1. 发布前检查
 
