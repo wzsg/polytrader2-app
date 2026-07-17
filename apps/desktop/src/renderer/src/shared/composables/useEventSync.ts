@@ -1,13 +1,17 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { translateUiKey } from '../i18n';
 
 export function useEventSync(onComplete?: () => void | Promise<void>) {
-  const eventSyncState = ref('idle');
+  const reportedEventSyncState = ref('idle');
+  const eventSyncStopping = ref(false);
+  const eventSyncState = computed(() =>
+    eventSyncStopping.value ? 'stopping' : reportedEventSyncState.value,
+  );
   const eventSyncStatus = ref('');
 
   function setupEventSync(): void {
     window.api.onEventSyncStatus((status) => {
-      eventSyncState.value = status.state;
+      reportedEventSyncState.value = status.state;
 
       if (status.state === 'syncing') {
         eventSyncStatus.value = translateUiKey('eventSync.syncing', {
@@ -41,7 +45,20 @@ export function useEventSync(onComplete?: () => void | Promise<void>) {
   }
 
   function toggleEventSync(): void {
-    if (eventSyncState.value === 'syncing' || eventSyncState.value === 'finalizing') return;
+    if (eventSyncStopping.value) return;
+    if (reportedEventSyncState.value === 'syncing') {
+      eventSyncStopping.value = true;
+      void window.api
+        .stopEventSync()
+        .catch((error: unknown) => {
+          console.warn('Failed to stop event sync', error);
+        })
+        .finally(() => {
+          eventSyncStopping.value = false;
+        });
+      return;
+    }
+    if (reportedEventSyncState.value === 'finalizing') return;
     startEventSync();
   }
 

@@ -198,10 +198,10 @@ class SetupService {
       polymarketMarketService.setEventSyncBatchSize(preferences.eventSyncBatchSize);
       polymarketMarketService.setCategoryConfigLocale(preferences.locale);
       const categoryWarmupPromise = this._warmCategoryConfigs();
-      await polymarketMarketService.runEventSyncWorkflow(
-        { locale: preferences.locale, trigger: 'startup' },
-        new AbortController().signal,
-      );
+      await polymarketMarketService.runEventSyncWorkflow({
+        locale: preferences.locale,
+        trigger: 'startup',
+      });
       await categoryWarmupPromise;
       const eventCacheStats = await this._eventRepository.getEventCacheStats();
       if (eventCacheStats.eventCount <= 0) {

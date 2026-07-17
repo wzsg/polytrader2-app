@@ -13,13 +13,16 @@ function registerEventSyncHandlers(
   options: RegisterEventSyncHandlersOptions,
 ): void {
   void initializeEventSyncSchedule(options.initialTrigger).catch((error) => {
+    if (isAbortError(error)) return;
     console.warn('Failed to apply event sync schedule config', error);
   });
   ipcMain.on('event-sync:start', () => {
     void polymarketMarketService.startEventSync().catch((error) => {
+      if (isAbortError(error)) return;
       console.warn('Failed to enqueue event sync', error);
     });
   });
+  ipcMain.handle('event-sync:stop', () => polymarketMarketService.stopEventSync());
 
   ipcMain.handle('event-sync:schedule:get', () =>
     polymarketMarketService.readEventSyncScheduleConfig(),
@@ -43,6 +46,12 @@ async function initializeEventSyncSchedule(initialTrigger: EventSyncTrigger | nu
   const config = await polymarketMarketService.readEventSyncScheduleConfig();
   setEventListCacheIntervalMinutes(config.intervalMinutes);
   await polymarketMarketService.applyEventSyncScheduleConfig(config, initialTrigger);
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
+  );
 }
 
 export { registerEventSyncHandlers };
