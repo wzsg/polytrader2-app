@@ -25,6 +25,7 @@ import { registerTradingMarketHandlers } from '../ipc/tradingMarketIpc.js';
 import { registerTradingStrategyHandlers } from '../ipc/tradingStrategyIpc.js';
 import { registerEventSyncHandlers } from '../ipc/eventSyncIpc.js';
 import { registerWindowHandlers } from '../ipc/windowIpc.js';
+import { registerSystemPerformanceHandlers } from '../ipc/systemPerformanceIpc.js';
 import { registerPreferenceHandlers } from '../preferences.js';
 import {
   polymarketMarketService,
@@ -39,6 +40,7 @@ import { fileCacheStore } from '../services/fileCacheStore.js';
 import { supabaseAuthService } from '../services/supabaseAuthService.js';
 import { desktopWorkflowService } from '../services/workflowService.js';
 import { mcpServerManager } from '../services/mcpServerService.js';
+import { systemPerformanceService } from '../services/systemPerformanceService.js';
 import { createMainWindow } from '../windows/mainWindow.js';
 import { registerBrowserWindowHandlers } from '../windows/browserWindow.js';
 import { registerStrategyEditorWindowHandlers } from '../windows/strategyEditorWindow.js';
@@ -71,6 +73,7 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   registerMarketHandlers(ipcMain);
   registerMcpHandlers(ipcMain);
   registerWindowHandlers(ipcMain);
+  registerSystemPerformanceHandlers(ipcMain);
   registerPreferenceHandlers(ipcMain);
   registerEventSyncHandlers(ipcMain, {
     initialTrigger: options.initialEventSync ? 'startup' : null,
@@ -125,6 +128,7 @@ async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promi
   await strategyRunHistoryService.init();
   botRuntimeService.init();
   await mcpServerManager.applySavedConfig();
+  await systemPerformanceService.start();
   createMainWindow();
   autoUpdaterService.initialize();
   tradingAccountService.start();
@@ -153,6 +157,7 @@ function stopAppServices(): Promise<void> {
     await mcpServerManager.stop().catch((error) => {
       console.warn('Failed to stop MCP server manager', error);
     });
+    systemPerformanceService.stop();
     tradingAccountService.stop();
     await botRuntimeService.stopAll().catch((error) => {
       console.warn('Failed to stop bot runtime service', error);

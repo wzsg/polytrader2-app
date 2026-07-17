@@ -593,6 +593,14 @@ export const messages = {
         'The installer will show its progress and finish without further interaction. Polytrader2 will restart when the update is complete.',
       confirmInstall: 'Update and restart',
     },
+    systemPerformance: {
+      energySaverTitle: 'Windows Energy Saver is on',
+      energySaverMessage:
+        'Windows is reducing system performance, which may make Polytrader2 less responsive. Connect your charger or turn off Energy Saver in Windows Settings. CPU limit: {limit}.',
+      cpuLimitedTitle: 'System CPU performance is limited',
+      cpuLimitedMessage:
+        'Windows is currently limiting CPU performance to {limit}, which may make Polytrader2 less responsive.',
+    },
     settings: {
       navigation: 'Settings navigation',
       tabs: {
@@ -1443,6 +1451,13 @@ export const messages = {
       installNotice:
         '安装程序将显示安装进度并自动完成，无需其他操作。更新完成后，Polytrader2 将自动重新启动。',
       confirmInstall: '更新并重启',
+    },
+    systemPerformance: {
+      energySaverTitle: 'Windows 节能模式已开启',
+      energySaverMessage:
+        'Windows 正在降低系统性能，Polytrader2 的响应速度可能变慢。请连接电源，或在 Windows 设置中关闭节能模式。CPU 限制：{limit}。',
+      cpuLimitedTitle: '系统正在限制 CPU 性能',
+      cpuLimitedMessage: 'Windows 当前将 CPU 性能限制为 {limit}，Polytrader2 的响应速度可能变慢。',
     },
     settings: {
       navigation: '系统设置导航',

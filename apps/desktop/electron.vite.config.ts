@@ -63,6 +63,10 @@ const workspacePackageAliases = [
     replacement: resolve('../../packages/cache-store/src/index.ts'),
   },
   {
+    find: '@polytrader/system-performance',
+    replacement: resolve('../../packages/system-performance/src/index.ts'),
+  },
+  {
     find: '@polytrader/polymarket-market',
     replacement: resolve('../../packages/polymarket-market/src/index.ts'),
   },
@@ -153,6 +157,7 @@ export default defineConfig({
           '@polytrader/bot-runtime-contract',
           '@polytrader/repository-contract',
           '@polytrader/cache-store',
+          '@polytrader/system-performance',
           '@polytrader/sqlite-repository',
           '@polytrader/duckdb-repository',
           '@polytrader/event-bus',

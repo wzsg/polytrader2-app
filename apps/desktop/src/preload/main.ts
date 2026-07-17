@@ -25,6 +25,13 @@ const mainWindowApi = {
   resendSignupConfirmation: (email) => ipcRenderer.invoke('auth:resendSignupConfirmation', email),
   signOut: () => ipcRenderer.invoke('auth:signOut'),
   runDataSync: () => ipcRenderer.invoke('data-sync:run'),
+  getSystemPerformanceStatus: () => ipcRenderer.invoke('system-performance:get'),
+  onSystemPerformanceStatusChanged: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+      callback(input as Parameters<typeof callback>[0]);
+    ipcRenderer.on('system-performance:changed', listener);
+    return () => ipcRenderer.removeListener('system-performance:changed', listener);
+  },
   onAuthChanged: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
       callback(input as Parameters<typeof callback>[0]);

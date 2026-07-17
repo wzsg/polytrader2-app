@@ -100,6 +100,7 @@ import type {
   DataSyncResult,
   WorkflowTaskRecord,
 } from './types/index.js';
+import type { SystemPerformanceStatus } from '@polytrader/system-performance';
 import type { AppLocale, AppLocalePreference, AppPreferences } from './i18n.js';
 import type { AiAgentId, AiAgentIntegrationStatus } from './aiAgentIntegration.js';
 
@@ -360,6 +361,10 @@ export interface IpcApi {
   signOut: () => Promise<ApiResult<AuthState>>;
   runDataSync: () => Promise<ApiResult<DataSyncResult>>;
   onAuthChanged: (callback: (state: AuthState) => void) => () => void;
+  getSystemPerformanceStatus: () => Promise<SystemPerformanceStatus>;
+  onSystemPerformanceStatusChanged: (
+    callback: (status: SystemPerformanceStatus) => void,
+  ) => () => void;
   getAppPreferences: () => Promise<AppPreferences>;
   setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
   setOrderConfirmationThresholdUsd: (thresholdUsd: number) => Promise<AppPreferences>;
