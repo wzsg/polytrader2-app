@@ -22,19 +22,29 @@ let closingWorker: Worker | null = null;
 let terminatingWorker: Worker | null = null;
 let initPromise: Promise<void> | null = null;
 let closePromise: Promise<void> | null = null;
+let databaseClosing = false;
 const pendingRequests = new Map<string, PendingRequest>();
+const activeRepositoryRequests = new Set<Promise<unknown>>();
 
 function initDb(options: InitDbOptions): Promise<void> {
+  if (closePromise) return closePromise.then(() => initDb(options));
   if (initPromise) return initPromise;
+  databaseClosing = false;
   const workerScriptPath = options.workerScriptPath || resolveDefaultWorkerScriptPath();
   const nextWorker = new Worker(workerScriptPath);
   worker = nextWorker;
   nextWorker.on('message', handleWorkerMessage);
-  nextWorker.on('error', handleWorkerFailure);
+  nextWorker.on('error', (error) => {
+    const workerError = error instanceof Error ? error : new Error(String(error));
+    console.error('SQLite worker failed', workerError);
+    handleWorkerFailure(workerError);
+  });
   nextWorker.on('exit', (code) => {
     const expectedExit = terminatingWorker === nextWorker;
     if (!expectedExit) {
-      handleWorkerFailure(new Error(`SQLite worker exited with code ${code}`));
+      const error = new Error(`SQLite worker exited with code ${code}`);
+      console.error('SQLite worker exited unexpectedly', error);
+      handleWorkerFailure(error);
     }
     if (worker === nextWorker) {
       worker = null;
@@ -56,26 +66,25 @@ function initDb(options: InitDbOptions): Promise<void> {
 }
 
 function closeDb(): Promise<void> {
+  databaseClosing = true;
   if (closePromise) return closePromise;
   const currentWorker = worker;
-  if (!currentWorker) return Promise.resolve();
-  const closeRequest = sendWorkerRequest({
-    id: randomUUID(),
-    type: 'close',
-  });
-  closingWorker = currentWorker;
+  if (!currentWorker) return waitForActiveRepositoryRequests();
 
-  const trackedPromise = finishClosingDb(currentWorker, closeRequest).finally(() => {
+  const trackedPromise = finishClosingDb(currentWorker).finally(() => {
     if (closePromise === trackedPromise) closePromise = null;
   });
   closePromise = trackedPromise;
   return trackedPromise;
 }
 
-async function finishClosingDb(
-  currentWorker: Worker,
-  closeRequest: Promise<unknown>,
-): Promise<void> {
+async function finishClosingDb(currentWorker: Worker): Promise<void> {
+  await waitForActiveRepositoryRequests();
+  const closeRequest = sendWorkerRequest({
+    id: randomUUID(),
+    type: 'close',
+  });
+  closingWorker = currentWorker;
   try {
     await closeRequest;
   } finally {
@@ -95,13 +104,30 @@ function callSqliteRepository<T>(
   method: string,
   args: unknown[],
 ): Promise<T> {
-  return sendWorkerRequest({
+  if (databaseClosing) return Promise.reject(createDatabaseClosingError());
+  const request = sendWorkerRequest({
     id: randomUUID(),
     type: 'call',
     repository,
     method,
     args,
-  }) as Promise<T>;
+  });
+  trackRepositoryRequest(request);
+  return request as Promise<T>;
+}
+
+function trackRepositoryRequest(request: Promise<unknown>): void {
+  activeRepositoryRequests.add(request);
+  void request.then(
+    () => activeRepositoryRequests.delete(request),
+    () => activeRepositoryRequests.delete(request),
+  );
+}
+
+async function waitForActiveRepositoryRequests(): Promise<void> {
+  while (activeRepositoryRequests.size > 0) {
+    await Promise.allSettled([...activeRepositoryRequests]);
+  }
 }
 
 function sendWorkerRequest(request: SqliteWorkerRequest): Promise<unknown> {
@@ -138,6 +164,12 @@ function errorFromPayload(payload: { name: string; message: string; stack?: stri
   const error = new Error(payload.message);
   error.name = payload.name || 'Error';
   if (payload.stack) error.stack = payload.stack;
+  return error;
+}
+
+function createDatabaseClosingError(): Error {
+  const error = new Error('SQLite database is shutting down');
+  error.name = 'AbortError';
   return error;
 }
 

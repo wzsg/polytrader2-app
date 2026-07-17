@@ -9,8 +9,8 @@ export function useEventSync(onComplete?: () => void | Promise<void>) {
   );
   const eventSyncStatus = ref('');
 
-  function setupEventSync(): void {
-    window.api.onEventSyncStatus((status) => {
+  function setupEventSync(): () => void {
+    return window.api.onEventSyncStatus((status) => {
       reportedEventSyncState.value = status.state;
 
       if (status.state === 'syncing') {

@@ -449,6 +449,27 @@ async function verifyStopWaitsForFinalization(workflowRepository) {
   await runtime.stop();
 }
 
+async function verifyCloseRejectsLateRepositoryCallsAndAllowsReinitialize(options) {
+  const workflowRepository = createSqliteWorkflowTaskRepository();
+  const closing = closeDb();
+  const lateRepositoryCall = workflowRepository.listRecent(1);
+  const reinitializing = initDb(options);
+
+  await assert.rejects(
+    lateRepositoryCall,
+    (error) =>
+      error instanceof Error &&
+      error.name === 'AbortError' &&
+      error.message === 'SQLite database is shutting down',
+    'A repository call issued during shutdown did not fail with the shutdown error',
+  );
+  await Promise.all([closing, reinitializing]);
+
+  const reopenedWorkflowRepository = createSqliteWorkflowTaskRepository();
+  const records = await reopenedWorkflowRepository.listRecent(1);
+  assert.ok(Array.isArray(records), 'SQLite did not accept requests after reinitialization');
+}
+
 async function main() {
   const userDataPath = await mkdtemp(path.join(os.tmpdir(), 'polytrader-event-sync-shutdown-'));
   let databaseOpen = false;
@@ -460,6 +481,10 @@ async function main() {
     await verifyStopCancelsQueuedSyncs(workflowRepository);
     await verifyStopWaitsForFinalization(workflowRepository);
     await verifyRuntimeStopLeavesPersistentWorkflowRunning(workflowRepository);
+    await verifyCloseRejectsLateRepositoryCallsAndAllowsReinitialize({
+      userDataPath,
+      migrationsFolder,
+    });
 
     await closeDb();
     databaseOpen = false;

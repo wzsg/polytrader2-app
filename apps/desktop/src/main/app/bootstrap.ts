@@ -30,6 +30,7 @@ import {
   polymarketMarketService,
   syncPolymarketMarketServicePreferences,
 } from '../services/polymarketMarketService.js';
+import { rendererEventSyncStatusBroadcastGate } from '../services/eventSyncStatusBroadcastGate.js';
 import { botRuntimeService, strategyRunHistoryService } from '../services/strategyRuntime.js';
 import { tradingAccountService } from '../services/tradingAccountService.js';
 import { tradingMarketService } from '../services/tradingMarketService.js';
@@ -140,6 +141,7 @@ function registerAuthProtocol(): void {
 function stopAppServices(): Promise<void> {
   if (appServicesStopping) return appServicesStopping;
   appServicesStopping = (async () => {
+    rendererEventSyncStatusBroadcastGate.disable();
     const eventSyncStopping = polymarketMarketService
       .shutdownEventSync()
       .catch((error: unknown) => {
