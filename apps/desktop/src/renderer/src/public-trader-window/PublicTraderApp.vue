@@ -407,7 +407,7 @@ onUnmounted(() => {
                     {{ t('publicTrader.tradedAt') }}
                   </th>
                   <th
-                    class="border-border text-muted border-b px-4 py-2.5 text-left text-xs font-semibold uppercase"
+                    class="border-border text-muted min-w-[76px] border-b px-4 py-2.5 text-left text-xs font-semibold whitespace-nowrap uppercase"
                   >
                     {{ t('trade.direction') }}
                   </th>
@@ -460,7 +460,7 @@ onUnmounted(() => {
                     {{ formatTimestamp(trade.timestamp) }}
                   </td>
                   <td
-                    class="px-4 py-3 text-sm"
+                    class="min-w-[76px] px-4 py-3 text-sm whitespace-nowrap"
                     :class="trade.side === 'BUY' ? 'text-green-400' : 'text-red-400'"
                   >
                     {{ trade.side === 'BUY' ? t('trade.buy') : t('trade.sell') }}
