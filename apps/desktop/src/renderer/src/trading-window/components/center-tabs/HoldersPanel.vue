@@ -18,13 +18,22 @@ function holderName(holder: HolderEntry): string {
   if (holder.pseudonym) return holder.pseudonym;
   return formatAddress(holder.proxyWallet);
 }
+
+function compactHolderName(holder: HolderEntry): string {
+  const name = holderName(holder);
+  const maxLength = 24;
+  if (name.length <= maxLength) return name;
+
+  const prefixLength = 12;
+  const suffixLength = maxLength - prefixLength - 1;
+  return `${name.slice(0, prefixLength)}…${name.slice(-suffixLength)}`;
+}
 </script>
 
 <template>
   <section class="flex flex-col gap-3">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center">
       <h2 class="text-sm font-semibold text-white">{{ t('tradingWindow.holdersTitle') }}</h2>
-      <span class="text-muted text-xs">{{ t('tradingWindow.holdersSource') }}</span>
     </div>
 
     <div
@@ -80,8 +89,8 @@ function holderName(holder: HolderEntry): string {
                 class="border-border/40 border-b hover:bg-[#1a1a2e]"
               >
                 <td class="text-muted px-3 py-2 text-sm">{{ index + 1 }}</td>
-                <td class="text-text px-3 py-2 text-sm" :title="holder.proxyWallet">
-                  {{ holderName(holder) }}
+                <td class="text-text px-3 py-2 text-sm" :title="holderName(holder)">
+                  {{ compactHolderName(holder) }}
                 </td>
                 <td class="text-text px-3 py-2 text-right text-sm tabular-nums">
                   {{ formatNumber(holder.amount, 2) }}

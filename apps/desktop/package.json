@@ -42,6 +42,7 @@
     "smoke:ai-agent-integration": "node scripts/run-electron-node.mjs scripts/ai-agent-integration-smoke.mjs",
     "smoke:mcp-stdio-bridge": "pnpm run build:mcp-stdio-bridge && node scripts/run-electron-node.mjs scripts/mcp-stdio-bridge-smoke.mjs",
     "smoke:sports-sync": "node scripts/run-electron-node.mjs scripts/sports-sync-smoke.mjs",
+    "smoke:performance-preference-migration": "node scripts/run-electron-node.mjs scripts/performance-preference-migration-smoke.mjs",
     "smoke:tick-size-support": "node scripts/run-electron-node.mjs scripts/tick-size-support-smoke.mjs",
     "postinstall": "node scripts/postinstall.mjs"
   },

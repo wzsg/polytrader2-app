@@ -106,6 +106,13 @@
       "when": 1784160000000,
       "tag": "0014_rename_event_sync_meta_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1784302228000,
+      "tag": "0015_add_performance_monitoring_preference",
+      "breakpoints": true
     }
   ]
 }
