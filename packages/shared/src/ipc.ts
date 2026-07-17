@@ -236,6 +236,7 @@ type AppUpdateStatus = 'idle' | 'checking' | 'downloading' | 'downloaded' | 'err
 interface AppUpdateState {
   status: AppUpdateStatus;
   version: string | null;
+  mandatory: boolean;
 }
 
 export interface TradingAccountStatusData {

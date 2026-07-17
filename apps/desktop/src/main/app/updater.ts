@@ -22,7 +22,7 @@ class AutoUpdaterService {
   private _updateCheckInProgress = false;
   private _updateCheckInterval: ReturnType<typeof setInterval> | null = null;
   private _installRequested = false;
-  private _state: AppUpdateState = { status: 'idle', version: null };
+  private _state: AppUpdateState = { status: 'idle', version: null, mandatory: false };
 
   public registerIpcHandlers(ipcMain: IpcMain): void {
     if (this._ipcHandlersRegistered) return;
@@ -56,28 +56,44 @@ class AutoUpdaterService {
     });
 
     autoUpdater.on('checking-for-update', () => {
-      this._setState({ status: 'checking', version: null });
+      this._setState({
+        status: 'checking',
+        version: this._state.mandatory ? this._state.version : null,
+        mandatory: this._state.mandatory,
+      });
     });
 
     autoUpdater.on('error', (err) => {
       this._installRequested = false;
-      this._setState({ status: 'error', version: null });
+      this._setState({
+        status: 'error',
+        version: this._state.version,
+        mandatory: this._state.mandatory,
+      });
       updaterLogger.warn('Automatic update failed', err);
     });
 
     autoUpdater.on('update-available', (info) => {
-      this._setState({ status: 'downloading', version: info.version });
+      this._setState({
+        status: 'downloading',
+        version: info.version,
+        mandatory: this._isMandatoryUpdate(info.version),
+      });
       updaterLogger.info(`Found version ${info.version}; downloading in the background`);
     });
 
     autoUpdater.on('update-not-available', (info) => {
-      this._setState({ status: 'idle', version: null });
+      this._setState({ status: 'idle', version: null, mandatory: false });
       updaterLogger.info(`Current version is up to date: ${info.version}`);
     });
 
     autoUpdater.on('update-downloaded', (event) => {
-      this._setState({ status: 'downloaded', version: event.version });
+      const mandatory = this._isMandatoryUpdate(event.version);
+      this._setState({ status: 'downloaded', version: event.version, mandatory });
       updaterLogger.info(`Version ${event.version} is ready to install`);
+      if (mandatory) {
+        void this.installDownloadedUpdate();
+      }
     });
 
     this._scheduleUpdateChecks();
@@ -132,6 +148,30 @@ class AutoUpdaterService {
   private _canCheckForUpdates(): boolean {
     if (this._updateCheckInProgress || this._installRequested) return false;
     return this._state.status !== 'downloading' && this._state.status !== 'downloaded';
+  }
+
+  private _isMandatoryUpdate(nextVersion: string): boolean {
+    const currentVersion = this._parseMajorMinorVersion(app.getVersion());
+    const availableVersion = this._parseMajorMinorVersion(nextVersion);
+    if (!currentVersion || !availableVersion) {
+      updaterLogger.warn(
+        `Unable to determine whether version ${nextVersion} requires a mandatory update`,
+      );
+      return false;
+    }
+
+    return (
+      availableVersion.major > currentVersion.major ||
+      (availableVersion.major === currentVersion.major &&
+        availableVersion.minor > currentVersion.minor)
+    );
+  }
+
+  private _parseMajorMinorVersion(version: string): { major: number; minor: number } | null {
+    const match = /^(\d+)\.(\d+)\.\d+(?:[-+].*)?$/.exec(version);
+    if (!match) return null;
+
+    return { major: Number(match[1]), minor: Number(match[2]) };
   }
 
   private _setState(state: AppUpdateState): void {

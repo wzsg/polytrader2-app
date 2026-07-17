@@ -592,6 +592,11 @@ export const messages = {
       installNotice:
         'The installer will show its progress and finish without further interaction. Polytrader2 will restart when the update is complete.',
       confirmInstall: 'Update and restart',
+      mandatoryTitle: 'Update required',
+      mandatoryMessage:
+        'A newer version is required to continue using Polytrader2. The update will download and install automatically.',
+      mandatoryError:
+        'Polytrader2 could not download the required update. Keep this window open and check your connection; the download will retry automatically.',
     },
     systemPerformance: {
       energySaverTitle: 'Windows Energy Saver is on',
@@ -1451,6 +1456,10 @@ export const messages = {
       installNotice:
         '安装程序将显示安装进度并自动完成，无需其他操作。更新完成后，Polytrader2 将自动重新启动。',
       confirmInstall: '更新并重启',
+      mandatoryTitle: '需要更新',
+      mandatoryMessage: '需要安装较新版本才能继续使用 Polytrader2。更新将自动下载并安装。',
+      mandatoryError:
+        'Polytrader2 无法下载所需更新。请保持此窗口打开并检查网络连接；下载会自动重试。',
     },
     systemPerformance: {
       energySaverTitle: 'Windows 节能模式已开启',
