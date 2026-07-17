@@ -123,6 +123,9 @@ export const appPreferences = sqliteTable('app_preferences', {
   localePreference: text('locale_preference').notNull(),
   orderConfirmationThresholdUsd: real('order_confirmation_threshold_usd').notNull().default(100),
   eventSyncBatchSize: integer('event_sync_batch_size').notNull().default(500),
+  performanceMonitoringEnabled: integer('performance_monitoring_enabled', { mode: 'boolean' })
+    .notNull()
+    .default(false),
   createdAt: text('created_at')
     .notNull()
     .default(sql`(datetime('now'))`),

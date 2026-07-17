@@ -41,6 +41,7 @@ import { supabaseAuthService } from '../services/supabaseAuthService.js';
 import { desktopWorkflowService } from '../services/workflowService.js';
 import { mcpServerManager } from '../services/mcpServerService.js';
 import { systemPerformanceService } from '../services/systemPerformanceService.js';
+import { appPreferencesService } from '../services/appPreferencesService.js';
 import { createMainWindow } from '../windows/mainWindow.js';
 import { registerBrowserWindowHandlers } from '../windows/browserWindow.js';
 import { registerStrategyEditorWindowHandlers } from '../windows/strategyEditorWindow.js';
@@ -128,7 +129,8 @@ async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promi
   await strategyRunHistoryService.init();
   botRuntimeService.init();
   await mcpServerManager.applySavedConfig();
-  await systemPerformanceService.start();
+  const preferences = await appPreferencesService.getAppPreferences();
+  await systemPerformanceService.start(preferences.performanceMonitoringEnabled);
   createMainWindow();
   autoUpdaterService.initialize();
   tradingAccountService.start();

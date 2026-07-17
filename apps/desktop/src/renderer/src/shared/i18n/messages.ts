@@ -685,6 +685,10 @@ export const messages = {
         'Show developer diagnostics in the system navigation, including MCP access logs and local order placement records.',
       saveDeveloperMode: 'Save developer mode',
       tradingSafety: 'Trading Safety',
+      system: 'System',
+      performanceMonitoring: 'Performance Monitoring',
+      performanceMonitoringDescription:
+        'Detect Windows Energy Saver and CPU speed limits, then show a warning when they may reduce app responsiveness.',
       orderConfirmationThreshold: 'Order Confirmation Threshold',
       orderConfirmationThresholdDescription:
         'Orders above this estimated USD amount require sliding to confirm before submission.',
@@ -1543,6 +1547,10 @@ export const messages = {
       developerModeDescription: '在系统导航中显示开发诊断入口，包括 MCP 访问日志和本地下单记录。',
       saveDeveloperMode: '保存开发者模式',
       tradingSafety: '交易安全',
+      system: '系统',
+      performanceMonitoring: '性能监测',
+      performanceMonitoringDescription:
+        '检测 Windows 节能模式和 CPU 速度限制，并在可能影响应用响应速度时显示提醒。',
       orderConfirmationThreshold: '订单确认阈值',
       orderConfirmationThresholdDescription: '订单预估金额超过此美元数值时，提交前需要滑动确认。',
       eventSyncBatchSize: '事件同步写入批次大小',

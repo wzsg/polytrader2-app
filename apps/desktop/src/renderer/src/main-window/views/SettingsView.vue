@@ -33,10 +33,12 @@ import {
   currentLocalePreference,
   currentEventSyncBatchSize,
   currentOrderConfirmationThresholdUsd,
+  currentPerformanceMonitoringEnabled,
   currentSystemLocale,
   setLocalePreference,
   setEventSyncBatchSize,
   setOrderConfirmationThresholdUsd,
+  setPerformanceMonitoringEnabled,
 } from '@/shared/i18n';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import AiAgentIntegrationsPanel from './settings-panels/AiAgentIntegrationsPanel.vue';
@@ -87,6 +89,7 @@ const scheduleSaving = ref(false);
 const localeSaving = ref(false);
 const tradingSafetySaving = ref(false);
 const eventSyncBatchSizeSaving = ref(false);
+const performanceMonitoringSaving = ref(false);
 const mcpLoading = ref(false);
 const mcpSaving = ref(false);
 const developerModeLoading = ref(false);
@@ -322,6 +325,15 @@ async function updateEventSyncBatchSize(event: Event) {
   }
 }
 
+async function togglePerformanceMonitoring(): Promise<void> {
+  performanceMonitoringSaving.value = true;
+  try {
+    await setPerformanceMonitoringEnabled(!currentPerformanceMonitoringEnabled.value);
+  } finally {
+    performanceMonitoringSaving.value = false;
+  }
+}
+
 async function runDataSync() {
   if (!accountDataSyncEnabled) return;
   dataSyncing.value = true;
@@ -438,6 +450,44 @@ onMounted(async () => {
               />
               <span class="text-muted text-sm">USD</span>
               <LoadingSpinner v-if="tradingSafetySaving" :title="t('common.save')" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="activeSection === 'general'" class="mb-8">
+        <h2 class="mb-3 text-sm font-semibold text-white">{{ t('settings.system') }}</h2>
+        <div class="border-border bg-detail-bg rounded-lg border px-5 py-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-white">
+                {{ t('settings.performanceMonitoring') }}
+              </p>
+              <p class="text-muted mt-1 text-sm">
+                {{ t('settings.performanceMonitoringDescription') }}
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="inline-flex h-8 w-14 items-center rounded-full border px-1 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                :class="
+                  currentPerformanceMonitoringEnabled
+                    ? 'border-primary bg-primary/25 justify-end'
+                    : 'border-border bg-bg justify-start'
+                "
+                :disabled="performanceMonitoringSaving"
+                :aria-pressed="currentPerformanceMonitoringEnabled"
+                :title="t('settings.performanceMonitoring')"
+                :aria-label="t('settings.performanceMonitoring')"
+                @click="togglePerformanceMonitoring"
+              >
+                <span class="block h-5 w-5 rounded-full bg-white shadow-sm" />
+              </button>
+              <LoadingSpinner
+                v-if="performanceMonitoringSaving"
+                :title="t('settings.performanceMonitoring')"
+              />
             </div>
           </div>
         </div>

@@ -8,6 +8,7 @@ export interface AppPreferences {
   localePreference: AppLocalePreference;
   orderConfirmationThresholdUsd: number;
   eventSyncBatchSize: number;
+  performanceMonitoringEnabled: boolean;
   systemLocale: string;
   supportedLocales: readonly AppLocale[];
 }
@@ -16,6 +17,7 @@ export const DEFAULT_LOCALE: AppLocale = 'en-US';
 export const DEFAULT_LOCALE_PREFERENCE: AppLocalePreference = 'system';
 export const DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD = 100;
 export const DEFAULT_EVENT_SYNC_BATCH_SIZE = 500;
+export const DEFAULT_PERFORMANCE_MONITORING_ENABLED = false;
 export const MAX_EVENT_SYNC_BATCH_SIZE = 5_000;
 
 export function normalizeAppLocale(value: unknown): AppLocale | null {
