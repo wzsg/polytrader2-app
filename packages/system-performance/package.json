@@ -1,5 +1,5 @@
 {
-  "name": "@polytrader/shared",
+  "name": "@polytrader/system-performance",
   "version": "1.0.0",
   "type": "module",
   "private": true,
@@ -7,8 +7,8 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
   },
-  "dependencies": {
-    "@polytrader/system-performance": "workspace:*"
+  "devDependencies": {
+    "@types/node": "^25.9.3"
   },
   "exports": {
     ".": {

@@ -9,7 +9,6 @@ const setupApi = {
   chooseSetupDataDirectory: (defaultPath) =>
     ipcRenderer.invoke('setup:chooseDataDirectory', defaultPath),
   startInitialSetup: (input) => ipcRenderer.invoke('setup:startInitialSetup', input),
-  unlockInitialSetup: (password) => ipcRenderer.invoke('setup:unlockInitialSetup', password),
   completeInitialSetup: () => ipcRenderer.invoke('setup:completeInitialSetup'),
   cancelInitialSetup: () => ipcRenderer.invoke('setup:cancelInitialSetup'),
   onSetupEventSyncStatus: (callback) => {

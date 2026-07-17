@@ -4,7 +4,8 @@ import { setupService } from '../services/setupService.js';
 import { applicationEventBus } from '../services/applicationEventBus.js';
 
 interface RegisterSetupHandlersOptions {
-  onSetupCompleted: (dataDirectory: string) => Promise<void>;
+  onInitialSetupCompleted: (dataDirectory: string) => Promise<void>;
+  onUnlockCompleted: (dataDirectory: string) => Promise<void>;
   onDataDirectoryMigration: (dataDirectory: string) => Promise<void>;
 }
 
@@ -67,7 +68,7 @@ function registerSetupHandlers(ipcMain: IpcMain, options: RegisterSetupHandlersO
   ipcMain.handle('setup:unlockInitialSetup', async (_event, password: string) => {
     const result = await setupService.unlockInitialSetup(password);
     if (result.ok && result.data.dataDirectory) {
-      await options.onSetupCompleted(result.data.dataDirectory);
+      await options.onUnlockCompleted(result.data.dataDirectory);
     }
     return result;
   });
@@ -76,7 +77,7 @@ function registerSetupHandlers(ipcMain: IpcMain, options: RegisterSetupHandlersO
     if (!state.setupCompleted || !state.dataDirectory) {
       throw new Error('Initial setup is not complete');
     }
-    await options.onSetupCompleted(state.dataDirectory);
+    await options.onInitialSetupCompleted(state.dataDirectory);
   });
   ipcMain.handle('setup:cancelInitialSetup', () => {
     app.quit();

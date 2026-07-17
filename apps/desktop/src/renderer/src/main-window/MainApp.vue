@@ -24,6 +24,8 @@ import CryptoEventsView from './views/CryptoEventsView.vue';
 import SportsEventsView from './views/SportsEventsView.vue';
 import EsportsEventsView from './views/EsportsEventsView.vue';
 import TitleBar from '../shared/components/TitleBar.vue';
+import SystemPerformanceToast from './components/SystemPerformanceToast.vue';
+import { useSystemPerformanceToast } from './composables/useSystemPerformanceToast';
 import { useFilters } from '../shared/composables/useFilters';
 import { preloadSportsMetadata } from '../shared/composables/sportsMetadata';
 import { useEventSync } from '../shared/composables/useEventSync';
@@ -71,11 +73,17 @@ let unsubscribeNavigate: (() => void) | null = null;
 let unsubscribeAuth: (() => void) | null = null;
 let unsubscribeAppUpdate: (() => void) | null = null;
 let unsubscribeEventSync: (() => void) | null = null;
+let unsubscribeSystemPerformance: (() => void) | null = null;
 let mainAppUnmounted = false;
 
 const { loadPersistedFilters } = useFilters();
 const selectedEventId = computed(() => selectedEvent.value?.id ?? null);
 const { openWatchlistEventCount, refreshOpenWatchlistEventCount } = useWatchlist();
+const {
+  closeToast: closeSystemPerformanceToast,
+  handleStatus: handleSystemPerformanceStatus,
+  toast: systemPerformanceToast,
+} = useSystemPerformanceToast();
 const eventPanelVisible = computed(
   () =>
     !!selectedEvent.value &&
@@ -295,6 +303,10 @@ async function confirmAppUpdateInstallation(): Promise<void> {
 }
 
 onMounted(async () => {
+  handleSystemPerformanceStatus(await window.api.getSystemPerformanceStatus());
+  unsubscribeSystemPerformance = window.api.onSystemPerformanceStatusChanged(
+    handleSystemPerformanceStatus,
+  );
   unsubscribeCloseRequested = window.api.onMainWindowCloseRequested(requestCloseConfirm);
   unsubscribeNavigate = window.api.onMainWindowNavigate((nav) => handleNavChange(nav));
   if (accountDataSyncEnabled) {
@@ -332,11 +344,18 @@ onUnmounted(() => {
   unsubscribeAuth?.();
   unsubscribeAppUpdate?.();
   unsubscribeEventSync?.();
+  unsubscribeSystemPerformance?.();
 });
 </script>
 
 <template>
   <div class="flex h-full flex-col">
+    <SystemPerformanceToast
+      v-if="systemPerformanceToast"
+      :title="systemPerformanceToast.title"
+      :message="systemPerformanceToast.message"
+      @close="closeSystemPerformanceToast"
+    />
     <TitleBar :subtitle="appVersion" :status-text="authStatusText" show-brand-icon>
       <template #subtitle-action>
         <button

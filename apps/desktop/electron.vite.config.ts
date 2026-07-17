@@ -63,6 +63,10 @@ const workspacePackageAliases = [
     replacement: resolve('../../packages/cache-store/src/index.ts'),
   },
   {
+    find: '@polytrader/system-performance',
+    replacement: resolve('../../packages/system-performance/src/index.ts'),
+  },
+  {
     find: '@polytrader/polymarket-market',
     replacement: resolve('../../packages/polymarket-market/src/index.ts'),
   },
@@ -153,6 +157,7 @@ export default defineConfig({
           '@polytrader/bot-runtime-contract',
           '@polytrader/repository-contract',
           '@polytrader/cache-store',
+          '@polytrader/system-performance',
           '@polytrader/sqlite-repository',
           '@polytrader/duckdb-repository',
           '@polytrader/event-bus',
@@ -198,6 +203,7 @@ export default defineConfig({
           browserProvider: resolve('src/preload/browserProvider.ts'),
           strategyEditor: resolve('src/preload/strategyEditor.ts'),
           setup: resolve('src/preload/setup.ts'),
+          unlock: resolve('src/preload/unlock.ts'),
         },
         output: {
           entryFileNames: '[name].cjs',
@@ -224,6 +230,7 @@ export default defineConfig({
           browserModal: resolve('src/renderer/browser-modal.html'),
           strategyEditor: resolve('src/renderer/strategy-editor.html'),
           setup: resolve('src/renderer/setup.html'),
+          unlock: resolve('src/renderer/unlock.html'),
           trading: resolve('src/renderer/trading.html'),
         },
       },
