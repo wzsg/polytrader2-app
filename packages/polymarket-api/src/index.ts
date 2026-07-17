@@ -1,6 +1,7 @@
 export type { PolymarketAccount, PolymarketWalletCredentials } from './account/index.js';
 export { PolymarketBridgeApiClient } from './bridge/index.js';
 export { PolymarketApiClient } from './polymarketApiClient.js';
+export { PublicTraderService } from './publicTraderService.js';
 export { PolymarketRelayerApiClient } from './relayer/index.js';
 export type {
   PolymarketRelayerApprovalInput,

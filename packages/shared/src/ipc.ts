@@ -39,6 +39,14 @@ import type {
   MarketTradeSyncStatus,
   MarketTradeTick,
   PriceHistoryPoint,
+  PublicTraderLeaderboardQuery,
+  PublicTraderLeaderboardResult,
+  PublicTraderListQuery,
+  PublicTraderMarketInput,
+  PublicTraderPositionListResult,
+  PublicTraderProfile,
+  PublicTraderTradeListResult,
+  PublicTraderWindowInput,
   StrategyBotCreateInput,
   StrategyBotDetail,
   StrategyBotListItem,
@@ -435,6 +443,16 @@ export interface IpcApi {
   listSportsEvents: (params: ListSportsEventsParams) => Promise<SportsEventsResult>;
   fetchMarketDetail: (marketId: string) => Promise<ApiResult<MarketDetailData>>;
   fetchMarketTrades: (conditionId: string, limit?: number) => Promise<ApiResult<MarketTradeTick[]>>;
+  getPublicTraderLeaderboard: (
+    query?: PublicTraderLeaderboardQuery,
+  ) => Promise<ApiResult<PublicTraderLeaderboardResult>>;
+  getPublicTraderProfile: (address: string) => Promise<ApiResult<PublicTraderProfile>>;
+  listPublicTraderPositions: (
+    query: PublicTraderListQuery,
+  ) => Promise<ApiResult<PublicTraderPositionListResult>>;
+  listPublicTraderTrades: (
+    query: PublicTraderListQuery,
+  ) => Promise<ApiResult<PublicTraderTradeListResult>>;
   startMarketTradeSync: (
     marketId: string,
     conditionId: string,
@@ -499,6 +517,8 @@ export interface IpcApi {
   openStrategyEditor: (input: StrategyEditorWindowInput) => Promise<void>;
   onStrategiesChanged: (callback: () => void) => () => void;
   openTradingWindow: (input: TradingWindowInput) => Promise<void>;
+  openPublicTraderWindow: (input: PublicTraderWindowInput) => Promise<void>;
+  openPublicTraderMarket: (input: PublicTraderMarketInput) => Promise<ApiResult<void>>;
   onTradingWindowParams: (callback: (input: TradingWindowInput) => void) => () => void;
   onTradingWindowCloseBlocked: (callback: () => void) => () => void;
   updateTradingWindowMarketScope: (marketIds: string[]) => Promise<void>;

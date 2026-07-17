@@ -237,6 +237,7 @@ export interface MarketSummary {
 
 export interface DbMarket {
   id: string;
+  eventId?: string;
   question: string;
   slug: string;
   groupItemTitle: string;
@@ -729,6 +730,115 @@ export interface DataPosition {
   oppositeAsset?: string;
   endDate?: string;
   negativeRisk?: boolean;
+}
+
+export type PublicTraderLeaderboardTimePeriod = 'DAY' | 'WEEK' | 'MONTH' | 'ALL';
+
+export type PublicTraderLeaderboardCategory =
+  | 'OVERALL'
+  | 'POLITICS'
+  | 'SPORTS'
+  | 'CRYPTO'
+  | 'CULTURE'
+  | 'MENTIONS'
+  | 'WEATHER'
+  | 'ECONOMICS'
+  | 'TECH'
+  | 'FINANCE';
+
+export type PublicTraderLeaderboardOrderBy = 'PNL' | 'VOL';
+
+export interface PublicTraderLeaderboardQuery {
+  timePeriod?: PublicTraderLeaderboardTimePeriod;
+  category?: PublicTraderLeaderboardCategory;
+  orderBy?: PublicTraderLeaderboardOrderBy;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PublicTraderLeaderboardEntry {
+  rank: string;
+  proxyWallet: string;
+  userName: string;
+  volume: number;
+  pnl: number;
+  profileImage: string | null;
+  xUsername: string | null;
+  verifiedBadge: boolean;
+}
+
+export interface PublicTraderLeaderboardResult {
+  entries: PublicTraderLeaderboardEntry[];
+  limit: number;
+  offset: number;
+}
+
+export interface PublicTraderProfile {
+  address: string;
+  name: string | null;
+  pseudonym: string | null;
+  bio: string | null;
+  profileImage: string | null;
+  xUsername: string | null;
+  verifiedBadge: boolean;
+  totalPositionValue: number | null;
+  tradedMarkets: number | null;
+}
+
+export interface PublicTraderPosition {
+  asset: string;
+  conditionId: string;
+  title: string;
+  icon: string | null;
+  outcome: string;
+  size: number;
+  avgPrice: number;
+  currentPrice: number;
+  initialValue: number;
+  currentValue: number;
+  cashPnl: number;
+  percentPnl: number;
+}
+
+export interface PublicTraderTrade {
+  asset: string;
+  conditionId: string;
+  side: 'BUY' | 'SELL';
+  title: string;
+  icon: string | null;
+  outcome: string;
+  size: number;
+  price: number;
+  timestamp: number;
+  transactionHash: string | null;
+}
+
+export interface PublicTraderListQuery {
+  address: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PublicTraderPositionListResult {
+  entries: PublicTraderPosition[];
+  limit: number;
+  offset: number;
+}
+
+export interface PublicTraderTradeListResult {
+  entries: PublicTraderTrade[];
+  limit: number;
+  offset: number;
+}
+
+export interface PublicTraderMarketInput {
+  conditionId: string;
+  asset?: string | null;
+  outcome?: string | null;
+}
+
+export interface PublicTraderWindowInput {
+  address: string;
 }
 
 export type PolymarketWalletCreationType = 'created' | 'imported';

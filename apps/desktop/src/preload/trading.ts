@@ -11,6 +11,7 @@ import {
   exposeApi,
   marketDataApi,
   preferenceApi,
+  publicTraderApi,
   tradingAccountApi,
   walletReadApi,
   windowApi,
@@ -27,6 +28,7 @@ const tradingWindowApi = {
 
   // Market basics and trade data.
   ...marketDataApi,
+  ...publicTraderApi,
   fetchEvent: (request) => ipcRenderer.invoke('api:fetchEvent', request),
 
   // Account trading read data and manual trading actions.
@@ -90,6 +92,7 @@ const tradingWindowApi = {
 
   // Cross-window navigation entrypoints.
   openBotManagement: () => ipcRenderer.invoke('main-window:open-bots'),
+  openPublicTraderWindow: (input) => ipcRenderer.invoke('public-trader:open', input),
 
   // Trading market snapshots, selections, price history, and trade analysis.
   tradingMarket: {

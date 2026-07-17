@@ -24,6 +24,7 @@ import WatchlistView from './views/WatchlistView.vue';
 import CryptoEventsView from './views/CryptoEventsView.vue';
 import SportsEventsView from './views/SportsEventsView.vue';
 import EsportsEventsView from './views/EsportsEventsView.vue';
+import LeaderboardView from './views/LeaderboardView.vue';
 import TitleBar from '../shared/components/TitleBar.vue';
 import SystemPerformanceToast from './components/SystemPerformanceToast.vue';
 import { useSystemPerformanceToast } from './composables/useSystemPerformanceToast';
@@ -414,6 +415,7 @@ onUnmounted(() => {
             @developer-mode-change="handleDeveloperModeChange"
           />
           <DeveloperModeView v-else-if="activeNav === 'developer' && developerModeEnabled" />
+          <LeaderboardView v-else-if="activeNav === 'leaderboard'" />
 
           <EventsListView
             v-else-if="activeNav === 'events'"

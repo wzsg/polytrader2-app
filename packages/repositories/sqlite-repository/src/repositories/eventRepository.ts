@@ -891,6 +891,7 @@ class SqliteEventRepository {
   private _rowToMarket(row: MarketRow): DbMarket {
     return {
       id: row.id,
+      eventId: row.event_id,
       question: row.question,
       slug: row.slug,
       groupItemTitle: row.group_item_title,

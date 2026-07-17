@@ -11,6 +11,10 @@ defineProps<{
   error?: string;
 }>();
 
+const emit = defineEmits<{
+  openUser: [address: string];
+}>();
+
 const { t } = useI18n();
 
 function holderName(holder: HolderEntry): string {
@@ -27,6 +31,16 @@ function compactHolderName(holder: HolderEntry): string {
   const prefixLength = 12;
   const suffixLength = maxLength - prefixLength - 1;
   return `${name.slice(0, prefixLength)}…${name.slice(-suffixLength)}`;
+}
+
+function canOpenHolder(holder: HolderEntry): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(String(holder.proxyWallet ?? '').trim());
+}
+
+function openHolder(holder: HolderEntry): void {
+  const address = String(holder.proxyWallet ?? '').trim();
+  if (!canOpenHolder(holder)) return;
+  emit('openUser', address);
 }
 </script>
 
@@ -89,8 +103,17 @@ function compactHolderName(holder: HolderEntry): string {
                 class="border-border/40 border-b hover:bg-[#1a1a2e]"
               >
                 <td class="text-muted px-3 py-2 text-sm">{{ index + 1 }}</td>
-                <td class="text-text px-3 py-2 text-sm" :title="holderName(holder)">
-                  {{ compactHolderName(holder) }}
+                <td class="text-text px-3 py-2 text-sm">
+                  <button
+                    v-if="canOpenHolder(holder)"
+                    type="button"
+                    class="hover:text-primary-light max-w-full cursor-pointer truncate text-left transition-colors"
+                    :title="holderName(holder)"
+                    @click="openHolder(holder)"
+                  >
+                    {{ compactHolderName(holder) }}
+                  </button>
+                  <span v-else :title="holderName(holder)">{{ compactHolderName(holder) }}</span>
                 </td>
                 <td class="text-text px-3 py-2 text-right text-sm tabular-nums">
                   {{ formatNumber(holder.amount, 2) }}

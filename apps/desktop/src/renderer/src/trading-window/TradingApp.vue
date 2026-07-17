@@ -11,6 +11,10 @@ import { useTradingApp } from './composables/useTradingApp';
 
 const { t } = useI18n();
 
+function openPublicTrader(address: string): void {
+  void window.api.openPublicTraderWindow({ address });
+}
+
 const {
   walletConfigured,
   walletDataError,
@@ -251,6 +255,7 @@ const {
             @market-trades-total-change="marketTradesTotal = $event"
             @spread-change="handleOrderBookSpreadChange"
             @tick-change="handleOrderBookTickChange"
+            @open-user="openPublicTrader"
           />
 
           <!-- Bottom activity area: account data plus strategy logs and history. -->

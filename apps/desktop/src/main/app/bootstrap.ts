@@ -18,6 +18,7 @@ import { registerDbHandlers } from '../ipc/dbIpc.js';
 import { registerDeveloperHandlers } from '../ipc/developerIpc.js';
 import { registerDataSyncHandlers } from '../ipc/dataSyncIpc.js';
 import { registerMarketHandlers } from '../ipc/marketIpc.js';
+import { registerPublicTraderHandlers } from '../ipc/publicTraderIpc.js';
 import { registerMcpHandlers } from '../ipc/mcpIpc.js';
 import { registerStrategyTradingHandlers } from '../ipc/strategyIpc.js';
 import { registerStrategyRunHandlers } from '../ipc/strategyRunIpc.js';
@@ -45,6 +46,7 @@ import { appPreferencesService } from '../services/appPreferencesService.js';
 import { createMainWindow } from '../windows/mainWindow.js';
 import { registerBrowserWindowHandlers } from '../windows/browserWindow.js';
 import { registerStrategyEditorWindowHandlers } from '../windows/strategyEditorWindow.js';
+import { registerPublicTraderWindowHandlers } from '../windows/publicTraderWindow.js';
 import { registerTradingWindowHandlers } from '../windows/tradingWindow.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -72,6 +74,7 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   registerDbHandlers(ipcMain);
   registerDeveloperHandlers(ipcMain);
   registerMarketHandlers(ipcMain);
+  registerPublicTraderHandlers(ipcMain);
   registerMcpHandlers(ipcMain);
   registerWindowHandlers(ipcMain);
   registerSystemPerformanceHandlers(ipcMain);
@@ -90,6 +93,7 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   registerTradingWindowHandlers(ipcMain);
   registerBrowserWindowHandlers(ipcMain);
   registerStrategyEditorWindowHandlers(ipcMain);
+  registerPublicTraderWindowHandlers(ipcMain);
   ipcHandlersRegistered = true;
 }
 

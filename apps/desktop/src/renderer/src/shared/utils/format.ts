@@ -142,6 +142,25 @@ export function formatTimestamp(value: unknown): string {
   return date.toLocaleString(getCurrentIntlLocale());
 }
 
+export function formatRelativeTime(value: unknown, referenceTime = Date.now()): string {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  const date = Number.isNaN(n) ? new Date(String(value)) : new Date(n > 1e12 ? n : n * 1000);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const elapsedMs = referenceTime - date.getTime();
+  const direction = elapsedMs >= 0 ? -1 : 1;
+  const elapsedMinutes = Math.max(1, Math.floor(Math.abs(elapsedMs) / MS_MINUTE));
+  const formatter = new Intl.RelativeTimeFormat(getCurrentIntlLocale(), { numeric: 'always' });
+
+  if (elapsedMinutes < 60) return formatter.format(direction * elapsedMinutes, 'minute');
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return formatter.format(direction * elapsedHours, 'hour');
+
+  return formatter.format(direction * Math.floor(elapsedHours / 24), 'day');
+}
+
 export function sideLabel(side: unknown): string {
   if (!side) return '—';
   return String(side).toUpperCase() === 'BUY'

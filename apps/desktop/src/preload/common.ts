@@ -83,6 +83,21 @@ export const marketDataApi: Pick<
     ipcRenderer.invoke('api:fetchPriceHistory', tokenId, interval, fidelity),
 };
 
+export const publicTraderApi: Pick<
+  IpcApi,
+  | 'getPublicTraderLeaderboard'
+  | 'getPublicTraderProfile'
+  | 'listPublicTraderPositions'
+  | 'listPublicTraderTrades'
+  | 'openPublicTraderMarket'
+> = {
+  getPublicTraderLeaderboard: (query) => ipcRenderer.invoke('public-trader:getLeaderboard', query),
+  getPublicTraderProfile: (address) => ipcRenderer.invoke('public-trader:getProfile', address),
+  listPublicTraderPositions: (query) => ipcRenderer.invoke('public-trader:listPositions', query),
+  listPublicTraderTrades: (query) => ipcRenderer.invoke('public-trader:listTrades', query),
+  openPublicTraderMarket: (input) => ipcRenderer.invoke('public-trader:open-market', input),
+};
+
 export const tradingAccountApi: Pick<IpcApi, 'tradingAccount'> = {
   tradingAccount: {
     getStatus: (walletId) => ipcRenderer.invoke('trading-account:getStatus', walletId),

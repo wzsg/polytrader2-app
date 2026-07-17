@@ -4,6 +4,7 @@ import {
   Star,
   Bitcoin,
   Trophy,
+  Medal,
   Gamepad2,
   Bot,
   Settings,
@@ -30,13 +31,15 @@ const emit = defineEmits<{
   'open-auth': [];
 }>();
 
-const browseItems = [
+const marketItems = [
   { nav: 'watchlist', labelKey: 'nav.watchlist', icon: Star },
   { nav: 'events', labelKey: 'nav.events', icon: List },
   { nav: 'crypto', labelKey: 'nav.crypto', icon: Bitcoin },
   { nav: 'sports', labelKey: 'nav.sports', icon: Trophy },
   { nav: 'esports', labelKey: 'nav.esports', icon: Gamepad2 },
 ];
+
+const traderItems = [{ nav: 'leaderboard', labelKey: 'nav.leaderboard', icon: Medal }];
 
 const accountItems = [{ nav: 'accounts', labelKey: 'nav.accountManagement', icon: Wallet }];
 const accountDataSyncEnabled = __ACCOUNT_DATA_SYNC_ENABLED__;
@@ -73,10 +76,10 @@ function authHint(): string {
   <aside class="border-border bg-sidebar flex h-full w-[200px] shrink-0 flex-col border-r py-5">
     <nav class="flex min-h-0 flex-1 flex-col gap-1 px-3">
       <div class="text-muted px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
-        {{ t('nav.browse') }}
+        {{ t('nav.markets') }}
       </div>
       <button
-        v-for="item in browseItems"
+        v-for="item in marketItems"
         :key="item.nav"
         type="button"
         class="flex w-full items-center gap-2 rounded-md px-3.5 py-2.5 text-left text-sm transition-colors"
@@ -93,6 +96,23 @@ function authHint(): string {
             {{ openWatchlistEventCount }}
           </span>
         </span>
+      </button>
+
+      <div
+        class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"
+      >
+        {{ t('nav.traders') }}
+      </div>
+      <button
+        v-for="item in traderItems"
+        :key="item.nav"
+        type="button"
+        class="flex w-full items-center gap-2 rounded-md px-3.5 py-2.5 text-left text-sm transition-colors"
+        :class="navClass(activeNav, item.nav)"
+        @click="emit('change-nav', item.nav)"
+      >
+        <component :is="item.icon" :size="16" />
+        {{ t(item.labelKey) }}
       </button>
 
       <template v-if="strategyAutomationEnabled">
