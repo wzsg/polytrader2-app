@@ -13,6 +13,7 @@ import { rendererEventSyncStatusBroadcastGate } from './eventSyncStatusBroadcast
 import { fileCacheStore } from './fileCacheStore.js';
 import { desktopWorkflowService } from './workflowService.js';
 import { eventListCache, getEventListCacheTtlMs } from './eventListCache.js';
+import { CategoryConfigRefreshService } from './categoryConfigRefreshService.js';
 
 const eventRepository = createSqliteEventRepository();
 const metaRepository = createSqliteMetaRepository();
@@ -45,6 +46,11 @@ function broadcastCategoryConfigChanged(locale: AppLocale): void {
   }
 }
 
+const categoryConfigRefreshService = new CategoryConfigRefreshService({
+  refresh: () => polymarketMarketService.refreshCategoryConfigs(),
+  onRefreshed: () => broadcastCategoryConfigChanged(polymarketMarketService.categoryConfigLocale),
+});
+
 async function syncPolymarketMarketServicePreferences(): Promise<void> {
   const preferences = await appPreferencesService.getAppPreferences();
   polymarketMarketService.setEventSyncLocale(preferences.locale);
@@ -64,6 +70,7 @@ applicationEventBus.subscribe('app-preferences:changed', (event) => {
   queueMicrotask(() => {
     broadcastCategoryConfigChanged(event.preferences.locale);
   });
+  void categoryConfigRefreshService.refresh();
   void polymarketMarketService
     .enqueueEventSync('locale-change', { replacePending: true })
     .catch((error) => {
@@ -86,4 +93,8 @@ polymarketMarketService.on('market-trade-sync-status', (status) => {
   }
 });
 
-export { polymarketMarketService, syncPolymarketMarketServicePreferences };
+export {
+  categoryConfigRefreshService,
+  polymarketMarketService,
+  syncPolymarketMarketServicePreferences,
+};

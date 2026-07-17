@@ -6,7 +6,7 @@ import {
 } from '@polytrader/shared';
 import type { MarketServiceCacheStore } from './types.js';
 
-const DEFAULT_CONFIG_TTL_MS = 60 * 60 * 1000;
+const DEFAULT_CONFIG_TTL_MS = 15 * 60 * 1000;
 const CRYPTO_CATEGORY_URL = 'https://trading-api.polytrader2.com/api/crypto-category';
 const CRYPTO_CATEGORY_STORE_KEY = 'crypto-category';
 const EVENT_CATEGORY_URL = 'https://trading-api.polytrader2.com/api/event-category';
@@ -61,10 +61,42 @@ class MarketCategoryConfigClient {
     });
   }
 
+  public async refreshCryptoCategory(locale: AppLocale): Promise<CryptoCategoryConfig> {
+    return await this._refreshConfig<CryptoCategoryConfig>({
+      url: this.resolveLocaleUrl(CRYPTO_CATEGORY_URL, locale),
+      storeKey: this.resolveLocaleStoreKey(CRYPTO_CATEGORY_STORE_KEY, locale),
+    });
+  }
+
+  public async refreshEventCategory(locale: AppLocale): Promise<EventCategoryConfig> {
+    const definition = {
+      url: this.resolveLocaleUrl(EVENT_CATEGORY_URL, locale),
+      storeKey: this.resolveLocaleStoreKey(EVENT_CATEGORY_STORE_KEY, locale),
+    };
+    const config = this.normalizeEventCategoryConfig(
+      await this.fetchRemoteConfig<EventCategoryConfig>(definition.url),
+    );
+    await this._cacheStore.setValue(definition.storeKey, config, this._configTtlMs);
+    return config;
+  }
+
+  public async refreshSportsCategory(locale: AppLocale): Promise<SportsCategoryConfig> {
+    return await this._refreshConfig<SportsCategoryConfig>({
+      url: this.resolveLocaleUrl(SPORTS_CATEGORY_URL, locale),
+      storeKey: this.resolveLocaleStoreKey(SPORTS_CATEGORY_STORE_KEY, locale),
+    });
+  }
+
   private fetchCachedConfig<T>(definition: ConfigDefinition): Promise<T> {
     return this._cacheStore.getOrSetValue<T>(definition.storeKey, this._configTtlMs, () =>
       this.fetchRemoteConfig<T>(definition.url),
     );
+  }
+
+  private async _refreshConfig<T>(definition: ConfigDefinition): Promise<T> {
+    const config = await this.fetchRemoteConfig<T>(definition.url);
+    await this._cacheStore.setValue(definition.storeKey, config, this._configTtlMs);
+    return config;
   }
 
   private async fetchRemoteConfig<T>(url: string): Promise<T> {

@@ -120,6 +120,23 @@ class PolymarketMarketService extends EventEmitter<PolymarketMarketServiceEventM
     return this._sportsEventsService.fetchSportsMetadata();
   }
 
+  public get categoryConfigLocale(): AppLocale {
+    return this._locale;
+  }
+
+  public async refreshCategoryConfigs(): Promise<void> {
+    const results = await Promise.allSettled([
+      this._categoryConfigClient.refreshEventCategory(this._locale),
+      this._categoryConfigClient.refreshCryptoCategory(this._locale),
+      this._categoryConfigClient.refreshSportsCategory(this._locale),
+    ]);
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') return;
+      const names = ['event', 'crypto', 'sports'];
+      console.warn(`Failed to refresh ${names[index]} category config`, result.reason);
+    });
+  }
+
   public startEventSync(): Promise<void> {
     if (this._eventSyncShutdown) return Promise.reject(this.createAbortError());
     return this._eventSyncScheduler.enqueue('manual', { replacePending: true });

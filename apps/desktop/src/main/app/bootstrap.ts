@@ -29,6 +29,7 @@ import { registerWindowHandlers } from '../ipc/windowIpc.js';
 import { registerSystemPerformanceHandlers } from '../ipc/systemPerformanceIpc.js';
 import { registerPreferenceHandlers } from '../preferences.js';
 import {
+  categoryConfigRefreshService,
   polymarketMarketService,
   syncPolymarketMarketServicePreferences,
 } from '../services/polymarketMarketService.js';
@@ -128,6 +129,7 @@ async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promi
   prepareElectronApp();
   await initializeAppStorage();
   await syncPolymarketMarketServicePreferences();
+  categoryConfigRefreshService.start();
   registerIpcHandlers({ initialEventSync: options.initialEventSync !== false });
   supabaseAuthService.initialize();
   await strategyRunHistoryService.init();
@@ -152,6 +154,7 @@ function stopAppServices(): Promise<void> {
   if (appServicesStopping) return appServicesStopping;
   appServicesStopping = (async () => {
     rendererEventSyncStatusBroadcastGate.disable();
+    categoryConfigRefreshService.stop();
     const eventSyncStopping = polymarketMarketService
       .shutdownEventSync()
       .catch((error: unknown) => {
