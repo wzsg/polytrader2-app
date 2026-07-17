@@ -9,26 +9,17 @@ import {
 const POWER_STATUS_POLL_INTERVAL_MS = 15_000;
 const execFileAsync = promisify(execFile);
 
-interface SpeedLimitPowerMonitor {
-  on(
-    eventName: 'speed-limit-change',
-    listener: (event: Electron.Event, details: { limit: number }) => void,
-  ): void;
-  off(
-    eventName: 'speed-limit-change',
-    listener: (event: Electron.Event, details: { limit: number }) => void,
-  ): void;
-}
-
 class SystemPerformanceService {
   private readonly _monitor: SystemPerformanceMonitor;
-  private readonly _onSpeedLimitChange: (event: Electron.Event, details: { limit: number }) => void;
+  private readonly _onSpeedLimitChange: (
+    details: Electron.Event<Electron.PowerMonitorSpeedLimitChangeEventParams>,
+  ) => void;
   private _pollTimer: NodeJS.Timeout | null;
   private _started: boolean;
 
   public constructor() {
     this._monitor = new SystemPerformanceMonitor();
-    this._onSpeedLimitChange = (_event, details) => {
+    this._onSpeedLimitChange = (details) => {
       this._monitor.update({ cpuSpeedLimitPercent: details.limit });
     };
     this._pollTimer = null;
@@ -47,7 +38,7 @@ class SystemPerformanceService {
   public async start(): Promise<void> {
     if (this._started) return;
     this._started = true;
-    this._getSpeedLimitPowerMonitor().on('speed-limit-change', this._onSpeedLimitChange);
+    powerMonitor.on('speed-limit-change', this._onSpeedLimitChange);
     await this._refreshEnergySaverStatus();
     if (process.platform === 'win32') {
       this._pollTimer = setInterval(() => {
@@ -58,7 +49,7 @@ class SystemPerformanceService {
 
   public stop(): void {
     if (!this._started) return;
-    this._getSpeedLimitPowerMonitor().off('speed-limit-change', this._onSpeedLimitChange);
+    powerMonitor.off('speed-limit-change', this._onSpeedLimitChange);
     if (this._pollTimer) clearInterval(this._pollTimer);
     this._pollTimer = null;
     this._started = false;
@@ -100,10 +91,6 @@ class SystemPerformanceService {
       '[void][PolytraderPowerStatus]::GetSystemPowerStatus([ref]$status)',
       '[Console]::Write([int]$status.SystemStatusFlag)',
     ].join('\n');
-  }
-
-  private _getSpeedLimitPowerMonitor(): SpeedLimitPowerMonitor {
-    return powerMonitor as unknown as SpeedLimitPowerMonitor;
   }
 }
 
