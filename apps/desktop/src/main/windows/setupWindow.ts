@@ -54,4 +54,11 @@ function closeSetupWindow(): void {
   setupWindow = null;
 }
 
-export { closeSetupWindow, createSetupWindow };
+function focusSetupWindow(): void {
+  if (!setupWindow || setupWindow.isDestroyed()) return;
+  if (setupWindow.isMinimized()) setupWindow.restore();
+  setupWindow.show();
+  setupWindow.focus();
+}
+
+export { closeSetupWindow, createSetupWindow, focusSetupWindow };

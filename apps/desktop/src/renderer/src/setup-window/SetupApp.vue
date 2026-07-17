@@ -42,7 +42,6 @@ const isSubmitting = ref(false);
 const appVersion = `v${__APP_VERSION__}`;
 let unsubscribeEventSyncStatus: (() => void) | null = null;
 
-const isUnlockMode = computed(() => state.value?.requiresPassword === true);
 const isMac = computed(() => navigator.userAgent.includes('Macintosh'));
 const availableSpace = computed(() => state.value?.availableSpaceBytes ?? null);
 const hasEnoughSpace = computed(
@@ -88,7 +87,6 @@ const languageOptions = computed(() => {
 });
 const activeStep = computed(() => (phase.value === 'error' ? errorStep.value : phase.value));
 const primaryLabel = computed(() => {
-  if (isUnlockMode.value) return t('setup.unlock');
   if (phase.value === 'error') return t('common.retry');
   if (phase.value === 'security') return t('setup.start');
   if (phase.value === 'complete') return t('setup.finish');
@@ -96,7 +94,6 @@ const primaryLabel = computed(() => {
 });
 const primaryDisabled = computed(() => {
   if (isSubmitting.value) return true;
-  if (isUnlockMode.value) return !password.value;
   if (phase.value === 'storage') return !dataDirectory.value.trim() || !hasEnoughSpace.value;
   if (phase.value === 'security' && encryptionMethod.value === 'aes-256-gcm') {
     return !password.value || password.value !== confirmPassword.value;
@@ -215,15 +212,7 @@ async function startSetup(): Promise<void> {
   }
 }
 
-async function unlock(): Promise<void> {
-  isSubmitting.value = true;
-  const result = await window.api.unlockInitialSetup(password.value);
-  if (!result.ok) errorMessage.value = result.error;
-  isSubmitting.value = false;
-}
-
 async function primaryAction(): Promise<void> {
-  if (isUnlockMode.value) return await unlock();
   if (phase.value === 'language') {
     applyLanguage();
     phase.value = 'storage';
@@ -258,8 +247,7 @@ onMounted(async () => {
   dataDirectory.value = state.value.dataDirectory || state.value.defaultDataDirectory;
   languagePreference.value = resolveSetupLanguagePreference(state.value.localePreference);
   encryptionMethod.value = state.value.encryptionMethod || (isMac.value ? 'keychain' : 'dpapi');
-  if (isUnlockMode.value) phase.value = 'security';
-  else await validateDirectory();
+  await validateDirectory();
   unsubscribeEventSyncStatus = window.api.onSetupEventSyncStatus((status) => {
     eventSyncStatus.value = status;
   });
@@ -315,20 +303,7 @@ onUnmounted(() => unsubscribeEventSyncStatus?.());
       </header>
       <section class="flex min-h-0 flex-1 items-center justify-center px-8 py-8">
         <div class="border-border bg-surface w-full max-w-2xl rounded-lg border p-8">
-          <template v-if="isUnlockMode">
-            <h1 class="text-lg font-semibold text-white">{{ t('setup.unlockTitle') }}</h1>
-            <p class="text-muted mt-2 text-sm">{{ t('setup.unlockHint') }}</p>
-            <input
-              v-model="password"
-              type="password"
-              class="border-border bg-bg text-text mt-6 w-full rounded border px-3 py-2"
-              :placeholder="t('setup.password')"
-              :aria-label="t('setup.password')"
-              @keyup.enter="primaryAction"
-            />
-            <p v-if="errorMessage" class="text-danger mt-3 text-sm">{{ errorMessage }}</p>
-          </template>
-          <template v-else-if="activeStep === 'language'">
+          <template v-if="activeStep === 'language'">
             <h1 class="text-lg font-semibold text-white">{{ t('setup.language') }}</h1>
             <div class="mt-6 grid gap-3" role="radiogroup" :aria-label="t('setup.language')">
               <button
@@ -515,7 +490,7 @@ onUnmounted(() => unsubscribeEventSyncStatus?.());
         <button
           type="button"
           class="border-border bg-btn-secondary text-text rounded border px-4 py-2 text-sm disabled:opacity-50"
-          :disabled="isUnlockMode || phase === 'language' || isSubmitting"
+          :disabled="phase === 'language' || isSubmitting"
           @click="previous"
         >
           {{ t('common.previous') }}</button

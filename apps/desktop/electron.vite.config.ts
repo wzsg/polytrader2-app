@@ -203,6 +203,7 @@ export default defineConfig({
           browserProvider: resolve('src/preload/browserProvider.ts'),
           strategyEditor: resolve('src/preload/strategyEditor.ts'),
           setup: resolve('src/preload/setup.ts'),
+          unlock: resolve('src/preload/unlock.ts'),
         },
         output: {
           entryFileNames: '[name].cjs',
@@ -229,6 +230,7 @@ export default defineConfig({
           browserModal: resolve('src/renderer/browser-modal.html'),
           strategyEditor: resolve('src/renderer/strategy-editor.html'),
           setup: resolve('src/renderer/setup.html'),
+          unlock: resolve('src/renderer/unlock.html'),
           trading: resolve('src/renderer/trading.html'),
         },
       },

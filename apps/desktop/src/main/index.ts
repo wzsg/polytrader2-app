@@ -5,7 +5,12 @@ import { loadLocalEnv } from './env.js';
 import { registerSetupHandlers } from './ipc/setupIpc.js';
 import { setupService } from './services/setupService.js';
 import { supabaseAuthService } from './services/supabaseAuthService.js';
-import { closeSetupWindow, createSetupWindow } from './windows/setupWindow.js';
+import { closeSetupWindow, createSetupWindow, focusSetupWindow } from './windows/setupWindow.js';
+import {
+  closeUnlockWindow,
+  createUnlockWindow,
+  focusUnlockWindow,
+} from './windows/unlockWindow.js';
 import { focusMainWindow } from './windows/mainWindow.js';
 
 loadLocalEnv();
@@ -21,6 +26,8 @@ if (!singleInstanceLock) {
 
   app.on('second-instance', (_event, argv) => {
     focusMainWindow();
+    focusSetupWindow();
+    focusUnlockWindow();
     supabaseAuthService.maybeHandleDeepLinkArgv(argv);
   });
 
@@ -48,10 +55,15 @@ app.on('window-all-closed', () => {
 async function startApp(): Promise<void> {
   prepareElectronApp();
   registerSetupHandlers(ipcMain, {
-    onSetupCompleted: async (dataDirectory) => {
+    onInitialSetupCompleted: async (dataDirectory) => {
       app.setPath('userData', dataDirectory);
       await bootstrapApp({ initialEventSync: false });
       closeSetupWindow();
+    },
+    onUnlockCompleted: async (dataDirectory) => {
+      app.setPath('userData', dataDirectory);
+      await bootstrapApp({ initialEventSync: false });
+      closeUnlockWindow();
     },
     onDataDirectoryMigration: async (dataDirectory) => {
       await stopAppServices();
@@ -76,7 +88,7 @@ async function startApp(): Promise<void> {
   }
 
   if (setupState.requiresPassword) {
-    createSetupWindow();
+    createUnlockWindow();
     return;
   }
 
