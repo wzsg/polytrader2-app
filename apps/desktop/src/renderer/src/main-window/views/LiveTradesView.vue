@@ -274,7 +274,7 @@ onUnmounted(() => {
           class="border-border/60 border-b hover:bg-[#1a1a2e]"
         >
           <td
-            class="text-muted w-20 px-2 py-3 text-[11px] whitespace-nowrap tabular-nums"
+            class="text-muted w-20 px-2 py-3 text-xs whitespace-nowrap tabular-nums"
             :title="formatTimestamp(trade.timestamp)"
           >
             {{ formatRelativeElapsedTime(trade.timestamp, relativeTimeNow) }}
