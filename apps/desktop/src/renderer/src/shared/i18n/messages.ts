@@ -401,7 +401,6 @@ export const messages = {
     liveTrades: {
       title: 'Live Trades',
       refresh: 'Refresh live trades',
-      minAmount: 'Minimum amount',
       allTrades: 'All',
       amount1k: '$1K+',
       amount5k: '$5K+',
@@ -1364,7 +1363,6 @@ export const messages = {
     liveTrades: {
       title: '实时成交',
       refresh: '刷新实时成交',
-      minAmount: '最低金额',
       allTrades: '全部',
       amount1k: '$1K+',
       amount5k: '$5K+',

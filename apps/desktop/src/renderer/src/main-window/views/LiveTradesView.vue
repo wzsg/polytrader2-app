@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { CircleHelp, RefreshCw, UserRound } from '@lucide/vue';
+import { CircleHelp, UserRound } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { OrderFilledActivitySnapshot, OrderFilledActivityTrade } from '@polytrader/shared';
-import AppHeader from '../components/AppHeader.vue';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import {
   formatAddress,
@@ -32,16 +31,24 @@ const amountPresets: AmountPreset[] = [
 
 const { t } = useI18n();
 const snapshot = ref<OrderFilledActivitySnapshot | null>(null);
-const pending = ref(false);
 const error = ref('');
 const selectedMinAmount = ref<string | null>('1000');
 const customMinAmount = ref('');
+const renderedTrades = ref<OrderFilledActivityTrade[]>([]);
+const pendingTrades = ref<OrderFilledActivityTrade[]>([]);
+const isHydratingTrades = ref(true);
+const isTradeTableAtTop = ref(true);
+const shouldAnimateTradeEntries = ref(false);
+const tradeTableScroller = ref<HTMLDivElement | null>(null);
 let unsubscribeUpdated: (() => void) | null = null;
 let relativeTimeTimer: ReturnType<typeof setInterval> | null = null;
+let pendingTradeFlushTimer: ReturnType<typeof setTimeout> | null = null;
 const relativeTimeNow = ref(Date.now());
 
-const trades = computed(() => snapshot.value?.trades ?? []);
 const status = computed(() => snapshot.value?.status ?? 'idle');
+const showInitialLoading = computed(
+  () => isHydratingTrades.value && !renderedTrades.value.length && status.value !== 'error',
+);
 const statusLabel = computed(() => t(`liveTrades.status.${status.value}`));
 const statusClass = computed(() => {
   if (status.value === 'live') return 'bg-green-400';
@@ -57,19 +64,19 @@ function filterButtonClass(value: string | null): string {
 }
 
 async function startActivity(minTradeAmount: string | null): Promise<void> {
-  pending.value = true;
+  resetTradeDisplay();
   error.value = '';
   try {
     const result = await window.api.orderfilledActivity.start({ minTradeAmount });
     if (!result.ok) {
       error.value = result.error;
+      isHydratingTrades.value = false;
       return;
     }
-    snapshot.value = result.data;
+    applyActivitySnapshot(result.data);
   } catch (startError) {
     error.value = startError instanceof Error ? startError.message : String(startError);
-  } finally {
-    pending.value = false;
+    isHydratingTrades.value = false;
   }
 }
 
@@ -88,10 +95,6 @@ function applyCustomAmount(): void {
   }
   selectedMinAmount.value = value;
   void startActivity(value);
-}
-
-function restartActivity(): void {
-  void startActivity(selectedMinAmount.value);
 }
 
 async function openTrader(trade: OrderFilledActivityTrade): Promise<void> {
@@ -127,12 +130,75 @@ function amountLabel(value: string | null): string {
   return formatUsd(value);
 }
 
+function sortTrades(trades: OrderFilledActivityTrade[]): OrderFilledActivityTrade[] {
+  return [...trades].sort((left, right) => {
+    if (right.blockNumber !== left.blockNumber) return right.blockNumber - left.blockNumber;
+    return right.logIndex - left.logIndex;
+  });
+}
+
+function resetTradeDisplay(): void {
+  if (pendingTradeFlushTimer) clearTimeout(pendingTradeFlushTimer);
+  pendingTradeFlushTimer = null;
+  renderedTrades.value = [];
+  pendingTrades.value = [];
+  isHydratingTrades.value = true;
+  isTradeTableAtTop.value = true;
+  shouldAnimateTradeEntries.value = false;
+}
+
+function applyActivitySnapshot(nextSnapshot: OrderFilledActivitySnapshot): void {
+  snapshot.value = nextSnapshot;
+  if (isHydratingTrades.value) {
+    renderedTrades.value = sortTrades(nextSnapshot.trades);
+    if (nextSnapshot.status === 'live' || nextSnapshot.status === 'error') {
+      isHydratingTrades.value = false;
+      shouldAnimateTradeEntries.value = true;
+    }
+    return;
+  }
+
+  const incomingIds = new Set(nextSnapshot.trades.map((trade) => trade.id));
+  renderedTrades.value = renderedTrades.value.filter((trade) => incomingIds.has(trade.id));
+  pendingTrades.value = pendingTrades.value.filter((trade) => incomingIds.has(trade.id));
+
+  const knownIds = new Set([
+    ...renderedTrades.value.map((trade) => trade.id),
+    ...pendingTrades.value.map((trade) => trade.id),
+  ]);
+  const additions = nextSnapshot.trades.filter((trade) => !knownIds.has(trade.id));
+  if (!additions.length) return;
+
+  pendingTrades.value = sortTrades([...pendingTrades.value, ...additions]);
+  schedulePendingTradeFlush();
+}
+
+function schedulePendingTradeFlush(): void {
+  if (!isTradeTableAtTop.value || !pendingTrades.value.length || pendingTradeFlushTimer) return;
+  pendingTradeFlushTimer = setTimeout(() => {
+    pendingTradeFlushTimer = null;
+    if (isTradeTableAtTop.value) flushPendingTrades();
+  }, 400);
+}
+
+function flushPendingTrades(): void {
+  if (!pendingTrades.value.length) return;
+  renderedTrades.value = sortTrades([...pendingTrades.value, ...renderedTrades.value]);
+  pendingTrades.value = [];
+}
+
+function handleTradeTableScroll(event: Event): void {
+  const target = event.currentTarget as HTMLDivElement;
+  isTradeTableAtTop.value = target.scrollTop <= 8;
+  if (isTradeTableAtTop.value) schedulePendingTradeFlush();
+}
+
 onMounted(() => {
   relativeTimeTimer = setInterval(() => {
     relativeTimeNow.value = Date.now();
   }, 1_000);
   unsubscribeUpdated = window.api.orderfilledActivity.onUpdated((nextSnapshot) => {
-    snapshot.value = nextSnapshot;
+    applyActivitySnapshot(nextSnapshot);
   });
   void startActivity(selectedMinAmount.value);
 });
@@ -140,39 +206,15 @@ onMounted(() => {
 onUnmounted(() => {
   unsubscribeUpdated?.();
   if (relativeTimeTimer) clearInterval(relativeTimeTimer);
+  if (pendingTradeFlushTimer) clearTimeout(pendingTradeFlushTimer);
   relativeTimeTimer = null;
+  pendingTradeFlushTimer = null;
   void window.api.orderfilledActivity.stop();
 });
 </script>
 
 <template>
-  <AppHeader :title="t('liveTrades.title')" :aria-label="t('liveTrades.title')">
-    <template #actions>
-      <div class="flex items-center gap-3">
-        <span
-          class="text-muted-light inline-flex items-center gap-2 text-xs font-medium"
-          :title="statusLabel"
-        >
-          <span class="h-2 w-2 rounded-full" :class="statusClass" />
-          {{ statusLabel }}
-        </span>
-        <button
-          type="button"
-          class="border-border bg-btn-secondary text-muted-light hover:bg-btn-secondary-hover hover:text-text inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
-          :title="t('liveTrades.refresh')"
-          :aria-label="t('liveTrades.refresh')"
-          @click="restartActivity"
-        >
-          <RefreshCw :size="15" :class="{ 'animate-spin': pending }" />
-        </button>
-      </div>
-    </template>
-  </AppHeader>
-
   <div class="border-border bg-surface flex shrink-0 items-center gap-3 border-b px-6 py-3.5">
-    <span class="text-muted-light shrink-0 text-sm font-medium">{{
-      t('liveTrades.minAmount')
-    }}</span>
     <div
       class="scrollbar-hidden flex min-w-0 flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap"
     >
@@ -187,23 +229,32 @@ onUnmounted(() => {
       >
         {{ t(preset.labelKey) }}
       </button>
+      <form class="flex shrink-0 items-center gap-2" @submit.prevent="applyCustomAmount">
+        <input
+          v-model="customMinAmount"
+          type="text"
+          inputmode="decimal"
+          class="border-border bg-background text-text placeholder:text-muted focus:border-primary/70 h-8 w-28 rounded-md border px-2.5 text-sm transition-colors outline-none"
+          :placeholder="t('liveTrades.customAmount')"
+          :aria-label="t('liveTrades.customAmount')"
+        />
+        <button
+          type="submit"
+          class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center rounded-md border px-3 text-sm transition-colors"
+        >
+          {{ t('liveTrades.apply') }}
+        </button>
+      </form>
     </div>
-    <form class="flex shrink-0 items-center gap-2" @submit.prevent="applyCustomAmount">
-      <input
-        v-model="customMinAmount"
-        type="text"
-        inputmode="decimal"
-        class="border-border bg-background text-text placeholder:text-muted focus:border-primary/70 h-8 w-28 rounded-md border px-2.5 text-sm transition-colors outline-none"
-        :placeholder="t('liveTrades.customAmount')"
-        :aria-label="t('liveTrades.customAmount')"
-      />
-      <button
-        type="submit"
-        class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center rounded-md border px-3 text-sm transition-colors"
+    <div class="ml-auto flex shrink-0 items-center gap-3">
+      <span
+        class="text-muted-light inline-flex items-center gap-2 text-xs font-medium"
+        :title="statusLabel"
       >
-        {{ t('liveTrades.apply') }}
-      </button>
-    </form>
+        <span class="h-2 w-2 rounded-full" :class="statusClass" />
+        {{ statusLabel }}
+      </span>
+    </div>
   </div>
 
   <div
@@ -213,10 +264,15 @@ onUnmounted(() => {
     {{ error || snapshot?.error }}
   </div>
 
-  <div v-if="pending && !trades.length" class="flex min-h-0 flex-1 items-center justify-center">
+  <div v-if="showInitialLoading" class="flex min-h-0 flex-1 items-center justify-center">
     <LoadingSpinner :size="20" :title="t('liveTrades.loadTrades')" />
   </div>
-  <div v-else class="min-h-0 flex-1 overflow-auto">
+  <div
+    v-else
+    ref="tradeTableScroller"
+    class="min-h-0 flex-1 overflow-auto"
+    @scroll="handleTradeTableScroll"
+  >
     <table class="w-full min-w-[1080px] border-collapse">
       <thead class="bg-surface sticky top-0 z-10">
         <tr>
@@ -262,14 +318,16 @@ onUnmounted(() => {
           </th>
         </tr>
       </thead>
-      <tbody>
-        <tr v-if="!trades.length">
+      <tbody v-if="!renderedTrades.length">
+        <tr>
           <td colspan="8" class="text-muted px-4 py-12 text-center text-sm">
             {{ t('liveTrades.noTrades', { amount: amountLabel(selectedMinAmount) }) }}
           </td>
         </tr>
+      </tbody>
+      <TransitionGroup v-else tag="tbody" :name="shouldAnimateTradeEntries ? 'live-trade' : ''">
         <tr
-          v-for="trade in trades"
+          v-for="trade in renderedTrades"
           :key="trade.id"
           class="border-border/60 border-b hover:bg-[#1a1a2e]"
         >
@@ -346,7 +404,21 @@ onUnmounted(() => {
             </button>
           </td>
         </tr>
-      </tbody>
+      </TransitionGroup>
     </table>
   </div>
 </template>
+
+<style scoped>
+.live-trade-enter-active,
+.live-trade-move {
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.live-trade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+</style>
