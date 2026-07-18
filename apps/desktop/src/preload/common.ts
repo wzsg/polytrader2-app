@@ -98,6 +98,21 @@ export const publicTraderApi: Pick<
   openPublicTraderMarket: (input) => ipcRenderer.invoke('public-trader:open-market', input),
 };
 
+export const orderfilledActivityApi: Pick<IpcApi, 'orderfilledActivity'> = {
+  orderfilledActivity: {
+    getSnapshot: () => ipcRenderer.invoke('orderfilled-activity:get-snapshot'),
+    start: (input) => ipcRenderer.invoke('orderfilled-activity:start', input),
+    stop: () => ipcRenderer.invoke('orderfilled-activity:stop'),
+    openMarket: (input) => ipcRenderer.invoke('orderfilled-activity:open-market', input),
+    onUpdated: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as Parameters<typeof callback>[0]);
+      ipcRenderer.on('orderfilled-activity:updated', listener);
+      return () => ipcRenderer.removeListener('orderfilled-activity:updated', listener);
+    },
+  },
+};
+
 export const tradingAccountApi: Pick<IpcApi, 'tradingAccount'> = {
   tradingAccount: {
     getStatus: (walletId) => ipcRenderer.invoke('trading-account:getStatus', walletId),

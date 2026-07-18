@@ -13,6 +13,7 @@ import {
   Wrench,
   UserRound,
   RefreshCw,
+  Radio,
 } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { AuthState } from '@polytrader/shared';
@@ -37,6 +38,7 @@ const marketItems = [
   { nav: 'crypto', labelKey: 'nav.crypto', icon: Bitcoin },
   { nav: 'sports', labelKey: 'nav.sports', icon: Trophy },
   { nav: 'esports', labelKey: 'nav.esports', icon: Gamepad2 },
+  { nav: 'live-trades', labelKey: 'nav.liveTrades', icon: Radio },
 ];
 
 const traderItems = [{ nav: 'leaderboard', labelKey: 'nav.leaderboard', icon: Medal }];

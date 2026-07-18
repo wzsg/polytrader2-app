@@ -24,6 +24,7 @@ import WatchlistView from './views/WatchlistView.vue';
 import CryptoEventsView from './views/CryptoEventsView.vue';
 import SportsEventsView from './views/SportsEventsView.vue';
 import EsportsEventsView from './views/EsportsEventsView.vue';
+import LiveTradesView from './views/LiveTradesView.vue';
 import LeaderboardView from './views/LeaderboardView.vue';
 import TitleBar from '../shared/components/TitleBar.vue';
 import SystemPerformanceToast from './components/SystemPerformanceToast.vue';
@@ -416,6 +417,7 @@ onUnmounted(() => {
           />
           <DeveloperModeView v-else-if="activeNav === 'developer' && developerModeEnabled" />
           <LeaderboardView v-else-if="activeNav === 'leaderboard'" />
+          <LiveTradesView v-else-if="activeNav === 'live-trades'" />
 
           <EventsListView
             v-else-if="activeNav === 'events'"

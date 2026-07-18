@@ -1,0 +1,22 @@
+{
+  "name": "@polytrader/orderfilled-activity",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "@polytrader/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}

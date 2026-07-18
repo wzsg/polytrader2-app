@@ -38,6 +38,9 @@ import type {
   MarketTradeQuery,
   MarketTradeSyncStatus,
   MarketTradeTick,
+  OrderFilledActivityOpenMarketInput,
+  OrderFilledActivitySnapshot,
+  OrderFilledActivityStartInput,
   PriceHistoryPoint,
   PublicTraderLeaderboardQuery,
   PublicTraderLeaderboardResult,
@@ -285,6 +288,14 @@ interface TradingStrategyIpcApi {
   onEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
 }
 
+interface OrderFilledActivityIpcApi {
+  getSnapshot: () => Promise<OrderFilledActivitySnapshot>;
+  start: (input: OrderFilledActivityStartInput) => Promise<ApiResult<OrderFilledActivitySnapshot>>;
+  stop: () => Promise<void>;
+  openMarket: (input: OrderFilledActivityOpenMarketInput) => Promise<ApiResult<void>>;
+  onUpdated: (callback: (snapshot: OrderFilledActivitySnapshot) => void) => () => void;
+}
+
 interface TradingAccountIpcApi {
   getStatus: (walletId: string) => Promise<ApiResult<TradingAccountStatusData>>;
   getData: (query?: TradingAccountDataQuery) => Promise<ApiResult<TradingRuntimeAccountState>>;
@@ -467,6 +478,7 @@ export interface IpcApi {
     interval?: string,
     fidelity?: number,
   ) => Promise<ApiResult<PriceHistoryPoint[]>>;
+  orderfilledActivity: OrderFilledActivityIpcApi;
   tradingAccount: TradingAccountIpcApi;
   wallet: WalletIpcApi;
   crossChain: CrossChainIpcApi;

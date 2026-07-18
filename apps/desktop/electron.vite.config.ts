@@ -43,6 +43,10 @@ const workspacePackageAliases = [
     replacement: resolve('../../packages/polymarket-wallet/src/index.ts'),
   },
   {
+    find: '@polytrader/orderfilled-activity',
+    replacement: resolve('../../packages/orderfilled-activity/src/index.ts'),
+  },
+  {
     find: '@polytrader/bot-runtime-contract',
     replacement: resolve('../../packages/contracts/bot-runtime-contract/src/index.ts'),
   },
@@ -164,6 +168,7 @@ export default defineConfig({
           '@polytrader/polymarket-api',
           '@polytrader/polymarket-market',
           '@polytrader/polymarket-wallet',
+          '@polytrader/orderfilled-activity',
           '@polytrader/strategy-runtime',
           '@polytrader/trading-account',
           '@polytrader/trading-market',

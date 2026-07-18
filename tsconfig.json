@@ -24,6 +24,7 @@
     { "path": "./packages/repositories/duckdb-repository" },
     { "path": "./packages/polymarket-api" },
     { "path": "./packages/polymarket-market" },
+    { "path": "./packages/orderfilled-activity" },
     { "path": "./packages/polymarket-wallet" },
     { "path": "./packages/trading-account" },
     { "path": "./packages/trading-market" },

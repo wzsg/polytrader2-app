@@ -12,6 +12,7 @@ import type {
 } from './strategy.js';
 import type { SortOrder } from './common.js';
 import type { AccountOrderStatus } from './tradingOrder.js';
+import type { AppLocale } from '../i18n.js';
 
 export type EventStatusFilter = 'all' | 'active' | 'closed';
 export type EventSyncState = 'idle' | 'syncing' | 'finalizing' | 'done' | 'aborted' | 'error';
@@ -839,6 +840,73 @@ export interface PublicTraderMarketInput {
 
 export interface PublicTraderWindowInput {
   address: string;
+}
+
+export type OrderFilledActivityStatus =
+  'idle' | 'connecting' | 'syncing' | 'live' | 'reconnecting' | 'error';
+
+export type OrderFilledActivityTradeSource = 'history' | 'live' | 'catchup';
+
+export interface OrderFilledActivityStartInput {
+  minTradeAmount?: string | null;
+  minTradeVolume?: string | null;
+  locale?: AppLocale;
+}
+
+export interface OrderFilledActivitySubscription {
+  minTradeAmount: string | null;
+  minTradeVolume: string | null;
+  locale: AppLocale;
+}
+
+export interface OrderFilledActivityMarket {
+  id: string | null;
+  conditionId: string | null;
+  eventId: string | null;
+  question: string | null;
+  outcome: string | null;
+  outcomeIndex: number | null;
+  icon: string | null;
+  image: string | null;
+}
+
+export interface OrderFilledActivityTrade {
+  id: string;
+  source: OrderFilledActivityTradeSource;
+  chainId: number | null;
+  blockNumber: number;
+  blockHash: string;
+  timestamp: number | null;
+  transactionHash: string;
+  logIndex: number;
+  contract: string | null;
+  traderAddress: string | null;
+  counterpartyAddress: string | null;
+  direction: 'BUY' | 'SELL' | null;
+  tokenId: string | null;
+  price: string | null;
+  volume: string | null;
+  amount: string | null;
+  market: OrderFilledActivityMarket | null;
+}
+
+export interface OrderFilledActivityReorg {
+  commonAncestorNumber: number;
+  newHeadNumber: number | null;
+}
+
+export interface OrderFilledActivitySnapshot {
+  status: OrderFilledActivityStatus;
+  subscription: OrderFilledActivitySubscription;
+  trades: OrderFilledActivityTrade[];
+  error: string | null;
+  updatedAt: string | null;
+}
+
+export interface OrderFilledActivityOpenMarketInput {
+  conditionId: string;
+  tokenId?: string | null;
+  outcome?: string | null;
 }
 
 export type PolymarketWalletCreationType = 'created' | 'imported';
