@@ -23,6 +23,11 @@ export function useSystemPerformanceToast() {
   }
 
   function handleStatus(status: SystemPerformanceStatus): void {
+    if (!status.enabled) {
+      previousStatus = status;
+      closeToast();
+      return;
+    }
     const wasLimited = previousStatus?.isPerformanceLimited ?? false;
     previousStatus = status;
     if (!status.isPerformanceLimited || wasLimited) return;

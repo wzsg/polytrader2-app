@@ -12,6 +12,7 @@ import type {
 } from './strategy.js';
 import type { SortOrder } from './common.js';
 import type { AccountOrderStatus } from './tradingOrder.js';
+import type { AppLocale } from '../i18n.js';
 
 export type EventStatusFilter = 'all' | 'active' | 'closed';
 export type EventSyncState = 'idle' | 'syncing' | 'finalizing' | 'done' | 'aborted' | 'error';
@@ -237,6 +238,7 @@ export interface MarketSummary {
 
 export interface DbMarket {
   id: string;
+  eventId?: string;
   question: string;
   slug: string;
   groupItemTitle: string;
@@ -729,6 +731,188 @@ export interface DataPosition {
   oppositeAsset?: string;
   endDate?: string;
   negativeRisk?: boolean;
+}
+
+export type PublicTraderLeaderboardTimePeriod = 'DAY' | 'WEEK' | 'MONTH' | 'ALL';
+
+export type PublicTraderLeaderboardCategory =
+  | 'OVERALL'
+  | 'POLITICS'
+  | 'SPORTS'
+  | 'CRYPTO'
+  | 'CULTURE'
+  | 'MENTIONS'
+  | 'WEATHER'
+  | 'ECONOMICS'
+  | 'TECH'
+  | 'FINANCE';
+
+export type PublicTraderLeaderboardOrderBy = 'PNL' | 'VOL';
+
+export interface PublicTraderLeaderboardQuery {
+  timePeriod?: PublicTraderLeaderboardTimePeriod;
+  category?: PublicTraderLeaderboardCategory;
+  orderBy?: PublicTraderLeaderboardOrderBy;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PublicTraderLeaderboardEntry {
+  rank: string;
+  proxyWallet: string;
+  userName: string;
+  volume: number;
+  pnl: number;
+  profileImage: string | null;
+  xUsername: string | null;
+  verifiedBadge: boolean;
+}
+
+export interface PublicTraderLeaderboardResult {
+  entries: PublicTraderLeaderboardEntry[];
+  limit: number;
+  offset: number;
+}
+
+export interface PublicTraderProfile {
+  address: string;
+  name: string | null;
+  pseudonym: string | null;
+  bio: string | null;
+  profileImage: string | null;
+  xUsername: string | null;
+  verifiedBadge: boolean;
+  totalPositionValue: number | null;
+  tradedMarkets: number | null;
+}
+
+export interface PublicTraderPosition {
+  asset: string;
+  conditionId: string;
+  title: string;
+  icon: string | null;
+  outcome: string;
+  size: number;
+  avgPrice: number;
+  currentPrice: number;
+  initialValue: number;
+  currentValue: number;
+  cashPnl: number;
+  percentPnl: number;
+}
+
+export interface PublicTraderTrade {
+  asset: string;
+  conditionId: string;
+  side: 'BUY' | 'SELL';
+  title: string;
+  icon: string | null;
+  outcome: string;
+  size: number;
+  price: number;
+  timestamp: number;
+  transactionHash: string | null;
+}
+
+export interface PublicTraderListQuery {
+  address: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PublicTraderPositionListResult {
+  entries: PublicTraderPosition[];
+  limit: number;
+  offset: number;
+}
+
+export interface PublicTraderTradeListResult {
+  entries: PublicTraderTrade[];
+  limit: number;
+  offset: number;
+}
+
+export interface PublicTraderMarketInput {
+  conditionId: string;
+  asset?: string | null;
+  outcome?: string | null;
+}
+
+export interface PublicTraderWindowInput {
+  address: string;
+}
+
+export type OrderFilledActivityStatus =
+  'idle' | 'connecting' | 'syncing' | 'live' | 'reconnecting' | 'error';
+
+export type OrderFilledActivityTradeSource = 'history' | 'live' | 'catchup';
+
+export type OrderFilledActivityTakerDirection = 'BUY' | 'SELL';
+
+export interface OrderFilledActivityStartInput {
+  minTradeAmount?: string | null;
+  takerDirection?: OrderFilledActivityTakerDirection | null;
+  minTradePrice?: string | null;
+  maxTradePrice?: string | null;
+  locale?: AppLocale;
+}
+
+export interface OrderFilledActivitySubscription {
+  minTradeAmount: string | null;
+  takerDirection: OrderFilledActivityTakerDirection | null;
+  minTradePrice: string | null;
+  maxTradePrice: string | null;
+  locale: AppLocale;
+}
+
+export interface OrderFilledActivityMarket {
+  id: string | null;
+  conditionId: string | null;
+  eventId: string | null;
+  question: string | null;
+  outcome: string | null;
+  outcomeIndex: number | null;
+  icon: string | null;
+  image: string | null;
+}
+
+export interface OrderFilledActivityTrade {
+  id: string;
+  source: OrderFilledActivityTradeSource;
+  chainId: number | null;
+  blockNumber: number;
+  blockHash: string;
+  timestamp: number | null;
+  transactionHash: string;
+  logIndex: number;
+  contract: string | null;
+  traderAddress: string | null;
+  counterpartyAddress: string | null;
+  direction: 'BUY' | 'SELL' | null;
+  tokenId: string | null;
+  price: string | null;
+  volume: string | null;
+  amount: string | null;
+  market: OrderFilledActivityMarket | null;
+}
+
+export interface OrderFilledActivityReorg {
+  commonAncestorNumber: number;
+  newHeadNumber: number | null;
+}
+
+export interface OrderFilledActivitySnapshot {
+  status: OrderFilledActivityStatus;
+  subscription: OrderFilledActivitySubscription;
+  trades: OrderFilledActivityTrade[];
+  error: string | null;
+  updatedAt: string | null;
+}
+
+export interface OrderFilledActivityOpenMarketInput {
+  conditionId: string;
+  tokenId?: string | null;
+  outcome?: string | null;
 }
 
 export type PolymarketWalletCreationType = 'created' | 'imported';

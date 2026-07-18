@@ -38,7 +38,18 @@ import type {
   MarketTradeQuery,
   MarketTradeSyncStatus,
   MarketTradeTick,
+  OrderFilledActivityOpenMarketInput,
+  OrderFilledActivitySnapshot,
+  OrderFilledActivityStartInput,
   PriceHistoryPoint,
+  PublicTraderLeaderboardQuery,
+  PublicTraderLeaderboardResult,
+  PublicTraderListQuery,
+  PublicTraderMarketInput,
+  PublicTraderPositionListResult,
+  PublicTraderProfile,
+  PublicTraderTradeListResult,
+  PublicTraderWindowInput,
   StrategyBotCreateInput,
   StrategyBotDetail,
   StrategyBotListItem,
@@ -236,6 +247,7 @@ type AppUpdateStatus = 'idle' | 'checking' | 'downloading' | 'downloaded' | 'err
 interface AppUpdateState {
   status: AppUpdateStatus;
   version: string | null;
+  mandatory: boolean;
 }
 
 export interface TradingAccountStatusData {
@@ -274,6 +286,14 @@ interface TradingStrategyIpcApi {
   getState: (marketId: string) => Promise<ApiResult<TradingStrategyState>>;
   selectRun: (marketId: string, runId: string) => Promise<ApiResult<TradingStrategyState>>;
   onEvent: (callback: (event: TradingStrategyStateEvent) => void) => () => void;
+}
+
+interface OrderFilledActivityIpcApi {
+  getSnapshot: () => Promise<OrderFilledActivitySnapshot>;
+  start: (input: OrderFilledActivityStartInput) => Promise<ApiResult<OrderFilledActivitySnapshot>>;
+  stop: () => Promise<void>;
+  openMarket: (input: OrderFilledActivityOpenMarketInput) => Promise<ApiResult<void>>;
+  onUpdated: (callback: (snapshot: OrderFilledActivitySnapshot) => void) => () => void;
 }
 
 interface TradingAccountIpcApi {
@@ -369,6 +389,7 @@ export interface IpcApi {
   setLocalePreference: (preference: AppLocalePreference) => Promise<AppPreferences>;
   setOrderConfirmationThresholdUsd: (thresholdUsd: number) => Promise<AppPreferences>;
   setEventSyncBatchSize: (batchSize: number) => Promise<AppPreferences>;
+  setPerformanceMonitoringEnabled: (enabled: boolean) => Promise<AppPreferences>;
   onPreferencesChanged: (callback: (preferences: AppPreferences) => void) => () => void;
   getSetupState: () => Promise<SetupState>;
   chooseSetupDataDirectory: (defaultPath?: string) => Promise<SetupDirectorySelectionResult>;
@@ -433,6 +454,16 @@ export interface IpcApi {
   listSportsEvents: (params: ListSportsEventsParams) => Promise<SportsEventsResult>;
   fetchMarketDetail: (marketId: string) => Promise<ApiResult<MarketDetailData>>;
   fetchMarketTrades: (conditionId: string, limit?: number) => Promise<ApiResult<MarketTradeTick[]>>;
+  getPublicTraderLeaderboard: (
+    query?: PublicTraderLeaderboardQuery,
+  ) => Promise<ApiResult<PublicTraderLeaderboardResult>>;
+  getPublicTraderProfile: (address: string) => Promise<ApiResult<PublicTraderProfile>>;
+  listPublicTraderPositions: (
+    query: PublicTraderListQuery,
+  ) => Promise<ApiResult<PublicTraderPositionListResult>>;
+  listPublicTraderTrades: (
+    query: PublicTraderListQuery,
+  ) => Promise<ApiResult<PublicTraderTradeListResult>>;
   startMarketTradeSync: (
     marketId: string,
     conditionId: string,
@@ -447,6 +478,7 @@ export interface IpcApi {
     interval?: string,
     fidelity?: number,
   ) => Promise<ApiResult<PriceHistoryPoint[]>>;
+  orderfilledActivity: OrderFilledActivityIpcApi;
   tradingAccount: TradingAccountIpcApi;
   wallet: WalletIpcApi;
   crossChain: CrossChainIpcApi;
@@ -497,6 +529,8 @@ export interface IpcApi {
   openStrategyEditor: (input: StrategyEditorWindowInput) => Promise<void>;
   onStrategiesChanged: (callback: () => void) => () => void;
   openTradingWindow: (input: TradingWindowInput) => Promise<void>;
+  openPublicTraderWindow: (input: PublicTraderWindowInput) => Promise<void>;
+  openPublicTraderMarket: (input: PublicTraderMarketInput) => Promise<ApiResult<void>>;
   onTradingWindowParams: (callback: (input: TradingWindowInput) => void) => () => void;
   onTradingWindowCloseBlocked: (callback: () => void) => () => void;
   updateTradingWindowMarketScope: (marketIds: string[]) => Promise<void>;

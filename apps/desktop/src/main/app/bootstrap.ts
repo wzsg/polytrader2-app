@@ -18,6 +18,8 @@ import { registerDbHandlers } from '../ipc/dbIpc.js';
 import { registerDeveloperHandlers } from '../ipc/developerIpc.js';
 import { registerDataSyncHandlers } from '../ipc/dataSyncIpc.js';
 import { registerMarketHandlers } from '../ipc/marketIpc.js';
+import { registerOrderfilledActivityHandlers } from '../ipc/orderfilledActivityIpc.js';
+import { registerPublicTraderHandlers } from '../ipc/publicTraderIpc.js';
 import { registerMcpHandlers } from '../ipc/mcpIpc.js';
 import { registerStrategyTradingHandlers } from '../ipc/strategyIpc.js';
 import { registerStrategyRunHandlers } from '../ipc/strategyRunIpc.js';
@@ -28,6 +30,7 @@ import { registerWindowHandlers } from '../ipc/windowIpc.js';
 import { registerSystemPerformanceHandlers } from '../ipc/systemPerformanceIpc.js';
 import { registerPreferenceHandlers } from '../preferences.js';
 import {
+  categoryConfigRefreshService,
   polymarketMarketService,
   syncPolymarketMarketServicePreferences,
 } from '../services/polymarketMarketService.js';
@@ -41,9 +44,12 @@ import { supabaseAuthService } from '../services/supabaseAuthService.js';
 import { desktopWorkflowService } from '../services/workflowService.js';
 import { mcpServerManager } from '../services/mcpServerService.js';
 import { systemPerformanceService } from '../services/systemPerformanceService.js';
+import { appPreferencesService } from '../services/appPreferencesService.js';
+import { orderfilledActivityService } from '../services/orderfilledActivityService.js';
 import { createMainWindow } from '../windows/mainWindow.js';
 import { registerBrowserWindowHandlers } from '../windows/browserWindow.js';
 import { registerStrategyEditorWindowHandlers } from '../windows/strategyEditorWindow.js';
+import { registerPublicTraderWindowHandlers } from '../windows/publicTraderWindow.js';
 import { registerTradingWindowHandlers } from '../windows/tradingWindow.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -71,6 +77,8 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   registerDbHandlers(ipcMain);
   registerDeveloperHandlers(ipcMain);
   registerMarketHandlers(ipcMain);
+  registerOrderfilledActivityHandlers(ipcMain);
+  registerPublicTraderHandlers(ipcMain);
   registerMcpHandlers(ipcMain);
   registerWindowHandlers(ipcMain);
   registerSystemPerformanceHandlers(ipcMain);
@@ -89,6 +97,7 @@ function registerIpcHandlers(options: { initialEventSync: boolean }): void {
   registerTradingWindowHandlers(ipcMain);
   registerBrowserWindowHandlers(ipcMain);
   registerStrategyEditorWindowHandlers(ipcMain);
+  registerPublicTraderWindowHandlers(ipcMain);
   ipcHandlersRegistered = true;
 }
 
@@ -123,12 +132,14 @@ async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promi
   prepareElectronApp();
   await initializeAppStorage();
   await syncPolymarketMarketServicePreferences();
+  categoryConfigRefreshService.start();
   registerIpcHandlers({ initialEventSync: options.initialEventSync !== false });
   supabaseAuthService.initialize();
   await strategyRunHistoryService.init();
   botRuntimeService.init();
   await mcpServerManager.applySavedConfig();
-  await systemPerformanceService.start();
+  const preferences = await appPreferencesService.getAppPreferences();
+  await systemPerformanceService.start(preferences.performanceMonitoringEnabled);
   createMainWindow();
   autoUpdaterService.initialize();
   tradingAccountService.start();
@@ -146,6 +157,7 @@ function stopAppServices(): Promise<void> {
   if (appServicesStopping) return appServicesStopping;
   appServicesStopping = (async () => {
     rendererEventSyncStatusBroadcastGate.disable();
+    categoryConfigRefreshService.stop();
     const eventSyncStopping = polymarketMarketService
       .shutdownEventSync()
       .catch((error: unknown) => {
@@ -165,6 +177,7 @@ function stopAppServices(): Promise<void> {
     await eventSyncStopping;
     await workflowStopping;
     tradingMarketService.dispose();
+    orderfilledActivityService.dispose();
     tradingStrategyService.dispose();
     polymarketMarketService.stopAllMarketTradeSync();
     strategyRunHistoryService.stopAll();

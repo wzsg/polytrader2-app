@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { closeBrowserWindow } from './browserWindow.js';
 import { getWindowIcon } from './icon.js';
 import { closeAllStrategyEditorWindows } from './strategyEditorWindow.js';
+import { closeAllPublicTraderWindows } from './publicTraderWindow.js';
 import { closeAllTradingWindows } from './tradingWindow.js';
 import { getWindowChromeOptions } from './windowChrome.js';
 
@@ -40,6 +41,7 @@ function confirmMainWindowClose(): void {
     return;
   }
   closeAllStrategyEditorWindows();
+  closeAllPublicTraderWindows();
   closeBrowserWindow();
   app.quit();
 }
@@ -48,6 +50,7 @@ function prepareMainWindowForUpdateInstallation(): void {
   mainWindowCloseConfirmed = true;
   closeAllTradingWindows();
   closeAllStrategyEditorWindows();
+  closeAllPublicTraderWindows();
   closeBrowserWindow();
 }
 

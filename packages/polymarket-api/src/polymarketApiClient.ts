@@ -34,6 +34,8 @@ import type {
   PolymarketAccountCredentialDerivationInput,
   PolymarketAccountCredentialDerivationResult,
   PriceHistoryPoint,
+  PublicTraderLeaderboardQuery,
+  PublicTraderListQuery,
   SportsMetadataRaw,
 } from '@polytrader/shared';
 import { POLYMARKET_CLOB_BASE_URL, POLYMARKET_RELAYER_BASE_URL } from '@polytrader/shared';
@@ -229,6 +231,30 @@ class PolymarketApiClient {
 
   public fetchMarketHolders(conditionId: string, limit = 20): Promise<unknown[]> {
     return this._dataApiClient.fetchMarketHolders(conditionId, limit);
+  }
+
+  public fetchPublicTraderLeaderboard(query: PublicTraderLeaderboardQuery): Promise<unknown[]> {
+    return this._dataApiClient.fetchPublicTraderLeaderboard(query);
+  }
+
+  public fetchPublicTraderProfile(address: string): Promise<unknown> {
+    return this._dataApiClient.fetchPublicTraderProfile(address);
+  }
+
+  public fetchPublicTraderPositions(query: PublicTraderListQuery): Promise<unknown[]> {
+    return this._dataApiClient.fetchPublicTraderPositions(query);
+  }
+
+  public fetchPublicTraderTrades(query: PublicTraderListQuery): Promise<unknown[]> {
+    return this._dataApiClient.fetchPublicTraderTrades(query);
+  }
+
+  public fetchPublicTraderPositionValue(address: string): Promise<unknown> {
+    return this._dataApiClient.fetchPublicTraderPositionValue(address);
+  }
+
+  public fetchPublicTraderTradedMarkets(address: string): Promise<unknown> {
+    return this._dataApiClient.fetchPublicTraderTradedMarkets(address);
   }
 
   public fetchMarketTrades(

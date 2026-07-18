@@ -2,6 +2,7 @@ const POLYMARKET_WEB_URL = 'https://polymarket.com';
 const POLYMARKET_REFERRAL_URL = 'https://www.polymarket.com/?r=polytrader2';
 const POLYMARKET_CLOB_BASE_URL = 'https://clob.polymarket.com';
 const POLYMARKET_DATA_API_BASE_URL = 'https://data-api.polymarket.com';
+const POLYMARKET_GAMMA_API_BASE_URL = 'https://gamma-api.polymarket.com';
 const POLYMARKET_RELAYER_BASE_URL = 'https://relayer-v2.polymarket.com';
 const POLYMARKET_MARKET_WS_URL = 'wss://ws-subscriptions-clob.polymarket.com/ws/market';
 
@@ -22,6 +23,7 @@ export {
   LOCAL_MCP_ENDPOINT_URL,
   POLYMARKET_CLOB_BASE_URL,
   POLYMARKET_DATA_API_BASE_URL,
+  POLYMARKET_GAMMA_API_BASE_URL,
   POLYMARKET_MARKET_WS_URL,
   POLYMARKET_REFERRAL_URL,
   POLYMARKET_RELAYER_BASE_URL,

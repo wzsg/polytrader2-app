@@ -55,6 +55,7 @@ const emit = defineEmits<{
   marketTradesTotalChange: [total: number];
   spreadChange: [payload: OrderBookSpreadChange];
   tickChange: [payload: OrderBookTickChange];
+  openUser: [address: string];
 }>();
 
 const { t } = useI18n();
@@ -220,6 +221,7 @@ function centerTabCount(tab: CenterTab): string | number | null {
           :market-detail-ready="marketDetailReady"
           :market-detail-pending="marketDetailPending"
           :error="error"
+          @open-user="emit('openUser', $event)"
         />
       </div>
     </div>

@@ -4,6 +4,7 @@ import {
   Star,
   Bitcoin,
   Trophy,
+  Medal,
   Gamepad2,
   Bot,
   Settings,
@@ -12,6 +13,7 @@ import {
   Wrench,
   UserRound,
   RefreshCw,
+  Radio,
 } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { AuthState } from '@polytrader/shared';
@@ -30,7 +32,7 @@ const emit = defineEmits<{
   'open-auth': [];
 }>();
 
-const browseItems = [
+const marketItems = [
   { nav: 'watchlist', labelKey: 'nav.watchlist', icon: Star },
   { nav: 'events', labelKey: 'nav.events', icon: List },
   { nav: 'crypto', labelKey: 'nav.crypto', icon: Bitcoin },
@@ -43,8 +45,14 @@ const accountDataSyncEnabled = __ACCOUNT_DATA_SYNC_ENABLED__;
 const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
 
 const tradingItems = [
-  { nav: 'bots', labelKey: 'nav.botManagement', icon: Bot },
-  { nav: 'strategies', labelKey: 'nav.strategyManagement', icon: Code2 },
+  { nav: 'live-trades', labelKey: 'nav.liveTrades', icon: Radio },
+  { nav: 'leaderboard', labelKey: 'nav.leaderboard', icon: Medal },
+  ...(strategyAutomationEnabled
+    ? [
+        { nav: 'bots', labelKey: 'nav.botManagement', icon: Bot },
+        { nav: 'strategies', labelKey: 'nav.strategyManagement', icon: Code2 },
+      ]
+    : []),
 ];
 
 function navClass(activeNav: string, nav: string): string {
@@ -73,10 +81,10 @@ function authHint(): string {
   <aside class="border-border bg-sidebar flex h-full w-[200px] shrink-0 flex-col border-r py-5">
     <nav class="flex min-h-0 flex-1 flex-col gap-1 px-3">
       <div class="text-muted px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
-        {{ t('nav.browse') }}
+        {{ t('nav.markets') }}
       </div>
       <button
-        v-for="item in browseItems"
+        v-for="item in marketItems"
         :key="item.nav"
         type="button"
         class="flex w-full items-center gap-2 rounded-md px-3.5 py-2.5 text-left text-sm transition-colors"
@@ -95,24 +103,22 @@ function authHint(): string {
         </span>
       </button>
 
-      <template v-if="strategyAutomationEnabled">
-        <div
-          class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"
-        >
-          {{ t('nav.trading') }}
-        </div>
-        <button
-          v-for="item in tradingItems"
-          :key="item.nav"
-          type="button"
-          class="flex w-full items-center gap-2 rounded-md px-3.5 py-2.5 text-left text-sm transition-colors"
-          :class="navClass(activeNav, item.nav)"
-          @click="emit('change-nav', item.nav)"
-        >
-          <component :is="item.icon" :size="16" />
-          {{ t(item.labelKey) }}
-        </button>
-      </template>
+      <div
+        class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"
+      >
+        {{ t('nav.trading') }}
+      </div>
+      <button
+        v-for="item in tradingItems"
+        :key="item.nav"
+        type="button"
+        class="flex w-full items-center gap-2 rounded-md px-3.5 py-2.5 text-left text-sm transition-colors"
+        :class="navClass(activeNav, item.nav)"
+        @click="emit('change-nav', item.nav)"
+      >
+        <component :is="item.icon" :size="16" />
+        {{ t(item.labelKey) }}
+      </button>
 
       <div
         class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"

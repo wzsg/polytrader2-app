@@ -1,4 +1,5 @@
 interface SystemPerformanceStatus {
+  enabled: boolean;
   energySaver: 'on' | 'off' | 'unknown';
   cpuSpeedLimitPercent: number | null;
   isPerformanceLimited: boolean;

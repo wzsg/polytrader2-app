@@ -5,7 +5,9 @@ import {
   crossChainApi,
   exposeApi,
   marketDataApi,
+  orderfilledActivityApi,
   preferenceApi,
+  publicTraderApi,
   tradingAccountApi,
   walletApi,
   windowApi,
@@ -92,6 +94,8 @@ const mainWindowApi = {
   fetchSportsMetadata: () => ipcRenderer.invoke('api:fetchSportsMetadata'),
   listSportsEvents: (params) => ipcRenderer.invoke('api:listSportsEvents', params),
   ...marketDataApi,
+  ...orderfilledActivityApi,
+  ...publicTraderApi,
   ...tradingAccountApi,
   ...walletApi,
   ...crossChainApi,
@@ -152,6 +156,7 @@ const mainWindowApi = {
     return () => ipcRenderer.removeListener('main-window:close-requested', listener);
   },
   openTradingWindow: (input) => ipcRenderer.invoke('trading-window:open', input),
+  openPublicTraderWindow: (input) => ipcRenderer.invoke('public-trader:open', input),
   openBrowserWindow: () => ipcRenderer.invoke('browser-window:open'),
   browserNavigate: (url, options) => ipcRenderer.invoke('browser-window:navigate', url, options),
 } satisfies Partial<IpcApi>;

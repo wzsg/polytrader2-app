@@ -11,6 +11,7 @@ import { Download } from '@lucide/vue';
 import AuthAccountPanel from './components/AuthAccountPanel.vue';
 import CloseConfirmDialog from './components/CloseConfirmDialog.vue';
 import UpdateConfirmDialog from './components/UpdateConfirmDialog.vue';
+import MandatoryUpdateDialog from './components/MandatoryUpdateDialog.vue';
 import Sidebar from './components/Sidebar.vue';
 import EventMarketsPanel from './components/EventMarketsPanel.vue';
 import WalletsView from './views/WalletsView.vue';
@@ -23,6 +24,8 @@ import WatchlistView from './views/WatchlistView.vue';
 import CryptoEventsView from './views/CryptoEventsView.vue';
 import SportsEventsView from './views/SportsEventsView.vue';
 import EsportsEventsView from './views/EsportsEventsView.vue';
+import LiveTradesView from './views/LiveTradesView.vue';
+import LeaderboardView from './views/LeaderboardView.vue';
 import TitleBar from '../shared/components/TitleBar.vue';
 import SystemPerformanceToast from './components/SystemPerformanceToast.vue';
 import { useSystemPerformanceToast } from './composables/useSystemPerformanceToast';
@@ -54,7 +57,7 @@ const closeConfirmOpen = ref(false);
 const updateConfirmOpen = ref(false);
 const developerModeEnabled = ref(false);
 const appVersion = `v${__APP_VERSION__}`;
-const appUpdateState = ref<AppUpdateState>({ status: 'idle', version: null });
+const appUpdateState = ref<AppUpdateState>({ status: 'idle', version: null, mandatory: false });
 const updateInstallRequested = ref(false);
 const authPanelOpen = ref(false);
 const authState = ref<AuthState>({
@@ -95,6 +98,14 @@ const eventPanelVisible = computed(
 );
 const updateReady = computed(
   () => appUpdateState.value.status === 'downloaded' && !!appUpdateState.value.version,
+);
+const mandatoryUpdateActive = computed(
+  () =>
+    appUpdateState.value.mandatory &&
+    (appUpdateState.value.status === 'checking' ||
+      appUpdateState.value.status === 'downloading' ||
+      appUpdateState.value.status === 'downloaded' ||
+      appUpdateState.value.status === 'error'),
 );
 const newAppVersion = computed(() => {
   const version = appUpdateState.value.version;
@@ -269,6 +280,10 @@ function openEventMarket(
 }
 
 function requestCloseConfirm(): void {
+  if (mandatoryUpdateActive.value) {
+    void window.api.confirmMainWindowClose();
+    return;
+  }
   closeConfirmOpen.value = true;
 }
 
@@ -401,6 +416,8 @@ onUnmounted(() => {
             @developer-mode-change="handleDeveloperModeChange"
           />
           <DeveloperModeView v-else-if="activeNav === 'developer' && developerModeEnabled" />
+          <LeaderboardView v-else-if="activeNav === 'leaderboard'" />
+          <LiveTradesView v-else-if="activeNav === 'live-trades'" />
 
           <EventsListView
             v-else-if="activeNav === 'events'"
@@ -454,11 +471,16 @@ onUnmounted(() => {
       @confirm="confirmClose"
     />
     <UpdateConfirmDialog
-      :open="updateConfirmOpen"
+      :open="updateConfirmOpen && !mandatoryUpdateActive"
       :current-version="appVersion"
       :new-version="newAppVersion"
       @cancel="cancelAppUpdateInstallation"
       @confirm="confirmAppUpdateInstallation"
+    />
+    <MandatoryUpdateDialog
+      :open="mandatoryUpdateActive"
+      :new-version="newAppVersion"
+      :status="appUpdateState.status"
     />
     <AuthAccountPanel
       v-if="accountDataSyncEnabled"

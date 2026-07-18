@@ -15,6 +15,7 @@ interface MarketServiceCacheStore {
     ttlMs: number | null,
     loader: MarketServiceCacheLoader<T>,
   ): Promise<T>;
+  setValue<T>(key: string, value: T, ttlMs: number | null): Promise<void>;
 }
 
 interface MarketServiceListCacheStore extends MarketServiceCacheStore {

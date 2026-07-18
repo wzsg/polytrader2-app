@@ -7,6 +7,7 @@ interface AppPreferencesService {
   setLocalePreference(preference: AppLocalePreference): Promise<AppPreferences>;
   setOrderConfirmationThresholdUsd(thresholdUsd: number): Promise<AppPreferences>;
   setEventSyncBatchSize(batchSize: number): Promise<AppPreferences>;
+  setPerformanceMonitoringEnabled(enabled: boolean): Promise<AppPreferences>;
 }
 
 interface AppPreferencesServiceOptions {

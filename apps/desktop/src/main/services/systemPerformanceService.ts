@@ -15,14 +15,17 @@ class SystemPerformanceService {
     details: Electron.Event<Electron.PowerMonitorSpeedLimitChangeEventParams>,
   ) => void;
   private _pollTimer: NodeJS.Timeout | null;
+  private _enabled: boolean;
   private _started: boolean;
 
   public constructor() {
     this._monitor = new SystemPerformanceMonitor();
     this._onSpeedLimitChange = (details) => {
+      if (!this._enabled) return;
       this._monitor.update({ cpuSpeedLimitPercent: details.limit });
     };
     this._pollTimer = null;
+    this._enabled = false;
     this._started = false;
   }
 
@@ -35,9 +38,25 @@ class SystemPerformanceService {
     return () => this._monitor.off('changed', listener);
   }
 
-  public async start(): Promise<void> {
+  public async start(enabled: boolean): Promise<void> {
     if (this._started) return;
     this._started = true;
+    await this.setEnabled(enabled);
+  }
+
+  public async setEnabled(enabled: boolean): Promise<void> {
+    if (!this._started || this._enabled === enabled) return;
+    this._enabled = enabled;
+    this._monitor.update({ enabled });
+
+    if (!enabled) {
+      powerMonitor.off('speed-limit-change', this._onSpeedLimitChange);
+      if (this._pollTimer) clearInterval(this._pollTimer);
+      this._pollTimer = null;
+      this._monitor.update({ energySaver: 'unknown', cpuSpeedLimitPercent: null });
+      return;
+    }
+
     powerMonitor.on('speed-limit-change', this._onSpeedLimitChange);
     await this._refreshEnergySaverStatus();
     if (process.platform === 'win32') {
@@ -52,10 +71,17 @@ class SystemPerformanceService {
     powerMonitor.off('speed-limit-change', this._onSpeedLimitChange);
     if (this._pollTimer) clearInterval(this._pollTimer);
     this._pollTimer = null;
+    this._enabled = false;
+    this._monitor.update({
+      enabled: false,
+      energySaver: 'unknown',
+      cpuSpeedLimitPercent: null,
+    });
     this._started = false;
   }
 
   private async _refreshEnergySaverStatus(): Promise<void> {
+    if (!this._enabled) return;
     if (process.platform !== 'win32') {
       this._monitor.update({ energySaver: 'unknown' });
       return;
@@ -67,9 +93,11 @@ class SystemPerformanceService {
         '-Command',
         this._getWindowsPowerStatusScript(),
       ]);
+      if (!this._enabled) return;
       const value = Number.parseInt(stdout.trim(), 10);
       this._monitor.update({ energySaver: value === 1 ? 'on' : value === 0 ? 'off' : 'unknown' });
     } catch {
+      if (!this._enabled) return;
       this._monitor.update({ energySaver: 'unknown' });
     }
   }

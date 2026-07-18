@@ -36,6 +36,7 @@ export const preferenceApi: Pick<
   | 'setLocalePreference'
   | 'setOrderConfirmationThresholdUsd'
   | 'setEventSyncBatchSize'
+  | 'setPerformanceMonitoringEnabled'
   | 'onPreferencesChanged'
 > = {
   getAppPreferences: () => ipcRenderer.invoke('preferences:get'),
@@ -45,6 +46,8 @@ export const preferenceApi: Pick<
     ipcRenderer.invoke('preferences:setOrderConfirmationThresholdUsd', thresholdUsd),
   setEventSyncBatchSize: (batchSize) =>
     ipcRenderer.invoke('preferences:setEventSyncBatchSize', batchSize),
+  setPerformanceMonitoringEnabled: (enabled) =>
+    ipcRenderer.invoke('preferences:setPerformanceMonitoringEnabled', enabled),
   onPreferencesChanged: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, preferences: unknown) =>
       callback(preferences as Parameters<typeof callback>[0]);
@@ -78,6 +81,36 @@ export const marketDataApi: Pick<
   },
   fetchPriceHistory: (tokenId, interval, fidelity) =>
     ipcRenderer.invoke('api:fetchPriceHistory', tokenId, interval, fidelity),
+};
+
+export const publicTraderApi: Pick<
+  IpcApi,
+  | 'getPublicTraderLeaderboard'
+  | 'getPublicTraderProfile'
+  | 'listPublicTraderPositions'
+  | 'listPublicTraderTrades'
+  | 'openPublicTraderMarket'
+> = {
+  getPublicTraderLeaderboard: (query) => ipcRenderer.invoke('public-trader:getLeaderboard', query),
+  getPublicTraderProfile: (address) => ipcRenderer.invoke('public-trader:getProfile', address),
+  listPublicTraderPositions: (query) => ipcRenderer.invoke('public-trader:listPositions', query),
+  listPublicTraderTrades: (query) => ipcRenderer.invoke('public-trader:listTrades', query),
+  openPublicTraderMarket: (input) => ipcRenderer.invoke('public-trader:open-market', input),
+};
+
+export const orderfilledActivityApi: Pick<IpcApi, 'orderfilledActivity'> = {
+  orderfilledActivity: {
+    getSnapshot: () => ipcRenderer.invoke('orderfilled-activity:get-snapshot'),
+    start: (input) => ipcRenderer.invoke('orderfilled-activity:start', input),
+    stop: () => ipcRenderer.invoke('orderfilled-activity:stop'),
+    openMarket: (input) => ipcRenderer.invoke('orderfilled-activity:open-market', input),
+    onUpdated: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        callback(input as Parameters<typeof callback>[0]);
+      ipcRenderer.on('orderfilled-activity:updated', listener);
+      return () => ipcRenderer.removeListener('orderfilled-activity:updated', listener);
+    },
+  },
 };
 
 export const tradingAccountApi: Pick<IpcApi, 'tradingAccount'> = {

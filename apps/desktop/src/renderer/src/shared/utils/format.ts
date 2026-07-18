@@ -142,6 +142,49 @@ export function formatTimestamp(value: unknown): string {
   return date.toLocaleString(getCurrentIntlLocale());
 }
 
+export function formatRelativeTime(value: unknown, referenceTime = Date.now()): string {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  const date = Number.isNaN(n) ? new Date(String(value)) : new Date(n > 1e12 ? n : n * 1000);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const elapsedMs = referenceTime - date.getTime();
+  const direction = elapsedMs >= 0 ? -1 : 1;
+  const elapsedMinutes = Math.max(1, Math.floor(Math.abs(elapsedMs) / MS_MINUTE));
+  const formatter = new Intl.RelativeTimeFormat(getCurrentIntlLocale(), { numeric: 'always' });
+
+  if (elapsedMinutes < 60) return formatter.format(direction * elapsedMinutes, 'minute');
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return formatter.format(direction * elapsedHours, 'hour');
+
+  return formatter.format(direction * Math.floor(elapsedHours / 24), 'day');
+}
+
+export function formatRelativeElapsedTime(value: unknown, referenceTime = Date.now()): string {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  const date = Number.isNaN(n) ? new Date(String(value)) : new Date(n > 1e12 ? n : n * 1000);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const elapsedSeconds = Math.max(0, Math.floor((referenceTime - date.getTime()) / 1000));
+  if (elapsedSeconds === 0) return translateUiKey('common.justNow');
+  if (elapsedSeconds < 60) return translateUiKey('common.secondsAgo', { count: elapsedSeconds });
+
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+  if (elapsedMinutes < 60) return translateUiKey('common.minutesAgo', { count: elapsedMinutes });
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) {
+    return translateUiKey('common.hoursMinutesAgo', {
+      hours: elapsedHours,
+      minutes: elapsedMinutes % 60,
+    });
+  }
+
+  return translateUiKey('common.daysAgo', { count: Math.floor(elapsedHours / 24) });
+}
+
 export function sideLabel(side: unknown): string {
   if (!side) return '—';
   return String(side).toUpperCase() === 'BUY'

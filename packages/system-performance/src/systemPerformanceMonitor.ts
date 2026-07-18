@@ -7,6 +7,7 @@ class SystemPerformanceMonitor extends EventEmitter<SystemPerformanceEventMap> {
   public constructor() {
     super();
     this._status = {
+      enabled: false,
       energySaver: 'unknown',
       cpuSpeedLimitPercent: null,
       isPerformanceLimited: false,
@@ -26,8 +27,9 @@ class SystemPerformanceMonitor extends EventEmitter<SystemPerformanceEventMap> {
       ...input,
     };
     next.isPerformanceLimited =
-      next.energySaver === 'on' ||
-      (next.cpuSpeedLimitPercent !== null && next.cpuSpeedLimitPercent < 100);
+      next.enabled &&
+      (next.energySaver === 'on' ||
+        (next.cpuSpeedLimitPercent !== null && next.cpuSpeedLimitPercent < 100));
     if (this._isEqual(this._status, next)) return;
     this._status = { ...next, updatedAt: new Date().toISOString() };
     this.emit('changed', this._status);
@@ -38,6 +40,7 @@ class SystemPerformanceMonitor extends EventEmitter<SystemPerformanceEventMap> {
     next: Omit<SystemPerformanceStatus, 'updatedAt'>,
   ): boolean {
     return (
+      previous.enabled === next.enabled &&
       previous.energySaver === next.energySaver &&
       previous.cpuSpeedLimitPercent === next.cpuSpeedLimitPercent &&
       previous.isPerformanceLimited === next.isPerformanceLimited

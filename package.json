@@ -7,7 +7,7 @@
   "scripts": {
     "build:references": "tsc -b tsconfig.references.json",
     "build:references:watch": "tsc -b -w tsconfig.references.json",
-    "prepare:repository-packages": "turbo run build --filter=@polytrader/sqlite-repository --filter=@polytrader/duckdb-repository --filter=@polytrader/polymarket-market",
+    "prepare:repository-packages": "turbo run build --filter=@polytrader/sqlite-repository --filter=@polytrader/duckdb-repository --filter=@polytrader/polymarket-market --filter=@polytrader/orderfilled-activity",
     "prepare:strategy-runtime": "turbo run build --filter=@polytrader/strategy-runtime --filter=@polytrader/bot-vm",
     "prepare:workspace-packages": "turbo run build --filter=@polytrader2/app",
     "prepare:desktop-runtime": "pnpm run prepare:workspace-packages",

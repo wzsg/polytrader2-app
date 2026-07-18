@@ -6,6 +6,7 @@ import {
   DEFAULT_LOCALE_PREFERENCE,
   DEFAULT_EVENT_SYNC_BATCH_SIZE,
   DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
+  DEFAULT_PERFORMANCE_MONITORING_ENABLED,
   type AppLocale,
   type AppLocalePreference,
   type AppPreferences,
@@ -26,6 +27,9 @@ export const currentOrderConfirmationThresholdUsd = ref<number>(
   DEFAULT_ORDER_CONFIRMATION_THRESHOLD_USD,
 );
 export const currentEventSyncBatchSize = ref<number>(DEFAULT_EVENT_SYNC_BATCH_SIZE);
+export const currentPerformanceMonitoringEnabled = ref<boolean>(
+  DEFAULT_PERFORMANCE_MONITORING_ENABLED,
+);
 export const currentSystemLocale = ref<string>('');
 
 export const i18n = createI18n<[MessageSchema], AppLocale>({
@@ -102,6 +106,7 @@ function applyPreferences(preferences: AppPreferences): void {
   currentLocalePreference.value = preferences.localePreference;
   currentOrderConfirmationThresholdUsd.value = preferences.orderConfirmationThresholdUsd;
   currentEventSyncBatchSize.value = preferences.eventSyncBatchSize;
+  currentPerformanceMonitoringEnabled.value = preferences.performanceMonitoringEnabled;
   currentSystemLocale.value = preferences.systemLocale;
   setRuntimeLocale(preferences.locale);
 }
@@ -151,6 +156,11 @@ export async function setOrderConfirmationThresholdUsd(thresholdUsd: number): Pr
 
 export async function setEventSyncBatchSize(batchSize: number): Promise<void> {
   const preferences = await window.api.setEventSyncBatchSize(batchSize);
+  applyPreferences(preferences);
+}
+
+export async function setPerformanceMonitoringEnabled(enabled: boolean): Promise<void> {
+  const preferences = await window.api.setPerformanceMonitoringEnabled(enabled);
   applyPreferences(preferences);
 }
 
