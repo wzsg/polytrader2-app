@@ -43,7 +43,9 @@ class DesktopOrderfilledActivityService {
     if (snapshot.status === 'idle') return;
     await this._activityService.start({
       minTradeAmount: snapshot.subscription.minTradeAmount,
-      minTradeVolume: snapshot.subscription.minTradeVolume,
+      takerDirection: snapshot.subscription.takerDirection,
+      minTradePrice: snapshot.subscription.minTradePrice,
+      maxTradePrice: snapshot.subscription.maxTradePrice,
       locale,
     });
   }

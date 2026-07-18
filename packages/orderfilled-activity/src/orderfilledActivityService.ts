@@ -6,6 +6,7 @@ import type {
   OrderFilledActivityStartInput,
   OrderFilledActivityStatus,
   OrderFilledActivitySubscription,
+  OrderFilledActivityTakerDirection,
   OrderFilledActivityTrade,
   OrderFilledActivityTradeSource,
 } from '@polytrader/shared';
@@ -42,7 +43,9 @@ class OrderFilledActivityServiceImpl
   private _recoveryState: ResumeState | null = null;
   private _subscription: OrderFilledActivitySubscription = {
     minTradeAmount: null,
-    minTradeVolume: null,
+    takerDirection: null,
+    minTradePrice: null,
+    maxTradePrice: null,
     locale: 'en-US',
   };
   private _status: OrderFilledActivityStatus = 'idle';
@@ -118,9 +121,16 @@ class OrderFilledActivityServiceImpl
   private _normalizeSubscription(
     input: OrderFilledActivityStartInput,
   ): OrderFilledActivitySubscription {
+    const minTradePrice = this._normalizeDecimal(input.minTradePrice);
+    const maxTradePrice = this._normalizeDecimal(input.maxTradePrice);
+    if (minTradePrice && maxTradePrice && this._compareDecimals(minTradePrice, maxTradePrice) > 0) {
+      throw new Error('Trade activity minimum price cannot exceed maximum price');
+    }
     return {
       minTradeAmount: this._normalizeDecimal(input.minTradeAmount),
-      minTradeVolume: this._normalizeDecimal(input.minTradeVolume),
+      takerDirection: this._normalizeTakerDirection(input.takerDirection),
+      minTradePrice,
+      maxTradePrice,
       locale: this._normalizeLocale(input.locale),
     };
   }
@@ -134,6 +144,24 @@ class OrderFilledActivityServiceImpl
     return normalized.replace(/\.(?:0+)$/, '');
   }
 
+  private _normalizeTakerDirection(
+    value: OrderFilledActivityTakerDirection | null | undefined,
+  ): OrderFilledActivityTakerDirection | null {
+    if (!value) return null;
+    if (value === 'BUY' || value === 'SELL') return value;
+    throw new Error('Trade activity taker direction must be BUY or SELL');
+  }
+
+  private _compareDecimals(left: string, right: string): number {
+    const [leftInteger, leftFraction = ''] = left.split('.');
+    const [rightInteger, rightFraction = ''] = right.split('.');
+    const fractionLength = Math.max(leftFraction.length, rightFraction.length);
+    const leftValue = BigInt(`${leftInteger}${leftFraction.padEnd(fractionLength, '0')}`);
+    const rightValue = BigInt(`${rightInteger}${rightFraction.padEnd(fractionLength, '0')}`);
+    if (leftValue === rightValue) return 0;
+    return leftValue > rightValue ? 1 : -1;
+  }
+
   private _normalizeLocale(locale: AppLocale | undefined): AppLocale {
     return locale === 'zh-CN' ? 'zh-CN' : 'en-US';
   }
@@ -141,7 +169,9 @@ class OrderFilledActivityServiceImpl
   private _isSameSubscription(next: OrderFilledActivitySubscription): boolean {
     return (
       next.minTradeAmount === this._subscription.minTradeAmount &&
-      next.minTradeVolume === this._subscription.minTradeVolume &&
+      next.takerDirection === this._subscription.takerDirection &&
+      next.minTradePrice === this._subscription.minTradePrice &&
+      next.maxTradePrice === this._subscription.maxTradePrice &&
       next.locale === this._subscription.locale
     );
   }
@@ -175,8 +205,14 @@ class OrderFilledActivityServiceImpl
       ...(this._subscription.minTradeAmount
         ? { min_trade_amount: this._subscription.minTradeAmount }
         : {}),
-      ...(this._subscription.minTradeVolume
-        ? { min_trade_volume: this._subscription.minTradeVolume }
+      ...(this._subscription.takerDirection
+        ? { taker_direction: this._subscription.takerDirection }
+        : {}),
+      ...(this._subscription.minTradePrice
+        ? { min_trade_price: this._subscription.minTradePrice }
+        : {}),
+      ...(this._subscription.maxTradePrice
+        ? { max_trade_price: this._subscription.maxTradePrice }
         : {}),
     });
   }
@@ -284,8 +320,14 @@ class OrderFilledActivityServiceImpl
     if (this._subscription.minTradeAmount) {
       url.searchParams.set('min_trade_amount', this._subscription.minTradeAmount);
     }
-    if (this._subscription.minTradeVolume) {
-      url.searchParams.set('min_trade_volume', this._subscription.minTradeVolume);
+    if (this._subscription.takerDirection) {
+      url.searchParams.set('taker_direction', this._subscription.takerDirection);
+    }
+    if (this._subscription.minTradePrice) {
+      url.searchParams.set('min_trade_price', this._subscription.minTradePrice);
+    }
+    if (this._subscription.maxTradePrice) {
+      url.searchParams.set('max_trade_price', this._subscription.maxTradePrice);
     }
 
     const response = await fetch(url);
@@ -397,9 +439,9 @@ class OrderFilledActivityServiceImpl
       transactionHash,
       logIndex,
       contract: this._string(data.contract),
-      traderAddress: this._string(data.maker),
-      counterpartyAddress: this._string(data.taker),
-      direction: makerAssetId === null ? null : isMakerBuying ? 'BUY' : 'SELL',
+      traderAddress: this._string(data.taker),
+      counterpartyAddress: this._string(data.maker),
+      direction: makerAssetId === null ? null : isMakerBuying ? 'SELL' : 'BUY',
       tokenId: takerAssetId === '0' ? null : takerAssetId,
       price,
       volume: outcomeAmount,

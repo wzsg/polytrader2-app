@@ -2,8 +2,14 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { CircleHelp, UserRound } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
-import type { OrderFilledActivitySnapshot, OrderFilledActivityTrade } from '@polytrader/shared';
+import type {
+  OrderFilledActivitySnapshot,
+  OrderFilledActivityTakerDirection,
+  OrderFilledActivityTrade,
+} from '@polytrader/shared';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
+import LiveTradesAmountUsdInput from '../components/LiveTradesAmountUsdInput.vue';
+import LiveTradesPriceCentsInput from '../components/LiveTradesPriceCentsInput.vue';
 import {
   formatAddress,
   formatNumber,
@@ -20,6 +26,11 @@ interface AmountPreset {
   labelKey: string;
 }
 
+interface DirectionPreset {
+  value: OrderFilledActivityTakerDirection | null;
+  labelKey: string;
+}
+
 const amountPresets: AmountPreset[] = [
   { value: null, labelKey: 'liveTrades.allTrades' },
   { value: '1000', labelKey: 'liveTrades.amount1k' },
@@ -29,11 +40,20 @@ const amountPresets: AmountPreset[] = [
   { value: '100000', labelKey: 'liveTrades.amount100k' },
 ];
 
+const directionPresets: DirectionPreset[] = [
+  { value: null, labelKey: 'liveTrades.allDirections' },
+  { value: 'BUY', labelKey: 'liveTrades.buy' },
+  { value: 'SELL', labelKey: 'liveTrades.sell' },
+];
+
 const { t } = useI18n();
 const snapshot = ref<OrderFilledActivitySnapshot | null>(null);
 const error = ref('');
 const selectedMinAmount = ref<string | null>('1000');
 const customMinAmount = ref('');
+const selectedTakerDirection = ref<OrderFilledActivityTakerDirection | null>(null);
+const customMinPriceCents = ref('');
+const customMaxPriceCents = ref('');
 const renderedTrades = ref<OrderFilledActivityTrade[]>([]);
 const pendingTrades = ref<OrderFilledActivityTrade[]>([]);
 const isHydratingTrades = ref(true);
@@ -57,17 +77,68 @@ const statusClass = computed(() => {
   return 'bg-yellow-400';
 });
 
-function filterButtonClass(value: string | null): string {
+function amountFilterButtonClass(value: string | null): string {
   return selectedMinAmount.value === value
     ? 'border-primary/60 bg-primary/20 text-primary-light'
     : 'border-border bg-btn-secondary text-muted-light hover:bg-btn-secondary-hover hover:text-text';
 }
 
-async function startActivity(minTradeAmount: string | null): Promise<void> {
+function directionFilterButtonClass(value: OrderFilledActivityTakerDirection | null): string {
+  return selectedTakerDirection.value === value
+    ? 'border-primary/60 bg-primary/20 text-primary-light'
+    : 'border-border bg-bg text-muted-light hover:bg-btn-secondary hover:text-text';
+}
+
+function isPriceRangeInvalid(minPrice: string, maxPrice: string): boolean {
+  if (!minPrice || !maxPrice) return false;
+  if (!/^\d+(?:\.\d+)?$/.test(minPrice) || !/^\d+(?:\.\d+)?$/.test(maxPrice)) return false;
+  const [minInteger, minFraction = ''] = minPrice.split('.');
+  const [maxInteger, maxFraction = ''] = maxPrice.split('.');
+  const fractionLength = Math.max(minFraction.length, maxFraction.length);
+  const minValue = BigInt(`${minInteger}${minFraction.padEnd(fractionLength, '0')}`);
+  const maxValue = BigInt(`${maxInteger}${maxFraction.padEnd(fractionLength, '0')}`);
+  return minValue > maxValue;
+}
+
+function isValidPriceCents(value: string): boolean {
+  return /^\d+(?:\.\d+)?$/.test(value) && !isPriceRangeInvalid(value, '100');
+}
+
+function centsToPrice(value: string): string {
+  const [integerPart, fractionPart = ''] = value.split('.');
+  const decimals = fractionPart.length + 2;
+  const digits = `${integerPart}${fractionPart}`.replace(/^0+/, '') || '0';
+  const padded = digits.padStart(decimals + 1, '0');
+  const integer = padded.slice(0, -decimals);
+  const fraction = padded.slice(-decimals).replace(/0+$/, '');
+  return fraction ? `${integer}.${fraction}` : integer;
+}
+
+async function startActivity(): Promise<void> {
+  const minPriceCents = customMinPriceCents.value.trim();
+  const maxPriceCents = customMaxPriceCents.value.trim();
+  if (
+    (minPriceCents && !isValidPriceCents(minPriceCents)) ||
+    (maxPriceCents && !isValidPriceCents(maxPriceCents))
+  ) {
+    error.value = t('liveTrades.invalidPriceCents');
+    return;
+  }
+  if (isPriceRangeInvalid(minPriceCents, maxPriceCents)) {
+    error.value = t('liveTrades.invalidPriceRange');
+    return;
+  }
+  const minTradePrice = minPriceCents ? centsToPrice(minPriceCents) : null;
+  const maxTradePrice = maxPriceCents ? centsToPrice(maxPriceCents) : null;
   resetTradeDisplay();
   error.value = '';
   try {
-    const result = await window.api.orderfilledActivity.start({ minTradeAmount });
+    const result = await window.api.orderfilledActivity.start({
+      minTradeAmount: selectedMinAmount.value,
+      takerDirection: selectedTakerDirection.value,
+      minTradePrice,
+      maxTradePrice,
+    });
     if (!result.ok) {
       error.value = result.error;
       isHydratingTrades.value = false;
@@ -84,7 +155,7 @@ function selectPreset(value: string | null): void {
   if (selectedMinAmount.value === value && !customMinAmount.value) return;
   selectedMinAmount.value = value;
   customMinAmount.value = '';
-  void startActivity(value);
+  void startActivity();
 }
 
 function applyCustomAmount(): void {
@@ -94,7 +165,29 @@ function applyCustomAmount(): void {
     return;
   }
   selectedMinAmount.value = value;
-  void startActivity(value);
+  void startActivity();
+}
+
+function clearCustomAmount(): void {
+  selectedMinAmount.value = '1000';
+  customMinAmount.value = '';
+  void startActivity();
+}
+
+function selectDirection(value: OrderFilledActivityTakerDirection | null): void {
+  if (selectedTakerDirection.value === value) return;
+  selectedTakerDirection.value = value;
+  void startActivity();
+}
+
+function applyCustomPrice(): void {
+  void startActivity();
+}
+
+function clearCustomPrice(): void {
+  customMinPriceCents.value = '';
+  customMaxPriceCents.value = '';
+  void startActivity();
 }
 
 async function openTrader(trade: OrderFilledActivityTrade): Promise<void> {
@@ -123,11 +216,6 @@ async function openMarket(trade: OrderFilledActivityTrade): Promise<void> {
 
 function marketTitle(trade: OrderFilledActivityTrade): string {
   return trade.market?.question || t('liveTrades.unknownMarket');
-}
-
-function amountLabel(value: string | null): string {
-  if (value === null) return t('liveTrades.allTrades');
-  return formatUsd(value);
 }
 
 function sortTrades(trades: OrderFilledActivityTrade[]): OrderFilledActivityTrade[] {
@@ -200,7 +288,7 @@ onMounted(() => {
   unsubscribeUpdated = window.api.orderfilledActivity.onUpdated((nextSnapshot) => {
     applyActivitySnapshot(nextSnapshot);
   });
-  void startActivity(selectedMinAmount.value);
+  void startActivity();
 });
 
 onUnmounted(() => {
@@ -215,36 +303,81 @@ onUnmounted(() => {
 
 <template>
   <div class="border-border bg-surface flex shrink-0 items-center gap-3 border-b px-6 py-3.5">
-    <div
-      class="scrollbar-hidden flex min-w-0 flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap"
-    >
-      <button
-        v-for="preset in amountPresets"
-        :key="preset.value || 'all'"
-        type="button"
-        class="inline-flex h-8 shrink-0 items-center rounded-md border px-3 text-sm font-medium transition-colors"
-        :class="filterButtonClass(preset.value)"
-        :aria-pressed="selectedMinAmount === preset.value && !customMinAmount"
-        @click="selectPreset(preset.value)"
-      >
-        {{ t(preset.labelKey) }}
-      </button>
-      <form class="flex shrink-0 items-center gap-2" @submit.prevent="applyCustomAmount">
-        <input
-          v-model="customMinAmount"
-          type="text"
-          inputmode="decimal"
-          class="border-border bg-background text-text placeholder:text-muted focus:border-primary/70 h-8 w-28 rounded-md border px-2.5 text-sm transition-colors outline-none"
-          :placeholder="t('liveTrades.customAmount')"
-          :aria-label="t('liveTrades.customAmount')"
-        />
+    <div class="min-w-0 flex-1 space-y-2">
+      <div class="scrollbar-hidden flex items-center gap-2 overflow-x-auto whitespace-nowrap">
         <button
-          type="submit"
-          class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center rounded-md border px-3 text-sm transition-colors"
+          v-for="preset in amountPresets"
+          :key="preset.value || 'all'"
+          type="button"
+          class="inline-flex h-8 shrink-0 items-center rounded-md border px-3 text-sm font-medium transition-colors"
+          :class="amountFilterButtonClass(preset.value)"
+          :aria-pressed="selectedMinAmount === preset.value && !customMinAmount"
+          @click="selectPreset(preset.value)"
         >
-          {{ t('liveTrades.apply') }}
+          {{ t(preset.labelKey) }}
         </button>
-      </form>
+        <form class="flex shrink-0 items-center gap-2" @submit.prevent="applyCustomAmount">
+          <LiveTradesAmountUsdInput
+            v-model="customMinAmount"
+            :placeholder="t('liveTrades.customAmount')"
+            :label="t('liveTrades.customAmount')"
+          />
+          <button
+            type="submit"
+            class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center rounded-md border px-3 text-sm transition-colors"
+          >
+            {{ t('liveTrades.apply') }}
+          </button>
+          <button
+            type="button"
+            class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center rounded-md border px-3 text-sm transition-colors"
+            @click="clearCustomAmount"
+          >
+            {{ t('common.clear') }}
+          </button>
+        </form>
+      </div>
+
+      <div class="scrollbar-hidden flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <button
+          v-for="preset in directionPresets"
+          :key="preset.value || 'all-directions'"
+          type="button"
+          class="inline-flex h-8 shrink-0 items-center rounded-md border px-3 text-sm font-medium transition-colors"
+          :class="directionFilterButtonClass(preset.value)"
+          :aria-pressed="selectedTakerDirection === preset.value"
+          @click="selectDirection(preset.value)"
+        >
+          {{ t(preset.labelKey) }}
+        </button>
+        <span class="bg-border h-5 w-px shrink-0" aria-hidden="true" />
+        <form class="flex shrink-0 items-center gap-2" @submit.prevent="applyCustomPrice">
+          <span class="text-muted shrink-0 text-[13px]">{{ t('liveTrades.tradePrice') }}</span>
+          <LiveTradesPriceCentsInput
+            v-model="customMinPriceCents"
+            :placeholder="t('liveTrades.minPrice')"
+            :label="t('liveTrades.minPrice')"
+          />
+          <LiveTradesPriceCentsInput
+            v-model="customMaxPriceCents"
+            :placeholder="t('liveTrades.maxPrice')"
+            :label="t('liveTrades.maxPrice')"
+          />
+          <button
+            type="submit"
+            class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center rounded-md border px-3 text-sm transition-colors"
+          >
+            {{ t('liveTrades.apply') }}
+          </button>
+          <button
+            type="button"
+            class="border-border bg-btn-secondary text-text hover:bg-btn-secondary-hover inline-flex h-8 items-center rounded-md border px-3 text-sm transition-colors"
+            @click="clearCustomPrice"
+          >
+            {{ t('common.clear') }}
+          </button>
+        </form>
+      </div>
     </div>
     <div class="ml-auto flex shrink-0 items-center gap-3">
       <span
@@ -321,7 +454,7 @@ onUnmounted(() => {
       <tbody v-if="!renderedTrades.length">
         <tr>
           <td colspan="8" class="text-muted px-4 py-12 text-center text-sm">
-            {{ t('liveTrades.noTrades', { amount: amountLabel(selectedMinAmount) }) }}
+            {{ t('liveTrades.noTrades') }}
           </td>
         </tr>
       </tbody>

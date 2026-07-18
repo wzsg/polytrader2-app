@@ -847,15 +847,21 @@ export type OrderFilledActivityStatus =
 
 export type OrderFilledActivityTradeSource = 'history' | 'live' | 'catchup';
 
+export type OrderFilledActivityTakerDirection = 'BUY' | 'SELL';
+
 export interface OrderFilledActivityStartInput {
   minTradeAmount?: string | null;
-  minTradeVolume?: string | null;
+  takerDirection?: OrderFilledActivityTakerDirection | null;
+  minTradePrice?: string | null;
+  maxTradePrice?: string | null;
   locale?: AppLocale;
 }
 
 export interface OrderFilledActivitySubscription {
   minTradeAmount: string | null;
-  minTradeVolume: string | null;
+  takerDirection: OrderFilledActivityTakerDirection | null;
+  minTradePrice: string | null;
+  maxTradePrice: string | null;
   locale: AppLocale;
 }
 
