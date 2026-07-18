@@ -53,8 +53,9 @@ class OrderFilledActivityServiceImpl
 
   public constructor(options: OrderFilledActivityServiceOptions = {}) {
     super();
-    this._websocketUrl = options.websocketUrl ?? 'wss://orderfilled.polytrader2.com/ws';
-    this._syncUrl = options.syncUrl ?? 'https://orderfilled.polytrader2.com/v1/orderfilled/sync';
+    this._websocketUrl = options.websocketUrl ?? 'wss://orderfilled.polytrader2.com/ws/filter';
+    this._syncUrl =
+      options.syncUrl ?? 'https://orderfilled.polytrader2.com/v1/orderfilled/filter/sync';
     this._maxTrades = options.maxTrades ?? 500;
     this._reconnectBaseDelayMs = options.reconnectBaseDelayMs ?? 1_000;
     this._reconnectMaxDelayMs = options.reconnectMaxDelayMs ?? 20_000;
@@ -169,7 +170,7 @@ class OrderFilledActivityServiceImpl
     this._setStatus('syncing');
     this._startHeartbeat(socket);
     this._send(socket, {
-      type: 'subscribe_all',
+      type: 'set_filter',
       locale: this._subscription.locale,
       ...(this._subscription.minTradeAmount
         ? { min_trade_amount: this._subscription.minTradeAmount }
