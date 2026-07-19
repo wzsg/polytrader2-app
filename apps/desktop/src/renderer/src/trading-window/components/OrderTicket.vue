@@ -398,7 +398,7 @@ async function submitOrder(): Promise<void> {
         </div>
         <label class="text-muted-light flex items-center gap-2 text-sm">
           <input v-model="postOnly" type="checkbox" class="h-4 w-4" />
-          Post-only
+          {{ t('tradingWindow.postOnly') }}
         </label>
       </template>
 
