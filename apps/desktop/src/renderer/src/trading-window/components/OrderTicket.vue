@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import { currentOrderConfirmationThresholdUsd } from '@/shared/i18n';
 import { useI18n } from 'vue-i18n';
@@ -19,6 +19,9 @@ import type {
   PolymarketWalletSummary,
 } from '@polytrader/shared';
 import { isPriceAlignedToTick, normalizePriceTickSize } from '@polytrader/shared';
+
+const GTD_SECURITY_THRESHOLD_SECONDS = 60;
+const MINIMUM_EFFECTIVE_EXPIRATION_LEAD_SECONDS = 120;
 
 const props = defineProps<{
   outcomes: MarketOutcome[];
@@ -48,8 +51,12 @@ const price = ref('');
 const shares = ref('');
 const amount = ref('');
 const postOnly = ref(false);
+const expirationEnabled = ref(false);
+const expiration = ref('');
+const expirationClockMs = ref(Date.now());
 const submitting = ref(false);
 const error = ref('');
+let expirationClockId: number | null = null;
 
 const currentAccountId = computed(() => props.walletId ?? fallbackAccountId.value);
 const currentAccountIdModel = computed({
@@ -109,10 +116,10 @@ const hasValidOrderInput = computed(() => {
   return isPositiveFiniteNumber(side.value === 'BUY' ? amount.value : shares.value);
 });
 
-const isMarketSell = computed(() => orderType.value === 'market' && side.value === 'SELL');
+const isMarketBuy = computed(() => orderType.value === 'market' && side.value === 'BUY');
 const isLimitBuy = computed(() => orderType.value === 'limit' && side.value === 'BUY');
 const estimateLabel = computed(() =>
-  isMarketSell.value ? t('tradingWindow.estimatedProceeds') : t('tradingWindow.estimatedCost'),
+  side.value === 'SELL' ? t('tradingWindow.estimatedProceeds') : t('tradingWindow.estimatedCost'),
 );
 const estimate = computed(() => {
   if (orderType.value === 'market') {
@@ -124,6 +131,24 @@ const estimate = computed(() => {
   return (Number(price.value) || 0) * (Number(shares.value) || 0);
 });
 const estimateValueLabel = computed(() => `$${estimate.value.toFixed(2)}`);
+const estimatedMarketBuyShares = computed(() => {
+  if (!isMarketBuy.value) return null;
+  const currentAmount = Number(amount.value);
+  const currentPrice = bestMarketExecutionPrice.value;
+  if (
+    !Number.isFinite(currentAmount) ||
+    currentAmount <= 0 ||
+    !Number.isFinite(currentPrice) ||
+    currentPrice <= 0
+  ) {
+    return null;
+  }
+  return currentAmount / currentPrice;
+});
+const estimatedMarketBuySharesLabel = computed(() => {
+  if (estimatedMarketBuyShares.value == null) return '—';
+  return formatNumber(estimatedMarketBuyShares.value, 2);
+});
 const antiMistouchEnabled = computed(() => {
   return (
     Number.isFinite(estimate.value) && estimate.value > currentOrderConfirmationThresholdUsd.value
@@ -136,11 +161,29 @@ const limitBuyMinimumShares = computed(() => {
   const value = Number(selectedOrderBook.value?.minOrderSize);
   return Number.isFinite(value) && value > 0 ? value : null;
 });
+const minimumExpirationInput = computed(() => {
+  const minimumDate = new Date(
+    expirationClockMs.value + MINIMUM_EFFECTIVE_EXPIRATION_LEAD_SECONDS * 1000,
+  );
+  minimumDate.setSeconds(0, 0);
+  minimumDate.setMinutes(minimumDate.getMinutes() + 1);
+  return formatLocalDateTimeInput(minimumDate);
+});
 const orderValidationError = computed(() => {
   if (orderType.value === 'limit' && price.value) {
     const tickSize = normalizePriceTickSize(selectedOrderBook.value?.tickSize);
     if (tickSize != null && !isPriceAlignedToTick(price.value, tickSize)) {
       return t('tradingWindow.limitPriceTickSize', { tickSize });
+    }
+  }
+  if (orderType.value === 'limit' && expirationEnabled.value) {
+    if (!expiration.value) return t('tradingWindow.limitExpirationRequired');
+    const expirationMs = parseLocalDateTimeInput(expiration.value);
+    if (expirationMs == null) return t('tradingWindow.limitExpirationInvalid');
+    const minimumExpirationMs =
+      expirationClockMs.value + MINIMUM_EFFECTIVE_EXPIRATION_LEAD_SECONDS * 1000;
+    if (expirationMs < minimumExpirationMs) {
+      return t('tradingWindow.limitExpirationTooSoon');
     }
   }
   const minimumShares = limitBuyMinimumShares.value;
@@ -165,6 +208,16 @@ watch(
   { immediate: true },
 );
 
+onMounted(() => {
+  expirationClockId = window.setInterval(() => {
+    expirationClockMs.value = Date.now();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  if (expirationClockId != null) window.clearInterval(expirationClockId);
+});
+
 watch(
   () => props.outcomes,
   (next) => {
@@ -172,6 +225,10 @@ watch(
   },
   { immediate: true },
 );
+
+watch(expirationEnabled, (enabled) => {
+  if (!enabled) expiration.value = '';
+});
 
 watch(
   () => props.accounts,
@@ -217,6 +274,23 @@ function isPositiveFiniteNumber(value: string): boolean {
   return Number.isFinite(numericValue) && numericValue > 0;
 }
 
+function parseLocalDateTimeInput(value: string): number | null {
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function formatLocalDateTimeInput(value: Date): string {
+  const offsetMs = value.getTimezoneOffset() * 60 * 1000;
+  return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function limitOrderExpiration(): number | undefined {
+  if (!expirationEnabled.value || !expiration.value) return undefined;
+  const expirationMs = parseLocalDateTimeInput(expiration.value);
+  if (expirationMs == null) return undefined;
+  return Math.floor(expirationMs / 1000) + GTD_SECURITY_THRESHOLD_SECONDS;
+}
+
 function buildInput(orderId: string): ManualPlaceOrderInput {
   const tickSize = Number(selectedOrderBook.value?.tickSize);
   const normalizedTickSize = Number.isFinite(tickSize) && tickSize > 0 ? tickSize : undefined;
@@ -232,6 +306,7 @@ function buildInput(orderId: string): ManualPlaceOrderInput {
         shares: Number(shares.value),
         tickSize: normalizedTickSize,
         postOnly: postOnly.value,
+        expiration: limitOrderExpiration(),
       },
     };
   }
@@ -378,10 +453,23 @@ async function submitOrder(): Promise<void> {
           </span>
           <SharesInput v-model="shares" />
         </div>
-        <label class="text-muted-light flex items-center gap-2 text-sm">
-          <input v-model="postOnly" type="checkbox" class="h-4 w-4" />
-          Post-only
-        </label>
+        <div class="flex items-center justify-between gap-3">
+          <label class="text-muted-light flex shrink-0 items-center gap-2 text-sm">
+            <input v-model="expirationEnabled" type="checkbox" class="h-4 w-4" />
+            {{ t('tradingWindow.expiration') }}
+          </label>
+          <label class="text-muted-light flex shrink-0 items-center gap-2 text-sm">
+            <input v-model="postOnly" type="checkbox" class="h-4 w-4" />
+            {{ t('tradingWindow.postOnly') }}
+          </label>
+        </div>
+        <input
+          v-if="expirationEnabled"
+          v-model="expiration"
+          type="datetime-local"
+          :min="minimumExpirationInput"
+          class="border-border bg-surface text-text h-9 w-full rounded-md border px-3 text-sm outline-none"
+        />
       </template>
 
       <label v-else-if="side === 'BUY'" class="block">
@@ -414,6 +502,12 @@ async function submitOrder(): Promise<void> {
       <div class="border-border border-y py-2">
         <p class="text-muted text-xs">{{ estimateLabel }}</p>
         <p class="text-text mt-1 text-lg font-semibold tabular-nums">{{ estimateValueLabel }}</p>
+        <template v-if="isMarketBuy">
+          <p class="text-muted mt-2 text-xs">{{ t('tradingWindow.estimatedShares') }}</p>
+          <p class="mt-1 text-lg font-semibold text-green-300 tabular-nums">
+            {{ estimatedMarketBuySharesLabel }}
+          </p>
+        </template>
         <template v-if="isLimitBuy">
           <p class="text-muted mt-2 text-xs">{{ t('tradingWindow.estimatedProfit') }}</p>
           <p class="mt-1 text-lg font-semibold text-green-300 tabular-nums">

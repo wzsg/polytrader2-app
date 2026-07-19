@@ -263,15 +263,17 @@ class PolymarketAccountImpl implements PolymarketAccount {
     if (input.orderType !== 'limit') throw new Error('Internal order type mismatch');
 
     const options = await this.orderOptions(input);
+    const orderType = input.expiration == null ? OrderType.GTC : OrderType.GTD;
     return this._client.createAndPostOrder(
       {
         tokenID: input.assetId,
         price: input.price,
         size: input.shares,
         side: this.normalizeSide(input.side),
+        expiration: input.expiration,
       },
       options,
-      OrderType.GTC,
+      orderType,
       input.postOnly === true,
     );
   }

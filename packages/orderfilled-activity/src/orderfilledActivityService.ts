@@ -225,9 +225,7 @@ class OrderFilledActivityServiceImpl
     if (!type || type === 'hello' || type === 'subscriptions' || type === 'heartbeat_ack') return;
 
     if (type === 'orderfilled') {
-      const data = this._record(message.data);
-      if (!data) return;
-      this._addTrade(data, this._source(message.source));
+      this._addOrderFilledEnvelope(message, 'live');
       return;
     }
     if (type === 'history_complete') {
@@ -240,6 +238,7 @@ class OrderFilledActivityServiceImpl
       return;
     }
     if (type === 'reorg') {
+      if (!this._hasSupportedSchemaVersion(message)) return;
       const reorg = this._normalizeReorg(this._record(message.data));
       if (reorg) this._applyReorg(reorg);
       return;
@@ -284,8 +283,7 @@ class OrderFilledActivityServiceImpl
         const response = await this._fetchCatchup(cursor, reorgCursor);
         this._applyReorgs(response.reorgs);
         for (const event of response.events) {
-          const data = this._record(event.data);
-          if (data) this._addTrade(data, 'catchup');
+          this._addOrderFilledEnvelope(event, 'catchup');
         }
         cursor = response.nextCursor || cursor;
         reorgCursor = response.reorgCursor;
@@ -403,6 +401,17 @@ class OrderFilledActivityServiceImpl
     this._scheduleUpdated();
   }
 
+  private _addOrderFilledEnvelope(
+    envelope: JsonRecord,
+    fallbackSource: OrderFilledActivityTradeSource,
+  ): void {
+    if (this._string(envelope.type) !== 'orderfilled') return;
+    if (!this._hasSupportedSchemaVersion(envelope)) return;
+    const data = this._record(envelope.data);
+    if (!data) return;
+    this._addTrade(data, this._source(envelope.source, fallbackSource));
+  }
+
   private _normalizeTrade(
     data: JsonRecord,
     source: OrderFilledActivityTradeSource,
@@ -413,19 +422,16 @@ class OrderFilledActivityServiceImpl
     const blockNumber = this._integer(data.block_number);
     if (!blockHash || !transactionHash || logIndex === null || blockNumber === null) return null;
 
-    const makerAssetId = this._string(data.maker_asset_id);
-    const takerAssetId = this._string(data.taker_asset_id);
-    const isMakerBuying = makerAssetId === '0';
-    const outcomeAmount = isMakerBuying
-      ? this._formatUsdc(data.taker_amount_filled)
-      : this._formatUsdc(data.maker_amount_filled);
-    const tradeAmount = isMakerBuying
-      ? this._formatUsdc(data.maker_amount_filled)
-      : this._formatUsdc(data.taker_amount_filled);
-    const price = this._divideUsdc(
-      isMakerBuying ? data.maker_amount_filled : data.taker_amount_filled,
-      isMakerBuying ? data.taker_amount_filled : data.maker_amount_filled,
-    );
+    const side = this._side(data.side);
+    const tokenId = this._decimalString(data.token_id);
+    const makerAmount = this._bigInt(data.maker_amount_filled);
+    const takerAmount = this._bigInt(data.taker_amount_filled);
+    if (side === null || !tokenId || makerAmount === null || takerAmount === null) return null;
+
+    const makerIsBuying = side === 0;
+    const collateralAmount = makerIsBuying ? makerAmount : takerAmount;
+    const sharesAmount = makerIsBuying ? takerAmount : makerAmount;
+    if (sharesAmount === 0n) return null;
     const market = this._normalizeMarket(this._record(data.market));
     const timestamp = this._integer(data.timestamp);
 
@@ -438,14 +444,19 @@ class OrderFilledActivityServiceImpl
       timestamp,
       transactionHash,
       logIndex,
-      contract: this._string(data.contract),
+      exchangeAddress: this._string(data.exchange_address),
+      orderHash: this._string(data.order_hash),
       traderAddress: this._string(data.taker),
       counterpartyAddress: this._string(data.maker),
-      direction: makerAssetId === null ? null : isMakerBuying ? 'SELL' : 'BUY',
-      tokenId: takerAssetId === '0' ? null : takerAssetId,
-      price,
-      volume: outcomeAmount,
-      amount: tradeAmount,
+      side,
+      direction: makerIsBuying ? 'SELL' : 'BUY',
+      tokenId,
+      fee: this._decimalString(data.fee),
+      builder: this._string(data.builder),
+      metadata: this._string(data.metadata),
+      price: this._divideSixDecimalAmounts(collateralAmount, sharesAmount),
+      volume: this._formatSixDecimalAmount(sharesAmount),
+      amount: this._formatSixDecimalAmount(collateralAmount),
       market,
     };
   }
@@ -464,20 +475,24 @@ class OrderFilledActivityServiceImpl
     };
   }
 
-  private _formatUsdc(value: unknown): string | null {
-    const integer = this._bigInt(value);
-    if (integer === null) return null;
-    return this._formatScaled(integer, 6);
+  private _hasSupportedSchemaVersion(envelope: JsonRecord): boolean {
+    if (envelope.schema_version === 2) return true;
+    console.warn(
+      'Ignoring unsupported OrderFilled activity schema version',
+      envelope.schema_version,
+    );
+    return false;
   }
 
-  private _divideUsdc(numerator: unknown, denominator: unknown): string | null {
-    const numeratorValue = this._bigInt(numerator);
-    const denominatorValue = this._bigInt(denominator);
-    if (numeratorValue === null || denominatorValue === null || denominatorValue === 0n)
-      return null;
+  private _formatSixDecimalAmount(value: bigint): string {
+    return this._formatScaled(value, 6);
+  }
+
+  private _divideSixDecimalAmounts(numerator: bigint, denominator: bigint): string | null {
+    if (denominator === 0n) return null;
     const precision = 6n;
     const scale = 10n ** precision;
-    const scaled = (numeratorValue * scale) / denominatorValue;
+    const scaled = (numerator * scale) / denominator;
     return this._formatScaled(scaled, Number(precision));
   }
 
@@ -489,8 +504,8 @@ class OrderFilledActivityServiceImpl
   }
 
   private _bigInt(value: unknown): bigint | null {
-    const text = this._string(value);
-    if (!text || !/^\d+$/.test(text)) return null;
+    const text = this._decimalString(value);
+    if (!text) return null;
     try {
       return BigInt(text);
     } catch {
@@ -498,8 +513,20 @@ class OrderFilledActivityServiceImpl
     }
   }
 
-  private _source(value: unknown): OrderFilledActivityTradeSource {
-    return value === 'history' || value === 'catchup' ? value : 'live';
+  private _decimalString(value: unknown): string | null {
+    const text = this._string(value);
+    return text && /^\d+$/.test(text) ? text : null;
+  }
+
+  private _side(value: unknown): 0 | 1 | null {
+    return value === 0 || value === 1 ? value : null;
+  }
+
+  private _source(
+    value: unknown,
+    fallback: OrderFilledActivityTradeSource = 'live',
+  ): OrderFilledActivityTradeSource {
+    return value === 'history' || value === 'catchup' || value === 'live' ? value : fallback;
   }
 
   private _parseMessage(payload: unknown): JsonRecord | null {

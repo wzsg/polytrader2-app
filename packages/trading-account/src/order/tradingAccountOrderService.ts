@@ -19,6 +19,8 @@ import type {
 } from './tradingAccountOrderEvents.js';
 import type { TradingAccountOrderService } from '../types.js';
 
+const MINIMUM_GTD_EXPIRATION_LEAD_SECONDS = 180;
+
 interface TradingAccountOrderCredential {
   id?: string;
   privateKey: string;
@@ -445,6 +447,7 @@ class TradingAccountOrderServiceImpl
         assetId,
         price,
         shares: this._assertPositiveNumber(input.shares, 'Shares'),
+        expiration: this._normalizeLimitOrderExpiration(input.expiration),
       };
     }
 
@@ -470,8 +473,9 @@ class TradingAccountOrderServiceImpl
         price: input.price,
         size: input.shares,
         side: input.side,
-        orderType: 'GTC',
+        orderType: input.expiration == null ? 'GTC' : 'GTD',
         postOnly: input.postOnly === true,
+        expiration: input.expiration,
         tickSize: this._normalizeTickSize(input.tickSize),
         negRisk: input.negRisk,
       };
@@ -493,6 +497,19 @@ class TradingAccountOrderServiceImpl
     const normalized = normalizePriceTickSize(value);
     if (normalized != null) return normalized;
     throw new Error(`Unsupported tick size: ${String(value)}`);
+  }
+
+  private _normalizeLimitOrderExpiration(value: unknown): number | undefined {
+    if (value == null) return undefined;
+    const expiration = Number(value);
+    if (!Number.isInteger(expiration) || expiration <= 0) {
+      throw new Error('Limit order expiration must be a positive Unix timestamp');
+    }
+    const minimumExpiration = Math.floor(Date.now() / 1000) + MINIMUM_GTD_EXPIRATION_LEAD_SECONDS;
+    if (expiration < minimumExpiration) {
+      throw new Error('Limit order expiration must be at least 3 minutes in the future');
+    }
+    return expiration;
   }
 
   private async _resolveConditionId(assetId: string): Promise<string> {
