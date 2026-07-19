@@ -109,10 +109,10 @@ const hasValidOrderInput = computed(() => {
   return isPositiveFiniteNumber(side.value === 'BUY' ? amount.value : shares.value);
 });
 
-const isMarketSell = computed(() => orderType.value === 'market' && side.value === 'SELL');
+const isMarketBuy = computed(() => orderType.value === 'market' && side.value === 'BUY');
 const isLimitBuy = computed(() => orderType.value === 'limit' && side.value === 'BUY');
 const estimateLabel = computed(() =>
-  isMarketSell.value ? t('tradingWindow.estimatedProceeds') : t('tradingWindow.estimatedCost'),
+  side.value === 'SELL' ? t('tradingWindow.estimatedProceeds') : t('tradingWindow.estimatedCost'),
 );
 const estimate = computed(() => {
   if (orderType.value === 'market') {
@@ -124,6 +124,24 @@ const estimate = computed(() => {
   return (Number(price.value) || 0) * (Number(shares.value) || 0);
 });
 const estimateValueLabel = computed(() => `$${estimate.value.toFixed(2)}`);
+const estimatedMarketBuyShares = computed(() => {
+  if (!isMarketBuy.value) return null;
+  const currentAmount = Number(amount.value);
+  const currentPrice = bestMarketExecutionPrice.value;
+  if (
+    !Number.isFinite(currentAmount) ||
+    currentAmount <= 0 ||
+    !Number.isFinite(currentPrice) ||
+    currentPrice <= 0
+  ) {
+    return null;
+  }
+  return currentAmount / currentPrice;
+});
+const estimatedMarketBuySharesLabel = computed(() => {
+  if (estimatedMarketBuyShares.value == null) return '—';
+  return formatNumber(estimatedMarketBuyShares.value, 2);
+});
 const antiMistouchEnabled = computed(() => {
   return (
     Number.isFinite(estimate.value) && estimate.value > currentOrderConfirmationThresholdUsd.value
@@ -414,6 +432,12 @@ async function submitOrder(): Promise<void> {
       <div class="border-border border-y py-2">
         <p class="text-muted text-xs">{{ estimateLabel }}</p>
         <p class="text-text mt-1 text-lg font-semibold tabular-nums">{{ estimateValueLabel }}</p>
+        <template v-if="isMarketBuy">
+          <p class="text-muted mt-2 text-xs">{{ t('tradingWindow.estimatedShares') }}</p>
+          <p class="mt-1 text-lg font-semibold text-green-300 tabular-nums">
+            {{ estimatedMarketBuySharesLabel }}
+          </p>
+        </template>
         <template v-if="isLimitBuy">
           <p class="text-muted mt-2 text-xs">{{ t('tradingWindow.estimatedProfit') }}</p>
           <p class="mt-1 text-lg font-semibold text-green-300 tabular-nums">
