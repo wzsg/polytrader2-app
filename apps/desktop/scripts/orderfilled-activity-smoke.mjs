@@ -44,6 +44,13 @@ async function main() {
       assert.ok(trade.amount, 'Expected a normalized trade amount');
       assert.ok(trade.volume, 'Expected a normalized trade volume');
       assert.ok(trade.price, 'Expected a normalized trade price');
+      assert.equal(trade.side, 0, 'Expected taker SELL to map to V2 side 0');
+      assert.ok(trade.tokenId, 'Expected the V2 outcome token ID');
+      assert.ok(trade.exchangeAddress, 'Expected the V2 exchange address');
+      assert.ok(trade.orderHash, 'Expected the V2 order hash');
+      assert.notEqual(trade.fee, null, 'Expected the V2 fee field');
+      assert.ok(trade.builder, 'Expected the V2 builder field');
+      assert.ok(trade.metadata, 'Expected the V2 metadata field');
       assert.equal(trade.direction, ACTIVITY_TAKER_DIRECTION);
       assert.ok(Number(trade.amount) >= Number(ACTIVITY_MIN_AMOUNT));
       assert.ok(Number(trade.price) >= Number(ACTIVITY_MIN_PRICE));

@@ -885,11 +885,16 @@ export interface OrderFilledActivityTrade {
   timestamp: number | null;
   transactionHash: string;
   logIndex: number;
-  contract: string | null;
+  exchangeAddress: string | null;
+  orderHash: string | null;
   traderAddress: string | null;
   counterpartyAddress: string | null;
+  side: 0 | 1;
   direction: 'BUY' | 'SELL' | null;
-  tokenId: string | null;
+  tokenId: string;
+  fee: string | null;
+  builder: string | null;
+  metadata: string | null;
   price: string | null;
   volume: string | null;
   amount: string | null;
