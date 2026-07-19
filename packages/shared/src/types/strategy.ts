@@ -59,6 +59,7 @@ interface StrategyLimitOrderInput {
   tickSize?: number;
   negRisk?: boolean;
   postOnly?: boolean;
+  expiration?: number;
   idempotencyKey?: string;
 }
 
