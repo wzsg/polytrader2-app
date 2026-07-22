@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import { WebSocket, type RawData } from 'ws';
 import { RemoteAccessError } from './remoteAccessError.js';
 import { RemoteAccessProtocol } from './remoteAccessProtocol.js';
 import {
@@ -42,13 +41,14 @@ class RemoteAccessClient {
   private _socket: WebSocket | null = null;
   private _state: RemoteAccessClientState = 'stopped';
   private _stopped = true;
-  private _alive = false;
   private _authenticationRequestId = '';
+  private _heartbeatRequestId = '';
   private _reconnectDelayMs: number;
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private _connectionTimer: ReturnType<typeof setTimeout> | null = null;
   private _authenticationTimer: ReturnType<typeof setTimeout> | null = null;
   private _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private _heartbeatResponseTimer: ReturnType<typeof setTimeout> | null = null;
 
   public constructor(options: RemoteAccessClientOptions) {
     if (!options.deviceId.trim()) throw new Error('Remote access device ID is required');
@@ -99,11 +99,9 @@ class RemoteAccessClient {
     this._clearTimers();
     const socket = this._socket;
     this._socket = null;
-    if (socket) {
-      socket.removeAllListeners();
-      socket.terminate();
-    }
+    if (socket) this._closeSocket(socket, 1000, 'Client stopping');
     this._authenticationRequestId = '';
+    this._heartbeatRequestId = '';
     this._requestCache.clear();
     this._setState('stopped');
   }
@@ -124,25 +122,22 @@ class RemoteAccessClient {
   private _connect(): void {
     if (this._stopped || this._socket) return;
     this._setState('connecting');
-    const socket = new WebSocket(this._options.url, {
-      maxPayload: this._options.maxPayloadBytes,
-    });
+    const socket = new WebSocket(this._options.url);
     this._socket = socket;
-    socket.on('open', () => this._handleOpen(socket));
-    socket.on('message', (data, isBinary) => {
-      void this._handleMessage(socket, data, isBinary).catch((error: unknown) => {
+    socket.addEventListener('open', () => this._handleOpen(socket));
+    socket.addEventListener('message', (event) => {
+      void this._handleMessage(socket, event).catch((error: unknown) => {
         this._warn('Unhandled remote access request failure', error);
       });
     });
-    socket.on('pong', () => {
-      if (this._socket === socket) this._alive = true;
+    socket.addEventListener('error', (event) => {
+      this._warn('Remote access connection failed', event);
     });
-    socket.on('error', (error) => this._warn('Remote access connection failed', error));
-    socket.on('close', () => this._handleClose(socket));
+    socket.addEventListener('close', () => this._handleClose(socket));
     this._connectionTimer = setTimeout(() => {
       if (this._socket !== socket || this._state !== 'connecting') return;
       this._warn('Remote access connection timed out');
-      socket.terminate();
+      this._closeSocket(socket, 1001, 'Connection timed out');
     }, this._options.connectionTimeoutMs);
     this._connectionTimer.unref?.();
   }
@@ -170,20 +165,26 @@ class RemoteAccessClient {
     this._authenticationTimer.unref?.();
   }
 
-  private async _handleMessage(socket: WebSocket, data: RawData, isBinary: boolean): Promise<void> {
+  private async _handleMessage(socket: WebSocket, event: MessageEvent): Promise<void> {
     if (this._socket !== socket || this._stopped) return;
-    if (isBinary) {
+    if (typeof event.data !== 'string') {
       this._warn('Remote access received an unsupported binary message');
-      socket.close(1003, 'Binary messages are not supported');
+      this._closeSocket(socket, 1003, 'Binary messages are not supported');
       return;
     }
 
-    const payload = data.toString('utf8');
+    const payload = event.data;
+    if (Buffer.byteLength(payload, 'utf8') > this._options.maxPayloadBytes) {
+      this._warn('Remote access received a message that exceeded the payload limit');
+      this._closeSocket(socket, 1009, 'Message is too large');
+      return;
+    }
     if (this._state === 'authenticating') {
       this._handleAuthenticationResponse(socket, payload);
       return;
     }
     if (this._state !== 'connected') return;
+    if (this._handleHeartbeatResponse(payload)) return;
 
     let request: RemoteAccessRequest;
     try {
@@ -208,23 +209,22 @@ class RemoteAccessClient {
       response = this._protocol.parseResponse(payload);
     } catch (error) {
       this._warn('Remote access authentication returned an invalid response', error);
-      socket.close(1008, 'Invalid authentication response');
+      this._closeSocket(socket, 1008, 'Invalid authentication response');
       return;
     }
     if (response.id !== this._authenticationRequestId) {
       this._warn('Remote access authentication response ID did not match');
-      socket.close(1008, 'Authentication response ID mismatch');
+      this._closeSocket(socket, 1008, 'Authentication response ID mismatch');
       return;
     }
     if (!response.ok) {
       this._warn(`Remote access authentication failed: ${response.error.code}`);
-      socket.close(1008, 'Authentication failed');
+      this._closeSocket(socket, 1008, 'Authentication failed');
       return;
     }
     this._clearAuthenticationTimer();
     this._authenticationRequestId = '';
     this._reconnectDelayMs = this._options.reconnectInitialDelayMs;
-    this._alive = true;
     this._setState('connected');
     this._startHeartbeat(socket);
   }
@@ -233,6 +233,7 @@ class RemoteAccessClient {
     if (this._socket !== socket) return;
     this._socket = null;
     this._authenticationRequestId = '';
+    this._heartbeatRequestId = '';
     this._clearConnectionTimer();
     this._clearAuthenticationTimer();
     this._clearHeartbeatTimer();
@@ -367,14 +368,39 @@ class RemoteAccessClient {
     this._clearHeartbeatTimer();
     this._heartbeatTimer = setInterval(() => {
       if (this._socket !== socket || socket.readyState !== WebSocket.OPEN) return;
-      if (!this._alive) {
-        socket.terminate();
-        return;
-      }
-      this._alive = false;
-      socket.ping();
+      if (this._heartbeatRequestId) return;
+      this._heartbeatRequestId = `heartbeat:${randomUUID()}`;
+      socket.send(
+        this._protocol.encodeRequest({
+          id: this._heartbeatRequestId,
+          method: 'ping',
+          params: {},
+        }),
+      );
+      this._heartbeatResponseTimer = setTimeout(() => {
+        if (this._socket !== socket || !this._heartbeatRequestId) return;
+        this._warn('Remote access heartbeat timed out');
+        this._closeSocket(socket, 1001, 'Heartbeat timed out');
+      }, this._options.heartbeatIntervalMs);
+      this._heartbeatResponseTimer.unref?.();
     }, this._options.heartbeatIntervalMs);
     this._heartbeatTimer.unref?.();
+  }
+
+  private _handleHeartbeatResponse(payload: string): boolean {
+    if (!this._heartbeatRequestId) return false;
+    let response: RemoteAccessResponse;
+    try {
+      response = this._protocol.parseResponse(payload);
+    } catch {
+      return false;
+    }
+    if (response.id !== this._heartbeatRequestId) return false;
+    if (!response.ok) this._warn(`Remote access heartbeat failed: ${response.error.code}`);
+    this._heartbeatRequestId = '';
+    if (this._heartbeatResponseTimer) clearTimeout(this._heartbeatResponseTimer);
+    this._heartbeatResponseTimer = null;
+    return true;
   }
 
   private _responseFromError(requestId: string, error: unknown): RemoteAccessResponse {
@@ -394,6 +420,14 @@ class RemoteAccessClient {
   private _send(socket: WebSocket, response: RemoteAccessResponse): void {
     if (this._socket !== socket || socket.readyState !== WebSocket.OPEN) return;
     socket.send(this._protocol.encodeResponse(response));
+  }
+
+  private _closeSocket(socket: WebSocket, code: number, reason: string): void {
+    try {
+      socket.close(code, reason);
+    } catch (error) {
+      this._warn('Remote access connection could not be closed cleanly', error);
+    }
   }
 
   private _setState(state: RemoteAccessClientState): void {
@@ -427,6 +461,9 @@ class RemoteAccessClient {
   private _clearHeartbeatTimer(): void {
     if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
     this._heartbeatTimer = null;
+    if (this._heartbeatResponseTimer) clearTimeout(this._heartbeatResponseTimer);
+    this._heartbeatResponseTimer = null;
+    this._heartbeatRequestId = '';
   }
 
   private _warn(message: string, reason?: unknown): void {

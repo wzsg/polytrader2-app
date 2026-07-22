@@ -9,12 +9,12 @@
     "test": "pnpm run build && node --test test/*.test.mjs"
   },
   "dependencies": {
-    "ws": "8.21.0",
     "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "^25.9.3",
-    "@types/ws": "8.18.1"
+    "@types/ws": "8.18.1",
+    "ws": "8.21.0"
   },
   "exports": {
     ".": {

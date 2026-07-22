@@ -17,6 +17,7 @@ Local wallets and Polymarket credentials
 ```
 
 The desktop does not listen on a local port. It initiates and maintains a connection to the configured Tunnel endpoint.
+The runtime client uses Electron's built-in standards-based `WebSocket`; the `ws` package is used only by tests to simulate a relay server.
 
 ## Transport
 
@@ -24,6 +25,7 @@ The desktop does not listen on a local port. It initiates and maintains a connec
 - One response for every request, correlated by `id`
 - The desktop authenticates immediately after every connection
 - The desktop reconnects with exponential backoff when the connection is lost
+- Liveness checks use protocol-level `ping` request/response messages
 - The relay retries an uncertain request with the same request `id`
 - The desktop caches responses by request `id`, so a retried write is not executed twice
 - Reusing an `id` for a different payload returns `REQUEST_ID_CONFLICT`

@@ -375,9 +375,6 @@ importers:
 
   packages/remote-access:
     dependencies:
-      ws:
-        specifier: 8.21.0
-        version: 8.21.0
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -388,6 +385,9 @@ importers:
       '@types/ws':
         specifier: 8.18.1
         version: 8.18.1
+      ws:
+        specifier: 8.21.0
+        version: 8.21.0
 
   packages/repositories/duckdb-repository:
     dependencies:

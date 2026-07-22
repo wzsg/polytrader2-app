@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { setTimeout as delay } from 'node:timers/promises';
 import { WebSocketServer } from 'ws';
 import { RemoteAccessClient } from '../dist/index.js';
 
@@ -191,6 +192,39 @@ test('supports optional desktop confirmation for write requests', async () => {
   assert.equal(response.ok, false);
   assert.equal(response.error.code, 'CONFIRMATION_REJECTED');
   assert.equal(counters.place, 0);
+
+  client.stop();
+  await closeRelay(relay);
+});
+
+test('uses request and response messages for heartbeat checks', async () => {
+  const counters = { place: 0, cancel: 0 };
+  const relay = await createRelay();
+  const connection = waitForConnection(relay);
+  const client = new RemoteAccessClient({
+    url: relayUrl(relay),
+    deviceId: 'desktop-1',
+    token: 'secret',
+    handlers: createHandlers(counters),
+    heartbeatIntervalMs: 10,
+  });
+  client.start();
+
+  const socket = await connection;
+  await authenticate(socket);
+  const heartbeat = await receive(socket);
+  assert.equal(heartbeat.method, 'ping');
+  assert.match(heartbeat.id, /^heartbeat:/);
+  socket.send(
+    JSON.stringify({
+      id: heartbeat.id,
+      ok: true,
+      data: { relayTime: new Date(0).toISOString() },
+    }),
+  );
+
+  await delay(2);
+  assert.equal(client.state, 'connected');
 
   client.stop();
   await closeRelay(relay);
