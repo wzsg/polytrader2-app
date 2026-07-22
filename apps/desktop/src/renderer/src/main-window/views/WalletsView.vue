@@ -62,6 +62,7 @@ const { t } = useI18n();
 
 const {
   accounts,
+  loading,
   saving,
   error,
   dialogError,
@@ -966,8 +967,49 @@ watch(detailPanelCollapsed, (next) => writeDetailPanelCollapsed(next));
     </div>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <section class="min-h-0 flex-1 overflow-auto">
-        <table v-if="accounts.length" class="w-full border-collapse">
+      <div v-if="loading" class="flex min-h-0 flex-1 items-center justify-center">
+        <LoadingSpinner :size="24" :title="t('common.loading')" />
+      </div>
+
+      <div
+        v-else-if="!accounts.length"
+        class="flex min-h-0 flex-1 items-center justify-center px-8 py-12"
+      >
+        <div class="flex max-w-md flex-col items-center text-center">
+          <div
+            class="border-border bg-surface text-primary-light mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border"
+          >
+            <Wallet :size="30" aria-hidden="true" />
+          </div>
+          <h2 class="text-lg font-semibold text-white">{{ t('account.emptyTitle') }}</h2>
+          <p class="text-muted mt-2 text-sm leading-6">
+            {{ t('account.emptyDescription') }}
+          </p>
+          <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              class="bg-primary hover:bg-primary-hover inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium text-white transition-colors disabled:opacity-50"
+              :disabled="saving"
+              @click="openCreateAccountAction"
+            >
+              <Plus :size="15" aria-hidden="true" />
+              {{ t('account.create') }}
+            </button>
+            <button
+              type="button"
+              class="border-border bg-surface text-text hover:bg-btn-secondary inline-flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium transition-colors disabled:opacity-50"
+              :disabled="saving"
+              @click="openImportAccountAction"
+            >
+              <Upload :size="15" aria-hidden="true" />
+              {{ t('account.importExistingWallet') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <section v-else class="min-h-0 flex-1 overflow-auto">
+        <table class="w-full border-collapse">
           <thead class="bg-surface sticky top-0 z-10">
             <tr>
               <th
@@ -1182,12 +1224,10 @@ watch(detailPanelCollapsed, (next) => writeDetailPanelCollapsed(next));
             </tr>
           </tbody>
         </table>
-        <div v-else class="text-muted flex h-full items-center justify-center p-8 text-sm">
-          {{ t('account.noWallets') }}
-        </div>
       </section>
 
       <section
+        v-if="!loading && accounts.length"
         class="border-border bg-detail-bg flex shrink-0 flex-col overflow-hidden border-t"
         :style="detailPanelCollapsed ? undefined : { height: `${detailPanelHeight}px` }"
       >
