@@ -114,6 +114,9 @@ pnpm --filter @polytrader2/app run smoke:crypto-events
 | `P2_ENABLE_ACCOUNT_DATA_SYNC`                                | 启用账户认证和云端数据同步。开发模式下除非显式设置为 `0`，否则默认启用；生产构建需要设置 `1` 才启用。 |
 | `P2_ENABLE_STRATEGY_AUTOMATION`                              | 启用策略和机器人 UI。开发模式下除非显式设置为 `0`，否则默认启用；生产构建需要设置 `1` 才启用。        |
 | `P2_ENABLE_TURNSTILE`                                        | 设置为 `1` 时在认证表单启用 Cloudflare Turnstile。                                                    |
+| `P2_REMOTE_ACCESS_TOKEN`                                     | 设置后启用仅监听回环地址的 WebSocket 远程访问服务。请使用高熵密钥，并仅通过安全 Tunnel 暴露。         |
+| `P2_REMOTE_ACCESS_PORT`                                      | 可选的本地 WebSocket 端口，默认为 `8790`。                                                            |
+| `P2_REMOTE_ACCESS_PATH`                                      | 可选的 WebSocket 路径，默认为 `/remote-access`。                                                      |
 | `VITE_TURNSTILE_SITE_KEY`                                    | Renderer 认证表单使用的 Turnstile site key。                                                          |
 
 ## 本地数据

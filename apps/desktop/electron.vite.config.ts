@@ -43,6 +43,10 @@ const workspacePackageAliases = [
     replacement: resolve('../../packages/polymarket-wallet/src/index.ts'),
   },
   {
+    find: '@polytrader/remote-access',
+    replacement: resolve('../../packages/remote-access/src/index.ts'),
+  },
+  {
     find: '@polytrader/orderfilled-activity',
     replacement: resolve('../../packages/orderfilled-activity/src/index.ts'),
   },
@@ -168,6 +172,7 @@ export default defineConfig({
           '@polytrader/polymarket-api',
           '@polytrader/polymarket-market',
           '@polytrader/polymarket-wallet',
+          '@polytrader/remote-access',
           '@polytrader/orderfilled-activity',
           '@polytrader/strategy-runtime',
           '@polytrader/trading-account',

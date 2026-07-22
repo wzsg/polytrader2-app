@@ -46,6 +46,7 @@ import { mcpServerManager } from '../services/mcpServerService.js';
 import { systemPerformanceService } from '../services/systemPerformanceService.js';
 import { appPreferencesService } from '../services/appPreferencesService.js';
 import { orderfilledActivityService } from '../services/orderfilledActivityService.js';
+import { remoteAccessService } from '../services/remoteAccessService.js';
 import { createMainWindow } from '../windows/mainWindow.js';
 import { registerBrowserWindowHandlers } from '../windows/browserWindow.js';
 import { registerStrategyEditorWindowHandlers } from '../windows/strategyEditorWindow.js';
@@ -138,6 +139,7 @@ async function bootstrapApp(options: { initialEventSync?: boolean } = {}): Promi
   await strategyRunHistoryService.init();
   botRuntimeService.init();
   await mcpServerManager.applySavedConfig();
+  await remoteAccessService.applyEnvironmentConfig();
   const preferences = await appPreferencesService.getAppPreferences();
   await systemPerformanceService.start(preferences.performanceMonitoringEnabled);
   createMainWindow();
@@ -168,6 +170,9 @@ function stopAppServices(): Promise<void> {
     });
     await mcpServerManager.stop().catch((error) => {
       console.warn('Failed to stop MCP server manager', error);
+    });
+    await remoteAccessService.stop().catch((error) => {
+      console.warn('Failed to stop remote access server', error);
     });
     systemPerformanceService.stop();
     tradingAccountService.stop();

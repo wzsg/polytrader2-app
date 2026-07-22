@@ -19,6 +19,7 @@
     { "path": "../../packages/polymarket-api" },
     { "path": "../../packages/polymarket-market" },
     { "path": "../../packages/polymarket-wallet" },
+    { "path": "../../packages/remote-access" },
     { "path": "../../packages/trading-account" },
     { "path": "../../packages/trading-market" },
     { "path": "../../packages/trading-strategy" },
