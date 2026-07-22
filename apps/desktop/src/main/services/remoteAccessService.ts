@@ -1,7 +1,5 @@
-import { createHash, timingSafeEqual } from 'crypto';
 import {
-  RemoteAccessServer,
-  type RemoteAccessAuthParams,
+  RemoteAccessClient,
   type RemoteAccessOrderCancelParams,
   type RemoteAccessOrderListParams,
   type RemoteAccessOrderPlaceParams,
@@ -12,29 +10,27 @@ import {
 import { polymarketWalletService } from './polymarketWalletService.js';
 import { tradingAccountService } from './tradingAccountService.js';
 
-const DEFAULT_REMOTE_ACCESS_PORT = 8790;
-const DEFAULT_REMOTE_ACCESS_PATH = '/remote-access';
-
 class DesktopRemoteAccessService {
-  private _server: RemoteAccessServer | null = null;
-  private _authenticationToken = '';
+  private _client: RemoteAccessClient | null = null;
 
   public async applyEnvironmentConfig(): Promise<void> {
+    const url = process.env.P2_REMOTE_ACCESS_URL?.trim() || '';
     const token = process.env.P2_REMOTE_ACCESS_TOKEN?.trim() || '';
-    if (!token) {
+    const deviceId = process.env.P2_REMOTE_ACCESS_DEVICE_ID?.trim() || '';
+    if (!url) {
       await this.stop();
       return;
     }
-    if (this._server) return;
+    if (!token) throw new Error('P2_REMOTE_ACCESS_TOKEN is required when remote access is enabled');
+    if (!deviceId) {
+      throw new Error('P2_REMOTE_ACCESS_DEVICE_ID is required when remote access is enabled');
+    }
+    if (this._client) return;
 
-    this._authenticationToken = token;
-    const server = new RemoteAccessServer({
-      host: '127.0.0.1',
-      port: this._parsePort(process.env.P2_REMOTE_ACCESS_PORT),
-      path: process.env.P2_REMOTE_ACCESS_PATH?.trim() || DEFAULT_REMOTE_ACCESS_PATH,
-      authenticator: {
-        authenticate: (params) => this._authenticate(params),
-      },
+    const client = new RemoteAccessClient({
+      url,
+      deviceId,
+      token,
       handlers: {
         listWallets: () => this._listWallets(),
         getWalletBalance: (params) => this._getWalletBalance(params.walletId),
@@ -42,28 +38,17 @@ class DesktopRemoteAccessService {
         placeOrder: (params, context) => this._placeOrder(params, context),
         cancelOrder: (params) => this._cancelOrder(params),
       },
+      onStateChange: (state) => console.info(`Remote access connection state: ${state}`),
       onWarning: (message, reason) => console.warn(message, reason),
     });
-    await server.start();
-    this._server = server;
-    const address = server.address;
-    console.info(
-      `Remote access server listening on ws://${address?.host}:${address?.port}${address?.path}`,
-    );
+    this._client = client;
+    client.start();
   }
 
   public async stop(): Promise<void> {
-    const server = this._server;
-    this._server = null;
-    this._authenticationToken = '';
-    await server?.stop();
-  }
-
-  private _authenticate(params: RemoteAccessAuthParams): boolean {
-    if (!this._authenticationToken) return false;
-    const expected = createHash('sha256').update(this._authenticationToken).digest();
-    const actual = createHash('sha256').update(params.token).digest();
-    return timingSafeEqual(expected, actual);
+    const client = this._client;
+    this._client = null;
+    client?.stop();
   }
 
   private async _listWallets(): Promise<RemoteAccessWalletSummary[]> {
@@ -120,15 +105,6 @@ class DesktopRemoteAccessService {
       walletId: params.walletId,
       exchangeOrderId: params.orderId,
     });
-  }
-
-  private _parsePort(value: string | undefined): number {
-    if (!value?.trim()) return DEFAULT_REMOTE_ACCESS_PORT;
-    const port = Number(value);
-    if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-      throw new Error('P2_REMOTE_ACCESS_PORT must be an integer between 1 and 65535');
-    }
-    return port;
   }
 }
 

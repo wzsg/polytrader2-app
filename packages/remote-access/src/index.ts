@@ -1,10 +1,11 @@
 export { RemoteAccessError } from './remoteAccessError.js';
-export { RemoteAccessServer } from './remoteAccessServer.js';
+export { RemoteAccessClient } from './remoteAccessClient.js';
 export { REMOTE_ACCESS_PROTOCOL_VERSION } from './types.js';
 
 export type {
-  RemoteAccessAuthenticator,
   RemoteAccessAuthParams,
+  RemoteAccessClientOptions,
+  RemoteAccessClientState,
   RemoteAccessConfirmationProvider,
   RemoteAccessConfirmationRequest,
   RemoteAccessFailureResponse,
@@ -19,8 +20,6 @@ export type {
   RemoteAccessRequest,
   RemoteAccessRequestContext,
   RemoteAccessResponse,
-  RemoteAccessServerAddress,
-  RemoteAccessServerOptions,
   RemoteAccessSuccessResponse,
   RemoteAccessWalletBalance,
   RemoteAccessWalletIdParams,

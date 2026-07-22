@@ -95,6 +95,17 @@ const requestSchema = z.discriminatedUnion('method', [
     .strict(),
 ]);
 
+const responseSchema = z.union([
+  z.object({ id: requestIdSchema, ok: z.literal(true), data: z.unknown() }).strict(),
+  z
+    .object({
+      id: requestIdSchema,
+      ok: z.literal(false),
+      error: z.object({ code: z.string().min(1), message: z.string() }).strict(),
+    })
+    .strict(),
+]);
+
 class RemoteAccessProtocol {
   public parseRequest(payload: string): RemoteAccessRequest {
     let parsed: unknown;
@@ -118,6 +129,25 @@ class RemoteAccessProtocol {
     } catch {
       return '';
     }
+  }
+
+  public parseResponse(payload: string): RemoteAccessResponse {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(payload);
+    } catch {
+      throw new RemoteAccessError('INVALID_JSON', 'Response must be valid JSON');
+    }
+
+    const result = responseSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new RemoteAccessError('INVALID_RESPONSE', 'Response does not match the protocol');
+    }
+    return result.data as RemoteAccessResponse;
+  }
+
+  public encodeRequest(request: RemoteAccessRequest): string {
+    return JSON.stringify(request);
   }
 
   public fingerprint(request: RemoteAccessRequest): string {

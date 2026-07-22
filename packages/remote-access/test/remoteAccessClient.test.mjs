@@ -1,17 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { WebSocket } from 'ws';
-import { RemoteAccessServer } from '../dist/index.js';
+import { WebSocketServer } from 'ws';
+import { RemoteAccessClient } from '../dist/index.js';
 
-function connect(port) {
-  return new Promise((resolve, reject) => {
-    const socket = new WebSocket(`ws://127.0.0.1:${port}/remote-access`);
-    socket.once('open', () => resolve(socket));
-    socket.once('error', reject);
-  });
+function waitForConnection(server) {
+  return new Promise((resolve) => server.once('connection', resolve));
 }
 
-function request(socket, payload) {
+function receive(socket) {
   return new Promise((resolve, reject) => {
     const handleMessage = (data) => {
       cleanup();
@@ -27,19 +23,30 @@ function request(socket, payload) {
     };
     socket.once('message', handleMessage);
     socket.once('error', handleError);
-    socket.send(JSON.stringify(payload));
   });
 }
 
-function close(socket) {
-  return new Promise((resolve) => {
-    if (socket.readyState === WebSocket.CLOSED) {
-      resolve();
-      return;
-    }
-    socket.once('close', resolve);
-    socket.close();
+async function authenticate(socket) {
+  const request = await receive(socket);
+  assert.equal(request.method, 'auth');
+  assert.deepEqual(request.params, {
+    protocolVersion: 1,
+    deviceId: 'desktop-1',
+    token: 'secret',
   });
+  socket.send(
+    JSON.stringify({
+      id: request.id,
+      ok: true,
+      data: { protocolVersion: 1, deviceId: 'desktop-1' },
+    }),
+  );
+}
+
+function request(socket, payload) {
+  const response = receive(socket);
+  socket.send(JSON.stringify(payload));
+  return response;
 }
 
 function createHandlers(counters) {
@@ -81,11 +88,24 @@ function createHandlers(counters) {
   };
 }
 
-const authRequest = {
-  id: 'auth-1',
-  method: 'auth',
-  params: { protocolVersion: 1, deviceId: 'phone-1', token: 'secret' },
-};
+function createRelay() {
+  return new Promise((resolve, reject) => {
+    const server = new WebSocketServer({ host: '127.0.0.1', port: 0 });
+    server.once('listening', () => resolve(server));
+    server.once('error', reject);
+  });
+}
+
+function relayUrl(server) {
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  return `ws://127.0.0.1:${address.port}`;
+}
+
+function closeRelay(server) {
+  for (const socket of server.clients) socket.terminate();
+  return new Promise((resolve) => server.close(resolve));
+}
 
 const placeRequest = {
   id: 'place-1',
@@ -102,33 +122,24 @@ const placeRequest = {
   },
 };
 
-test('authenticates, routes requests, and deduplicates retried writes', async () => {
+test('connects outward, authenticates, and deduplicates writes after reconnect', async () => {
   const counters = { place: 0, cancel: 0 };
-  const server = new RemoteAccessServer({
-    port: 0,
-    authenticator: { authenticate: ({ token }) => token === 'secret' },
+  const relay = await createRelay();
+  const firstConnection = waitForConnection(relay);
+  const client = new RemoteAccessClient({
+    url: relayUrl(relay),
+    deviceId: 'desktop-1',
+    token: 'secret',
     handlers: createHandlers(counters),
     heartbeatIntervalMs: 60_000,
+    reconnectInitialDelayMs: 5,
+    reconnectMaxDelayMs: 5,
+    reconnectJitterRatio: 0,
   });
-  await server.start();
-  const port = server.address?.port;
-  assert.ok(port);
+  client.start();
 
-  const unauthorizedSocket = await connect(port);
-  const unauthorized = await request(unauthorizedSocket, {
-    id: 'wallets-0',
-    method: 'wallet.list',
-    params: {},
-  });
-  assert.deepEqual(unauthorized, {
-    id: 'wallets-0',
-    ok: false,
-    error: { code: 'AUTH_REQUIRED', message: 'Authentication is required' },
-  });
-  await close(unauthorizedSocket);
-
-  const first = await connect(port);
-  assert.equal((await request(first, authRequest)).ok, true);
+  const first = await firstConnection;
+  await authenticate(first);
   const wallets = await request(first, { id: 'wallets-1', method: 'wallet.list', params: {} });
   assert.equal(wallets.ok, true);
   assert.equal(wallets.data[0].id, 'wallet-1');
@@ -139,10 +150,11 @@ test('authenticates, routes requests, and deduplicates retried writes', async ()
     ok: true,
     data: { orderId: 'place-1', status: 'submitting' },
   });
-  await close(first);
 
-  const reconnected = await connect(port);
-  assert.equal((await request(reconnected, { ...authRequest, id: 'auth-2' })).ok, true);
+  const secondConnection = waitForConnection(relay);
+  first.terminate();
+  const reconnected = await secondConnection;
+  await authenticate(reconnected);
   assert.deepEqual(await request(reconnected, placeRequest), placed);
   assert.equal(counters.place, 1);
 
@@ -154,31 +166,32 @@ test('authenticates, routes requests, and deduplicates retried writes', async ()
   assert.equal(conflict.ok, false);
   assert.equal(conflict.error.code, 'REQUEST_ID_CONFLICT');
 
-  await close(reconnected);
-  await server.stop();
+  client.stop();
+  await closeRelay(relay);
 });
 
-test('supports optional confirmation for write requests', async () => {
+test('supports optional desktop confirmation for write requests', async () => {
   const counters = { place: 0, cancel: 0 };
-  const server = new RemoteAccessServer({
-    port: 0,
-    authenticator: { authenticate: () => true },
+  const relay = await createRelay();
+  const connection = waitForConnection(relay);
+  const client = new RemoteAccessClient({
+    url: relayUrl(relay),
+    deviceId: 'desktop-1',
+    token: 'secret',
     handlers: createHandlers(counters),
     confirmationProvider: { confirm: () => false },
     requireConfirmationForWrites: true,
     heartbeatIntervalMs: 60_000,
   });
-  await server.start();
-  const port = server.address?.port;
-  assert.ok(port);
+  client.start();
 
-  const socket = await connect(port);
-  assert.equal((await request(socket, authRequest)).ok, true);
+  const socket = await connection;
+  await authenticate(socket);
   const response = await request(socket, placeRequest);
   assert.equal(response.ok, false);
   assert.equal(response.error.code, 'CONFIRMATION_REJECTED');
   assert.equal(counters.place, 0);
 
-  await close(socket);
-  await server.stop();
+  client.stop();
+  await closeRelay(relay);
 });

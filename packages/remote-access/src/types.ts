@@ -103,12 +103,8 @@ interface RemoteAccessWalletBalance {
 }
 
 interface RemoteAccessRequestContext {
-  deviceId: string;
+  desktopDeviceId: string;
   requestId: string;
-}
-
-interface RemoteAccessAuthenticator {
-  authenticate(params: RemoteAccessAuthParams): boolean | Promise<boolean>;
 }
 
 interface RemoteAccessHandlers {
@@ -132,7 +128,7 @@ interface RemoteAccessHandlers {
 }
 
 interface RemoteAccessConfirmationRequest {
-  deviceId: string;
+  desktopDeviceId: string;
   requestId: string;
   method: RemoteAccessWriteMethod;
   params: RemoteAccessOrderPlaceParams | RemoteAccessOrderCancelParams;
@@ -142,11 +138,13 @@ interface RemoteAccessConfirmationProvider {
   confirm(request: RemoteAccessConfirmationRequest): boolean | Promise<boolean>;
 }
 
-interface RemoteAccessServerOptions {
-  port: number;
-  host?: string;
-  path?: string;
-  authenticator: RemoteAccessAuthenticator;
+type RemoteAccessClientState =
+  'stopped' | 'connecting' | 'authenticating' | 'connected' | 'waiting-to-reconnect';
+
+interface RemoteAccessClientOptions {
+  url: string;
+  deviceId: string;
+  token: string;
   handlers: RemoteAccessHandlers;
   confirmationProvider?: RemoteAccessConfirmationProvider;
   requireConfirmationForWrites?: boolean;
@@ -154,19 +152,20 @@ interface RemoteAccessServerOptions {
   maxCachedRequests?: number;
   maxPayloadBytes?: number;
   heartbeatIntervalMs?: number;
+  connectionTimeoutMs?: number;
+  authenticationTimeoutMs?: number;
+  reconnectInitialDelayMs?: number;
+  reconnectMaxDelayMs?: number;
+  reconnectJitterRatio?: number;
+  onStateChange?: (state: RemoteAccessClientState) => void;
   onWarning?: (message: string, reason?: unknown) => void;
-}
-
-interface RemoteAccessServerAddress {
-  host: string;
-  port: number;
-  path: string;
 }
 
 export { REMOTE_ACCESS_PROTOCOL_VERSION };
 export type {
-  RemoteAccessAuthenticator,
   RemoteAccessAuthParams,
+  RemoteAccessClientOptions,
+  RemoteAccessClientState,
   RemoteAccessConfirmationProvider,
   RemoteAccessConfirmationRequest,
   RemoteAccessFailureResponse,
@@ -181,8 +180,6 @@ export type {
   RemoteAccessRequest,
   RemoteAccessRequestContext,
   RemoteAccessResponse,
-  RemoteAccessServerAddress,
-  RemoteAccessServerOptions,
   RemoteAccessSuccessResponse,
   RemoteAccessWalletBalance,
   RemoteAccessWalletIdParams,

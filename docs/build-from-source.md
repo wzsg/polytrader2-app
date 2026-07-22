@@ -114,9 +114,9 @@ The desktop app can load `.env` files from the working directory or app path. A 
 | `P2_ENABLE_ACCOUNT_DATA_SYNC`                                | Enables account authentication and cloud data sync. In dev, it is enabled unless explicitly set to `0`; for production set `1` to enable. |
 | `P2_ENABLE_STRATEGY_AUTOMATION`                              | Enables strategy and bot UI. In dev, it is enabled unless explicitly set to `0`; for production set `1` to enable.                        |
 | `P2_ENABLE_TURNSTILE`                                        | Enables Cloudflare Turnstile on the auth form when set to `1`.                                                                            |
-| `P2_REMOTE_ACCESS_TOKEN`                                     | Enables the loopback WebSocket remote-access server when set. Use a high-entropy secret and expose it only through a secure tunnel.       |
-| `P2_REMOTE_ACCESS_PORT`                                      | Optional loopback WebSocket port. Defaults to `8790`.                                                                                     |
-| `P2_REMOTE_ACCESS_PATH`                                      | Optional WebSocket path. Defaults to `/remote-access`.                                                                                    |
+| `P2_REMOTE_ACCESS_URL`                                       | Enables remote access and sets the `ws://` or `wss://` Tunnel endpoint that the desktop client connects to.                               |
+| `P2_REMOTE_ACCESS_TOKEN`                                     | Authentication token sent by the desktop client during the Tunnel handshake. Use a high-entropy secret.                                   |
+| `P2_REMOTE_ACCESS_DEVICE_ID`                                 | Stable desktop device identifier used to route requests and preserve reconnect identity.                                                  |
 | `VITE_TURNSTILE_SITE_KEY`                                    | Turnstile site key for the renderer auth form.                                                                                            |
 
 ## Local Data
