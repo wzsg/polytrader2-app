@@ -2,6 +2,7 @@ import type {
   ClobOrder,
   ClobTrade,
   DataPosition,
+  OrderCancellationResult,
   TradingAccountDataQuery,
   TradingAccountPositionMergeInput,
   TradingAccountPositionOperationResult,
@@ -47,9 +48,9 @@ type TypedEventEmitter<EventMap extends { [EventName in keyof EventMap]: unknown
 interface TradingAccountOrderService extends TypedEventEmitter<TradingAccountOrderTradingEventMap> {
   placeManualOrder(input: TradingAccountOrderManualPlaceInput): Promise<unknown>;
   placeStrategyOrder(input: TradingAccountOrderStrategyPlaceInput): Promise<unknown>;
-  cancelOrder(input: TradingAccountOrderCancelInput): Promise<unknown>;
-  cancelOrders(input: TradingAccountOrderCancelManyInput): Promise<unknown>;
-  cancelAllOrders(input: TradingAccountOrderCancelAllInput): Promise<unknown>;
+  cancelOrder(input: TradingAccountOrderCancelInput): Promise<OrderCancellationResult>;
+  cancelOrders(input: TradingAccountOrderCancelManyInput): Promise<OrderCancellationResult>;
+  cancelAllOrders(input: TradingAccountOrderCancelAllInput): Promise<OrderCancellationResult>;
   deleteFailedOrder(input: TradingAccountOrderDeleteFailedInput): Promise<void>;
 }
 
@@ -94,9 +95,9 @@ interface TradingAccountService extends TypedEventEmitter<TradingAccountEventMap
   ): Promise<TradingRuntimeAccountState>;
   placeManualOrder(input: TradingAccountOrderManualPlaceInput): Promise<unknown>;
   placeStrategyOrder(input: TradingAccountOrderStrategyPlaceInput): Promise<unknown>;
-  cancelOrder(input: TradingAccountOrderCancelInput): Promise<unknown>;
-  cancelOrders(input: TradingAccountOrderCancelManyInput): Promise<unknown>;
-  cancelAllOrders(input: TradingAccountOrderCancelAllInput): Promise<unknown>;
+  cancelOrder(input: TradingAccountOrderCancelInput): Promise<OrderCancellationResult>;
+  cancelOrders(input: TradingAccountOrderCancelManyInput): Promise<OrderCancellationResult>;
+  cancelAllOrders(input: TradingAccountOrderCancelAllInput): Promise<OrderCancellationResult>;
   deleteFailedOrder(input: TradingAccountOrderDeleteFailedInput): Promise<void>;
   splitPosition(
     input: TradingAccountPositionSplitInput,

@@ -43,10 +43,16 @@ interface AccountOrderExchangeUpdateInput extends Omit<AccountOrderUpdateInput, 
   exchangeOrderId: string;
 }
 
+interface OrderCancellationResult {
+  canceled: string[];
+  notCanceled: Record<string, string>;
+}
+
 export type {
   AccountOrderCreateInput,
   AccountOrderExchangeUpdateInput,
   AccountOrderStatus,
   AccountOrderUpdateInput,
   ManualPlaceOrderInput,
+  OrderCancellationResult,
 };

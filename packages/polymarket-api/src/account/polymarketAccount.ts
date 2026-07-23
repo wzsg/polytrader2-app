@@ -25,6 +25,7 @@ import type {
   ClobOrder,
   ClobTrade,
   DataPosition,
+  OrderCancellationResult,
   StrategyPlaceOrderInput,
 } from '@polytrader/shared';
 import { normalizePriceTickSize, POLYMARKET_CLOB_BASE_URL } from '@polytrader/shared';
@@ -111,16 +112,16 @@ class PolymarketAccountImpl implements PolymarketAccount {
     return this._dataApiClient.fetchPositionsByUser(this._credentials.depositWalletAddress);
   }
 
-  public cancelOrder(orderId: string): Promise<unknown> {
-    return this._client.cancelOrder({ orderID: orderId });
+  public async cancelOrder(orderId: string): Promise<OrderCancellationResult> {
+    return this.normalizeCancellationResult(await this._client.cancelOrder({ orderID: orderId }));
   }
 
-  public cancelOrders(orderIds: string[]): Promise<unknown> {
-    return this._client.cancelOrders(orderIds);
+  public async cancelOrders(orderIds: string[]): Promise<OrderCancellationResult> {
+    return this.normalizeCancellationResult(await this._client.cancelOrders(orderIds));
   }
 
-  public cancelAllOrders(): Promise<unknown> {
-    return this._client.cancelAll();
+  public async cancelAllOrders(): Promise<OrderCancellationResult> {
+    return this.normalizeCancellationResult(await this._client.cancelAll());
   }
 
   public postHeartbeat(heartbeatId?: string): Promise<unknown> {
@@ -195,6 +196,51 @@ class PolymarketAccountImpl implements PolymarketAccount {
     if (!error || typeof error !== 'object') return false;
     const status = (error as { status?: unknown }).status;
     return Number(status) === 404;
+  }
+
+  private normalizeCancellationResult(response: unknown): OrderCancellationResult {
+    if (!response || typeof response !== 'object' || Array.isArray(response)) {
+      throw new Error('Polymarket returned an invalid cancellation response');
+    }
+
+    const record = response as Record<string, unknown>;
+    if (!Array.isArray(record.canceled)) {
+      throw new Error('Polymarket cancellation response is missing canceled order IDs');
+    }
+    if (
+      !record.not_canceled ||
+      typeof record.not_canceled !== 'object' ||
+      Array.isArray(record.not_canceled)
+    ) {
+      throw new Error('Polymarket cancellation response is missing not-canceled order details');
+    }
+
+    const canceled = [
+      ...new Set(
+        record.canceled.map((orderId) => {
+          if (typeof orderId !== 'string' || !orderId.trim()) {
+            throw new Error('Polymarket returned an invalid canceled order ID');
+          }
+          return orderId.trim();
+        }),
+      ),
+    ];
+    const notCanceled: Record<string, string> = {};
+    for (const [rawOrderId, reason] of Object.entries(
+      record.not_canceled as Record<string, unknown>,
+    )) {
+      const orderId = rawOrderId.trim();
+      if (!orderId || typeof reason !== 'string') {
+        throw new Error('Polymarket returned invalid not-canceled order details');
+      }
+      notCanceled[orderId] = reason;
+    }
+
+    if (canceled.some((orderId) => Object.hasOwn(notCanceled, orderId))) {
+      throw new Error('Polymarket returned conflicting cancellation results');
+    }
+
+    return { canceled, notCanceled };
   }
 
   private formatCollateral(raw: string | undefined): string {

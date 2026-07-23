@@ -916,6 +916,7 @@ export function useTradingApp() {
         return;
       }
       await refreshWalletOrders();
+      walletActionError.value = cancellationFailureMessage(result.data);
     } finally {
       cancelingOrderIds.value = [];
     }
@@ -936,9 +937,17 @@ export function useTradingApp() {
         return;
       }
       await refreshWalletOrders();
+      walletActionError.value = cancellationFailureMessage(result.data);
     } finally {
       cancelingOrderIds.value = [];
     }
+  }
+
+  function cancellationFailureMessage(result: { notCanceled: Record<string, string> }): string {
+    const details = Object.entries(result.notCanceled)
+      .map(([orderId, reason]) => `${orderId}: ${reason}`)
+      .join('; ');
+    return details ? translateUiKey('order.cancelFailedDetails', { details }) : '';
   }
 
   async function deleteFailedOrder(orderId: string, walletId: string): Promise<void> {

@@ -1508,6 +1508,7 @@ export type {
   AccountOrderStatus,
   AccountOrderUpdateInput,
   ManualPlaceOrderInput,
+  OrderCancellationResult,
 } from './tradingOrder.js';
 export type {
   TradingAccountPositionAmountInput,

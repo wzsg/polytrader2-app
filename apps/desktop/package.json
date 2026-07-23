@@ -46,6 +46,7 @@
     "smoke:tick-size-support": "node scripts/run-electron-node.mjs scripts/tick-size-support-smoke.mjs",
     "smoke:orderfilled-activity": "node scripts/run-electron-node.mjs scripts/orderfilled-activity-smoke.mjs",
     "smoke:orderfilled-activity-filter-protocol": "node scripts/run-electron-node.mjs scripts/orderfilled-activity-filter-protocol-smoke.mjs",
+    "smoke:trading-account-cancel": "pnpm --filter @polytrader/trading-account build && node scripts/trading-account-cancel-smoke.mjs",
     "postinstall": "node scripts/postinstall.mjs"
   },
   "type": "module",

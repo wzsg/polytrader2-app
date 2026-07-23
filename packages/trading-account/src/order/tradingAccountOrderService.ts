@@ -8,6 +8,7 @@ import type {
 import type {
   AccountOrderStatus,
   ManualPlaceOrderInput,
+  OrderCancellationResult,
   StrategyPlaceOrderInput,
   StrategyRunOrderRecord,
 } from '@polytrader/shared';
@@ -35,9 +36,9 @@ interface TradingAccountOrderCredential {
 
 interface TradingAccountOrderSession {
   placeOrder(input: StrategyPlaceOrderInput): Promise<unknown>;
-  cancelOrder(orderId: string): Promise<unknown>;
-  cancelOrders(orderIds: string[]): Promise<unknown>;
-  cancelAllOrders(): Promise<unknown>;
+  cancelOrder(orderId: string): Promise<OrderCancellationResult>;
+  cancelOrders(orderIds: string[]): Promise<OrderCancellationResult>;
+  cancelAllOrders(): Promise<OrderCancellationResult>;
 }
 
 interface TradingAccountOrderApiClient {
@@ -194,59 +195,77 @@ class TradingAccountOrderServiceImpl
     }
   }
 
-  public async cancelOrder(input: TradingAccountOrderCancelInput): Promise<unknown> {
+  public async cancelOrder(
+    input: TradingAccountOrderCancelInput,
+  ): Promise<OrderCancellationResult> {
     const exchangeOrderId = input.exchangeOrderId.trim();
     if (!exchangeOrderId) throw new Error('Exchange order ID is required');
 
+    let response: OrderCancellationResult;
     try {
       const credential = await this._credentialProvider.getCredential(input.walletId);
-      const response = await this._apiClient
+      response = await this._apiClient
         .getPolymarketAccount(credential)
         .cancelOrder(exchangeOrderId);
-      await this._accountDataRepository.updateAccountOrderByExchangeOrderId({
-        walletId: input.walletId,
-        exchangeOrderId,
-        status: 'canceled',
-        response,
-        completedAt: this._now(),
-      });
-      this._emitOrderDataChanged({
-        walletId: input.walletId,
-        reason: 'cancel-success',
-        exchangeOrderId,
-      });
-      this._scheduleAccountSync(input.walletId);
-      return response;
+      this._validateCancellationResult(response, [exchangeOrderId]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this._accountDataRepository.updateAccountOrderByExchangeOrderId({
-        walletId: input.walletId,
-        exchangeOrderId,
-        status: 'live',
-        errorMessage: message,
-        completedAt: this._now(),
-      });
       this._emitOrderDataChanged({
         walletId: input.walletId,
         reason: 'cancel-failed',
         exchangeOrderId,
       });
+      this._scheduleAccountSync(input.walletId);
       throw error;
+    }
+
+    try {
+      if (response.canceled.includes(exchangeOrderId)) {
+        await this._accountDataRepository.updateAccountOrderByExchangeOrderId({
+          walletId: input.walletId,
+          exchangeOrderId,
+          status: 'canceled',
+          response,
+          completedAt: this._now(),
+        });
+      }
+      this._emitOrderDataChanged({
+        walletId: input.walletId,
+        reason: response.notCanceled[exchangeOrderId] ? 'cancel-failed' : 'cancel-success',
+        exchangeOrderId,
+      });
+      return response;
+    } finally {
+      this._scheduleAccountSync(input.walletId);
     }
   }
 
-  public async cancelOrders(input: TradingAccountOrderCancelManyInput): Promise<unknown> {
+  public async cancelOrders(
+    input: TradingAccountOrderCancelManyInput,
+  ): Promise<OrderCancellationResult> {
     const exchangeOrderIds = this._normalizeExchangeOrderIds(input.exchangeOrderIds);
     if (!exchangeOrderIds.length) throw new Error('At least one exchange order ID is required');
 
+    let response: OrderCancellationResult;
     try {
       const credential = await this._credentialProvider.getCredential(input.walletId);
-      const response = await this._apiClient
+      response = await this._apiClient
         .getPolymarketAccount(credential)
         .cancelOrders(exchangeOrderIds);
+      this._validateCancellationResult(response, exchangeOrderIds);
+    } catch (error) {
+      this._emitOrderDataChanged({
+        walletId: input.walletId,
+        reason: 'cancel-orders-failed',
+        exchangeOrderIds,
+      });
+      this._scheduleAccountSync(input.walletId);
+      throw error;
+    }
+
+    try {
       await this._accountDataRepository.updateWalletOrdersByExchangeOrderIds(
         input.walletId,
-        exchangeOrderIds,
+        response.canceled,
         {
           status: 'canceled',
           response,
@@ -255,59 +274,96 @@ class TradingAccountOrderServiceImpl
       );
       this._emitOrderDataChanged({
         walletId: input.walletId,
-        reason: 'cancel-orders-success',
-        exchangeOrderIds,
+        reason: this._cancellationEventReason(
+          response,
+          'cancel-orders-success',
+          'cancel-orders-partial',
+          'cancel-orders-failed',
+        ),
+        exchangeOrderIds: response.canceled,
+      });
+      return response;
+    } finally {
+      this._scheduleAccountSync(input.walletId);
+    }
+  }
+
+  public async cancelAllOrders(
+    input: TradingAccountOrderCancelAllInput,
+  ): Promise<OrderCancellationResult> {
+    let response: OrderCancellationResult;
+    try {
+      const credential = await this._credentialProvider.getCredential(input.walletId);
+      response = await this._apiClient.getPolymarketAccount(credential).cancelAllOrders();
+      this._validateCancellationResult(response);
+    } catch (error) {
+      this._emitOrderDataChanged({
+        walletId: input.walletId,
+        reason: 'cancel-all-failed',
       });
       this._scheduleAccountSync(input.walletId);
-      return response;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      throw error;
+    }
+
+    try {
       await this._accountDataRepository.updateWalletOrdersByExchangeOrderIds(
         input.walletId,
-        exchangeOrderIds,
+        response.canceled,
         {
-          status: 'live',
-          errorMessage: message,
+          status: 'canceled',
+          response,
           completedAt: this._now(),
         },
       );
       this._emitOrderDataChanged({
         walletId: input.walletId,
-        reason: 'cancel-orders-failed',
-        exchangeOrderIds,
+        reason: this._cancellationEventReason(
+          response,
+          'cancel-all-success',
+          'cancel-all-partial',
+          'cancel-all-failed',
+        ),
+        exchangeOrderIds: response.canceled,
       });
-      throw error;
+      return response;
+    } finally {
+      this._scheduleAccountSync(input.walletId);
     }
   }
 
-  public async cancelAllOrders(input: TradingAccountOrderCancelAllInput): Promise<unknown> {
-    try {
-      const credential = await this._credentialProvider.getCredential(input.walletId);
-      const response = await this._apiClient.getPolymarketAccount(credential).cancelAllOrders();
-      await this._accountDataRepository.updateActiveWalletOrdersByAccount(input.walletId, {
-        status: 'canceled',
-        response,
-        completedAt: this._now(),
-      });
-      this._emitOrderDataChanged({
-        walletId: input.walletId,
-        reason: 'cancel-all-success',
-      });
-      this._scheduleAccountSync(input.walletId);
-      return response;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this._accountDataRepository.updateActiveWalletOrdersByAccount(input.walletId, {
-        status: 'live',
-        errorMessage: message,
-        completedAt: this._now(),
-      });
-      this._emitOrderDataChanged({
-        walletId: input.walletId,
-        reason: 'cancel-all-failed',
-      });
-      throw error;
+  private _validateCancellationResult(
+    response: OrderCancellationResult,
+    expectedOrderIds?: string[],
+  ): void {
+    const canceled = new Set(response.canceled);
+    const notCanceled = new Set(Object.keys(response.notCanceled));
+    if ([...canceled].some((orderId) => notCanceled.has(orderId))) {
+      throw new Error('Polymarket returned conflicting cancellation results');
     }
+    if (!expectedOrderIds) return;
+
+    const expected = new Set(expectedOrderIds);
+    const returned = new Set([...canceled, ...notCanceled]);
+    if (
+      returned.size !== expected.size ||
+      [...returned].some((orderId) => !expected.has(orderId))
+    ) {
+      throw new Error('Polymarket returned cancellation results for unexpected orders');
+    }
+  }
+
+  private _cancellationEventReason<
+    Success extends TradingAccountOrderTradingEventReason,
+    Partial extends TradingAccountOrderTradingEventReason,
+    Failed extends TradingAccountOrderTradingEventReason,
+  >(
+    response: OrderCancellationResult,
+    success: Success,
+    partial: Partial,
+    failed: Failed,
+  ): Success | Partial | Failed {
+    if (!Object.keys(response.notCanceled).length) return success;
+    return response.canceled.length ? partial : failed;
   }
 
   public async deleteFailedOrder(input: TradingAccountOrderDeleteFailedInput): Promise<void> {
