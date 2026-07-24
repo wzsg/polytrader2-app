@@ -3,6 +3,7 @@ import type {
   ClobOrder,
   ClobTrade,
   DataPosition,
+  OrderCancellationResult,
   SupportedPriceTickSize,
   StrategyPlaceOrderInput,
 } from '@polytrader/shared';
@@ -57,9 +58,9 @@ interface PolymarketAccount {
   getOrder(orderId: string): Promise<ClobOrder | null>;
   listTrades(params?: Record<string, unknown>): Promise<ClobTrade[]>;
   fetchPositions(): Promise<DataPosition[]>;
-  cancelOrder(orderId: string): Promise<unknown>;
-  cancelOrders(orderIds: string[]): Promise<unknown>;
-  cancelAllOrders(): Promise<unknown>;
+  cancelOrder(orderId: string): Promise<OrderCancellationResult>;
+  cancelOrders(orderIds: string[]): Promise<OrderCancellationResult>;
+  cancelAllOrders(): Promise<OrderCancellationResult>;
   postHeartbeat(heartbeatId?: string): Promise<unknown>;
   getBalanceAllowance(): Promise<BalanceAllowance>;
   placeOrder(input: StrategyPlaceOrderInput): Promise<unknown>;

@@ -3,10 +3,13 @@ type TradingAccountOrderTradingEventReason =
   | 'place-success'
   | 'place-failed'
   | 'cancel-success'
+  | 'cancel-partial'
   | 'cancel-failed'
   | 'cancel-orders-success'
+  | 'cancel-orders-partial'
   | 'cancel-orders-failed'
   | 'cancel-all-success'
+  | 'cancel-all-partial'
   | 'cancel-all-failed';
 
 interface TradingAccountOrderTradingEvent {

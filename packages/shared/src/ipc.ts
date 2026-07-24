@@ -41,6 +41,7 @@ import type {
   OrderFilledActivityOpenMarketInput,
   OrderFilledActivitySnapshot,
   OrderFilledActivityStartInput,
+  OrderCancellationResult,
   PriceHistoryPoint,
   PublicTraderLeaderboardQuery,
   PublicTraderLeaderboardResult,
@@ -302,10 +303,10 @@ interface TradingAccountIpcApi {
   getOrders: (
     query?: TradingAccountDataQuery,
   ) => Promise<ApiResult<TradingAccountScopedData<ClobOrder>>>;
-  cancelOrder: (id: string, walletId: string) => Promise<ApiResult<unknown>>;
-  cancelOrders: (ids: string[], walletId: string) => Promise<ApiResult<unknown>>;
+  cancelOrder: (id: string, walletId: string) => Promise<ApiResult<OrderCancellationResult>>;
+  cancelOrders: (ids: string[], walletId: string) => Promise<ApiResult<OrderCancellationResult>>;
   deleteFailedOrder: (id: string, walletId: string) => Promise<ApiResult<void>>;
-  cancelAllOrders: (walletId: string) => Promise<ApiResult<unknown>>;
+  cancelAllOrders: (walletId: string) => Promise<ApiResult<OrderCancellationResult>>;
   getTrades: (
     query?: TradingAccountDataQuery,
   ) => Promise<ApiResult<TradingAccountScopedData<ClobTrade>>>;

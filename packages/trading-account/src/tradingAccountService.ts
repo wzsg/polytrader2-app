@@ -3,6 +3,7 @@ import type {
   ClobOrder,
   ClobTrade,
   DataPosition,
+  OrderCancellationResult,
   TradingAccountDataQuery,
   TradingAccountPositionMergeInput,
   TradingAccountPositionOperationResult,
@@ -101,15 +102,17 @@ class TradingAccountServiceImpl
     return this._orderService.placeStrategyOrder(input);
   }
 
-  public cancelOrder(input: TradingAccountOrderCancelInput): Promise<unknown> {
+  public cancelOrder(input: TradingAccountOrderCancelInput): Promise<OrderCancellationResult> {
     return this._orderService.cancelOrder(input);
   }
 
-  public cancelOrders(input: TradingAccountOrderCancelManyInput): Promise<unknown> {
+  public cancelOrders(input: TradingAccountOrderCancelManyInput): Promise<OrderCancellationResult> {
     return this._orderService.cancelOrders(input);
   }
 
-  public cancelAllOrders(input: TradingAccountOrderCancelAllInput): Promise<unknown> {
+  public cancelAllOrders(
+    input: TradingAccountOrderCancelAllInput,
+  ): Promise<OrderCancellationResult> {
     return this._orderService.cancelAllOrders(input);
   }
 

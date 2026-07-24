@@ -19,6 +19,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./order": {
+      "types": "./dist/order/index.d.ts",
+      "import": "./dist/order/index.js"
     }
   }
 }

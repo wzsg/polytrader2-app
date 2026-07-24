@@ -75,12 +75,30 @@ async function confirmCancel(): Promise<void> {
   workingOrderId.value = targetOrderId;
   dialogError.value = '';
   try {
-    const res =
-      mode === 'delete'
-        ? await window.api.tradingAccount.deleteFailedOrder(targetOrderId, props.walletId)
-        : await window.api.tradingAccount.cancelOrder(targetOrderId, props.walletId);
-    if (!res.ok)
-      throw new Error(res.error || t('order.actionFailed', { action: orderActionLabel(target) }));
+    if (mode === 'delete') {
+      const result = await window.api.tradingAccount.deleteFailedOrder(
+        targetOrderId,
+        props.walletId,
+      );
+      if (!result.ok) {
+        throw new Error(
+          result.error || t('order.actionFailed', { action: orderActionLabel(target) }),
+        );
+      }
+    } else {
+      const result = await window.api.tradingAccount.cancelOrder(targetOrderId, props.walletId);
+      if (!result.ok) {
+        throw new Error(
+          result.error || t('order.actionFailed', { action: orderActionLabel(target) }),
+        );
+      }
+      const cancellationFailures = Object.entries(result.data.notCanceled)
+        .map(([orderId, reason]) => `${orderId}: ${reason}`)
+        .join('; ');
+      if (cancellationFailures) {
+        throw new Error(t('order.cancelFailedDetails', { details: cancellationFailures }));
+      }
+    }
     actionTarget.value = null;
     actionMode.value = null;
     emit('refresh');
