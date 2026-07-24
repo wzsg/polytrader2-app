@@ -8,6 +8,7 @@ import {
   KeyRound,
   LockKeyhole,
   Languages,
+  ScrollText,
   ShieldCheck,
 } from '@lucide/vue';
 import type {
@@ -22,14 +23,15 @@ import LoadingSpinner from '../shared/components/LoadingSpinner.vue';
 import chinaLocaleIcon from '../assets/locale/china.png';
 import usLocaleIcon from '../assets/locale/us.png';
 
-type SetupPhase = 'language' | 'storage' | 'security' | 'sync' | 'complete' | 'error';
+type SetupPhase = 'language' | 'agreement' | 'storage' | 'security' | 'sync' | 'complete' | 'error';
 type EncryptionMethod = 'keychain' | 'dpapi' | 'aes-256-gcm';
-type SetupStep = 'language' | 'storage' | 'security' | 'data';
+type SetupStep = 'language' | 'agreement' | 'storage' | 'security' | 'data';
 
 const { t, locale } = useI18n();
 const state = ref<SetupState | null>(null);
 const dataDirectory = ref('');
 const languagePreference = ref<AppLocale>('en-US');
+const agreementAccepted = ref(false);
 const encryptionMethod = ref<EncryptionMethod>('aes-256-gcm');
 const password = ref('');
 const confirmPassword = ref('');
@@ -85,6 +87,40 @@ const languageOptions = computed(() => {
     return Number(right.value === systemLanguage) - Number(left.value === systemLanguage);
   });
 });
+const agreementSections = computed(() => [
+  {
+    title: t('setup.agreementSoftwareTitle'),
+    body: t('setup.agreementSoftwareBody'),
+  },
+  {
+    title: t('setup.agreementResponsibilityTitle'),
+    body: t('setup.agreementResponsibilityBody'),
+  },
+  {
+    title: t('setup.agreementTradingRiskTitle'),
+    body: t('setup.agreementTradingRiskBody'),
+  },
+  {
+    title: t('setup.agreementWalletDataTitle'),
+    body: t('setup.agreementWalletDataBody'),
+  },
+  {
+    title: t('setup.agreementTelemetryTitle'),
+    body: t('setup.agreementTelemetryBody'),
+  },
+  {
+    title: t('setup.agreementThirdPartyTitle'),
+    body: t('setup.agreementThirdPartyBody'),
+  },
+  {
+    title: t('setup.agreementDisclaimerTitle'),
+    body: t('setup.agreementDisclaimerBody'),
+  },
+  {
+    title: t('setup.agreementChangesTitle'),
+    body: t('setup.agreementChangesBody'),
+  },
+]);
 const activeStep = computed(() => (phase.value === 'error' ? errorStep.value : phase.value));
 const primaryLabel = computed(() => {
   if (phase.value === 'error') return t('common.retry');
@@ -94,6 +130,7 @@ const primaryLabel = computed(() => {
 });
 const primaryDisabled = computed(() => {
   if (isSubmitting.value) return true;
+  if (phase.value === 'agreement') return !agreementAccepted.value;
   if (phase.value === 'storage') return !dataDirectory.value.trim() || !hasEnoughSpace.value;
   if (phase.value === 'security' && encryptionMethod.value === 'aes-256-gcm') {
     return !password.value || password.value !== confirmPassword.value;
@@ -153,13 +190,15 @@ function isCurrentSetupStep(step: SetupStep): boolean {
   return activeStep.value === step;
 }
 
-async function validateDirectory(): Promise<boolean> {
+async function validateDirectory(showError = true): Promise<boolean> {
   errorMessage.value = '';
   const result = await window.api.validateSetupDataDirectory(dataDirectory.value);
   if (!result.ok) {
     errorMessage.value = result.error;
-    errorStep.value = 'storage';
-    phase.value = 'error';
+    if (showError) {
+      errorStep.value = 'storage';
+      phase.value = 'error';
+    }
     return false;
   }
   state.value = result.data;
@@ -215,6 +254,8 @@ async function startSetup(): Promise<void> {
 async function primaryAction(): Promise<void> {
   if (phase.value === 'language') {
     applyLanguage();
+    phase.value = 'agreement';
+  } else if (phase.value === 'agreement') {
     phase.value = 'storage';
   } else if (phase.value === 'storage') {
     if (await validateDirectory()) phase.value = 'security';
@@ -234,10 +275,11 @@ async function cancelSetup(): Promise<void> {
 }
 
 function previous(): void {
-  if (phase.value === 'storage') phase.value = 'language';
+  if (phase.value === 'agreement') phase.value = 'language';
+  else if (phase.value === 'storage') phase.value = 'agreement';
   else if (phase.value === 'security') phase.value = 'storage';
   else if (phase.value === 'error') {
-    phase.value = errorStep.value === 'storage' ? 'language' : 'storage';
+    phase.value = errorStep.value === 'storage' ? 'agreement' : 'storage';
     errorMessage.value = '';
   }
 }
@@ -247,7 +289,7 @@ onMounted(async () => {
   dataDirectory.value = state.value.dataDirectory || state.value.defaultDataDirectory;
   languagePreference.value = resolveSetupLanguagePreference(state.value.localePreference);
   encryptionMethod.value = state.value.encryptionMethod || (isMac.value ? 'keychain' : 'dpapi');
-  await validateDirectory();
+  await validateDirectory(false);
   unsubscribeEventSyncStatus = window.api.onSetupEventSyncStatus((status) => {
     eventSyncStatus.value = status;
   });
@@ -277,6 +319,13 @@ onUnmounted(() => unsubscribeEventSyncStatus?.());
             :class="isCurrentSetupStep('language') ? 'bg-primary/15 text-primary' : ''"
             :aria-current="isCurrentSetupStep('language') ? 'step' : undefined"
             ><Languages :size="15" />{{ t('setup.languageStep') }}</span
+          >
+          <span class="text-border">›</span
+          ><span
+            class="inline-flex items-center gap-2 rounded px-3 py-2 transition-colors"
+            :class="isCurrentSetupStep('agreement') ? 'bg-primary/15 text-primary' : ''"
+            :aria-current="isCurrentSetupStep('agreement') ? 'step' : undefined"
+            ><ScrollText :size="15" />{{ t('setup.agreementStep') }}</span
           >
           <span class="text-border">›</span
           ><span
@@ -326,6 +375,38 @@ onUnmounted(() => unsubscribeEventSyncStatus?.());
               </button>
             </div>
           </template>
+          <template v-else-if="activeStep === 'agreement'">
+            <h1 class="text-lg font-semibold text-white">{{ t('setup.agreementTitle') }}</h1>
+            <p class="text-muted mt-2 text-sm">{{ t('setup.agreementHint') }}</p>
+            <div
+              class="border-border bg-bg mt-5 max-h-64 overflow-y-auto rounded border px-5 py-4"
+              tabindex="0"
+              :aria-label="t('setup.agreementContentLabel')"
+            >
+              <p class="text-muted-light text-xs leading-5">
+                {{ t('setup.agreementIntroduction') }}
+              </p>
+              <section
+                v-for="section in agreementSections"
+                :key="section.title"
+                class="mt-4 first:mt-0"
+              >
+                <h2 class="text-text text-sm font-medium">{{ section.title }}</h2>
+                <p class="text-muted-light mt-1 text-xs leading-5">{{ section.body }}</p>
+              </section>
+            </div>
+            <label
+              class="border-border bg-bg hover:border-primary mt-5 flex cursor-pointer items-start gap-3 rounded border px-4 py-3 transition-colors"
+              :class="agreementAccepted ? 'border-primary bg-primary/10' : ''"
+            >
+              <input
+                v-model="agreementAccepted"
+                type="checkbox"
+                class="accent-primary mt-0.5 size-4 shrink-0"
+              />
+              <span class="text-text text-sm leading-5">{{ t('setup.agreementAccept') }}</span>
+            </label>
+          </template>
           <template v-else-if="activeStep === 'storage'">
             <h1 class="text-lg font-semibold text-white">{{ t('setup.dataDirectory') }}</h1>
             <p class="text-muted mt-2 text-sm">{{ t('setup.directoryHint') }}</p>
@@ -335,7 +416,7 @@ onUnmounted(() => unsubscribeEventSyncStatus?.());
                 spellcheck="false"
                 class="border-border bg-bg text-text min-w-0 flex-1 rounded border px-3 py-2"
                 :aria-label="t('setup.dataDirectory')"
-                @change="validateDirectory"
+                @change="validateDirectory()"
               /><button
                 type="button"
                 class="border-border bg-btn-secondary rounded border px-3"

@@ -113,7 +113,7 @@ export const messages = {
       headline: 'Prepare Polytrader2',
       description: 'Choose where local data is stored, then download the first event snapshot.',
       storageStep: 'Storage',
-      dataStep: 'Event Data',
+      dataStep: 'Data Sync',
       doneStep: 'Ready',
       dataDirectory: 'Data Directory',
       defaultDirectory: 'Default',
@@ -132,11 +132,42 @@ export const messages = {
       syncHint: 'The main window opens after the first event snapshot is cached.',
       openMainWindow: 'Opening workspace',
       languageStep: 'Language',
+      agreementStep: 'Agreement',
       securityStep: 'Security',
       language: 'Language',
       systemLanguage: 'System language',
       english: 'English',
       chinese: '中文',
+      agreementTitle: 'User Agreement',
+      agreementHint: 'Read and accept the Polytrader2 User Agreement to continue.',
+      agreementContentLabel: 'Polytrader2 User Agreement content',
+      agreementIntroduction:
+        'Welcome to Polytrader2. Please read the following terms before using this software.',
+      agreementSoftwareTitle: '1. About the software',
+      agreementSoftwareBody:
+        'Polytrader2 is an open-source desktop tool for Polymarket that provides market browsing, wallet management, order trading, position viewing, strategy development, and automated trading. It is independently developed and is not an official product of Polymarket, Polygon, or any other third-party service.',
+      agreementResponsibilityTitle: '2. Your responsibilities',
+      agreementResponsibilityBody:
+        'You are responsible for confirming that you may legally use Polymarket, digital assets, and related services in your location. You must not use Polytrader2 for fraud, market manipulation, sanctions evasion, or other unlawful activity.',
+      agreementTradingRiskTitle: '3. Trading risks',
+      agreementTradingRiskBody:
+        'Polytrader2 can connect to real wallets, submit real orders, and run automated strategies. Market movements, network failures, third-party outages, software errors, or incorrect strategy settings may cause unexpected results or financial loss. Polytrader2 does not provide investment, legal, tax, or financial advice.',
+      agreementWalletDataTitle: '4. Wallets and local data',
+      agreementWalletDataBody:
+        'Wallet keys and key material are encrypted and used on your device, and transactions are signed locally. You are responsible for protecting passwords, seed phrases, private keys, the local data directory, and backups. Developers may be unable to recover lost credentials, wallets, or local data.',
+      agreementTelemetryTitle: '5. Anonymous telemetry',
+      agreementTelemetryBody:
+        'Polytrader2 may collect limited anonymous usage and diagnostic information to improve the software, analyze performance, and fix bugs. Telemetry information will not include names, email addresses, account identities, private keys, seed phrases, strategy code, or other private user information. Telemetry is not sold or used for advertising.',
+      agreementThirdPartyTitle: '6. Third-party services',
+      agreementThirdPartyBody:
+        'Polytrader2 may connect to Polymarket, Polygon RPC, bridge, relayer, update, and other third-party services. These services are independently operated under their own terms, and their availability, security, or accuracy cannot be guaranteed.',
+      agreementDisclaimerTitle: '7. Disclaimer',
+      agreementDisclaimerBody:
+        'The software is provided as is, without express or implied warranties. To the maximum extent permitted by law, project maintainers and contributors are not responsible for trading losses, asset losses, lost data, lost profits, or other indirect losses resulting from use of the software.',
+      agreementChangesTitle: '8. Changes',
+      agreementChangesBody:
+        'This agreement may be updated as Polytrader2 changes. Important updates may be announced through the application, project repository, or release notes.',
+      agreementAccept: 'I have read and agree to the Polytrader2 User Agreement.',
       availableSpace: 'Available space',
       spaceRequired: 'More than 2 GB is required.',
       encryptionMethod: 'Encryption method',
@@ -1093,7 +1124,7 @@ export const messages = {
       headline: '准备 Polytrader2',
       description: '选择本地数据存储位置，然后下载首份事件快照。',
       storageStep: '存储',
-      dataStep: '事件数据',
+      dataStep: '数据同步',
       doneStep: '就绪',
       dataDirectory: '数据目录',
       defaultDirectory: '默认',
@@ -1112,11 +1143,41 @@ export const messages = {
       syncHint: '首份事件快照缓存完成后会打开主窗口。',
       openMainWindow: '正在打开工作区',
       languageStep: '语言',
+      agreementStep: '用户协议',
       securityStep: '安全',
       language: '语言',
       systemLanguage: '系统语言',
       english: 'English',
       chinese: '中文',
+      agreementTitle: '用户协议',
+      agreementHint: '请阅读并同意 Polytrader2 用户协议后继续初始化。',
+      agreementContentLabel: 'Polytrader2 用户协议内容',
+      agreementIntroduction: '欢迎使用 Polytrader2。请在使用本软件前阅读以下条款。',
+      agreementSoftwareTitle: '1. 软件说明',
+      agreementSoftwareBody:
+        'Polytrader2 是一款面向 Polymarket 的开源桌面工具，提供市场浏览、钱包管理、订单交易、持仓查看、策略编写和自动化交易等功能。本软件由独立开发者开发，并非 Polymarket、Polygon 或其他第三方服务的官方产品。',
+      agreementResponsibilityTitle: '2. 使用责任',
+      agreementResponsibilityBody:
+        '你应确保自己具备在所在地使用 Polymarket、数字资产及相关服务的合法资格。你不得使用 Polytrader2 从事欺诈、市场操纵、规避制裁或其他违法活动。',
+      agreementTradingRiskTitle: '3. 交易风险',
+      agreementTradingRiskBody:
+        'Polytrader2 可以连接真实钱包、提交真实订单并运行自动化交易策略。市场变化、网络故障、第三方服务异常、软件错误或策略配置错误可能造成非预期结果或资金损失。Polytrader2 不提供投资、法律、税务或财务建议。',
+      agreementWalletDataTitle: '4. 钱包与本地数据',
+      agreementWalletDataBody:
+        '钱包密钥和密钥材料在你的设备上进行加密和使用，交易签名在本地完成。你有责任妥善保存密码、助记词、私钥、本地数据目录及相关备份。开发者可能无法恢复遗失的凭据、钱包或本地数据。',
+      agreementTelemetryTitle: '5. 匿名遥测',
+      agreementTelemetryBody:
+        '为了优化软件体验、分析运行性能和修复 BUG，Polytrader2 可能收集有限的匿名使用情况和诊断信息。遥测信息不会包含姓名、邮箱、账户身份、私钥、助记词、策略代码或其他私密的用户信息。遥测数据不会出售或用于广告。',
+      agreementThirdPartyTitle: '6. 第三方服务',
+      agreementThirdPartyBody:
+        'Polytrader2 可能连接 Polymarket、Polygon RPC、Bridge、Relayer、软件更新及其他第三方服务。这些服务由相应第三方独立运营，并受其自身条款约束，开发者无法保证其持续可用、安全或准确。',
+      agreementDisclaimerTitle: '7. 免责声明',
+      agreementDisclaimerBody:
+        '本软件按“现状”提供，不作任何明示或默示保证。在适用法律允许的范围内，项目维护者和贡献者不对因使用本软件造成的交易损失、资产损失、数据丢失、利润损失或其他间接损失承担责任。',
+      agreementChangesTitle: '8. 条款变更',
+      agreementChangesBody:
+        '本协议可能随着 Polytrader2 功能变化而更新。重要修改可能通过软件界面、项目仓库或发行说明进行提示。',
+      agreementAccept: '我已阅读并同意《Polytrader2 用户协议》。',
       availableSpace: '可用空间',
       spaceRequired: '需要大于 2 GB 的可用空间。',
       encryptionMethod: '加密方式',
