@@ -15,6 +15,7 @@
     { "path": "./packages/polymarket-market" },
     { "path": "./packages/polymarket-wallet" },
     { "path": "./packages/remote-access" },
+    { "path": "./packages/strategy-ast" },
     { "path": "./packages/trading-account" },
     { "path": "./packages/trading-market" },
     { "path": "./packages/trading-strategy" },

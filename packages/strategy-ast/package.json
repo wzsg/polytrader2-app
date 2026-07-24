@@ -1,0 +1,29 @@
+{
+  "name": "@polytrader/strategy-ast",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "test": "pnpm run build && pnpm run test:unit",
+    "test:unit": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "decimal.js": "10.6.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ast": {
+      "types": "./dist/ast.d.ts",
+      "import": "./dist/ast.js"
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "parameters": {
+    "marketAmount": {
+      "type": "decimal",
+      "defaultValue": "10",
+      "minimum": "1",
+      "maximum": "100"
+    }
+  },
+  "state": {
+    "tickCount": {
+      "type": "integer",
+      "initialValue": 0
+    }
+  },
+  "rules": [
+    {
+      "id": "rule.timerRebalance",
+      "trigger": {
+        "id": "trigger.timerRebalance",
+        "kind": "timer.interval",
+        "intervalMs": 5000
+      },
+      "actions": [
+        {
+          "id": "action.timerRebalance.buy",
+          "kind": "order.place",
+          "asset": "selected",
+          "side": "BUY",
+          "order": {
+            "orderType": "market",
+            "amount": {
+              "id": "parameter.timerRebalance.amount",
+              "kind": "parameter",
+              "name": "marketAmount"
+            },
+            "marketOrderType": "FAK"
+          }
+        },
+        {
+          "id": "action.timerRebalance.increment",
+          "kind": "state.increment",
+          "name": "tickCount",
+          "amount": {
+            "id": "literal.timerRebalance.increment",
+            "kind": "literal.integer",
+            "value": 1
+          }
+        }
+      ],
+      "policy": {
+        "cooldownMs": 5000
+      }
+    }
+  ],
+  "riskPolicy": {
+    "maximumOrderValue": "20",
+    "minimumOrderIntervalMs": 5000
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "parameters": {
+    "minimumSpread": {
+      "type": "decimal",
+      "defaultValue": "0.2",
+      "minimum": "0.01",
+      "maximum": "1"
+    },
+    "orderShares": {
+      "type": "decimal",
+      "defaultValue": "2",
+      "minimum": "1",
+      "maximum": "50"
+    }
+  },
+  "state": {
+    "lastMidpoint": {
+      "type": "decimal",
+      "nullable": true,
+      "initialValue": null
+    }
+  },
+  "rules": [
+    {
+      "id": "rule.spreadMaker",
+      "trigger": {
+        "id": "trigger.spreadMaker.book",
+        "kind": "orderBook.changed",
+        "outcome": "selected"
+      },
+      "condition": {
+        "id": "condition.spreadMaker",
+        "kind": "logical",
+        "operator": "all",
+        "items": [
+          {
+            "id": "exists.spreadMaker.bid",
+            "kind": "exists",
+            "operand": {
+              "id": "reference.spreadMaker.bid.exists",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestBid",
+              "outcome": "selected"
+            }
+          },
+          {
+            "id": "exists.spreadMaker.ask",
+            "kind": "exists",
+            "operand": {
+              "id": "reference.spreadMaker.ask.exists",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestAsk",
+              "outcome": "selected"
+            }
+          },
+          {
+            "id": "compare.spreadMaker.spread",
+            "kind": "compare",
+            "operator": "gte",
+            "left": {
+              "id": "arithmetic.spreadMaker.spread",
+              "kind": "arithmetic",
+              "operator": "subtract",
+              "left": {
+                "id": "reference.spreadMaker.ask.subtract",
+                "kind": "reference",
+                "source": "orderBook",
+                "field": "bestAsk",
+                "outcome": "selected"
+              },
+              "right": {
+                "id": "reference.spreadMaker.bid.subtract",
+                "kind": "reference",
+                "source": "orderBook",
+                "field": "bestBid",
+                "outcome": "selected"
+              }
+            },
+            "right": {
+              "id": "parameter.spreadMaker.minimum",
+              "kind": "parameter",
+              "name": "minimumSpread"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action.spreadMaker.buy",
+          "kind": "order.place",
+          "asset": "selected",
+          "side": "BUY",
+          "order": {
+            "orderType": "limit",
+            "price": {
+              "id": "reference.spreadMaker.bid.order",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestBid",
+              "outcome": "selected"
+            },
+            "shares": {
+              "id": "parameter.spreadMaker.buyShares",
+              "kind": "parameter",
+              "name": "orderShares"
+            },
+            "postOnly": true
+          }
+        },
+        {
+          "id": "action.spreadMaker.sell",
+          "kind": "order.place",
+          "asset": "selected",
+          "side": "SELL",
+          "order": {
+            "orderType": "limit",
+            "price": {
+              "id": "reference.spreadMaker.ask.order",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestAsk",
+              "outcome": "selected"
+            },
+            "shares": {
+              "id": "parameter.spreadMaker.sellShares",
+              "kind": "parameter",
+              "name": "orderShares"
+            },
+            "postOnly": true
+          }
+        },
+        {
+          "id": "action.spreadMaker.midpoint",
+          "kind": "state.set",
+          "name": "lastMidpoint",
+          "value": {
+            "id": "reference.spreadMaker.midpoint",
+            "kind": "reference",
+            "source": "orderBook",
+            "field": "midpoint",
+            "outcome": "selected"
+          }
+        }
+      ],
+      "policy": {
+        "cooldownMs": 1000
+      }
+    }
+  ],
+  "riskPolicy": {
+    "maximumOpenOrders": 4,
+    "maximumPositionShares": "20"
+  }
+}

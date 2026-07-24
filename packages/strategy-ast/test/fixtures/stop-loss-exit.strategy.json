@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "parameters": {
+    "stopLoss": {
+      "type": "decimal",
+      "defaultValue": "-10",
+      "minimum": "-1000",
+      "maximum": "-0.01"
+    }
+  },
+  "state": {},
+  "rules": [
+    {
+      "id": "rule.stopLoss",
+      "trigger": {
+        "id": "trigger.stopLoss.account",
+        "kind": "account.changed"
+      },
+      "condition": {
+        "id": "condition.stopLoss",
+        "kind": "logical",
+        "operator": "all",
+        "items": [
+          {
+            "id": "exists.stopLoss.size",
+            "kind": "exists",
+            "operand": {
+              "id": "reference.stopLoss.size.exists",
+              "kind": "reference",
+              "source": "position",
+              "field": "size",
+              "outcome": "selected"
+            }
+          },
+          {
+            "id": "compare.stopLoss.size",
+            "kind": "compare",
+            "operator": "gt",
+            "left": {
+              "id": "reference.stopLoss.size.compare",
+              "kind": "reference",
+              "source": "position",
+              "field": "size",
+              "outcome": "selected"
+            },
+            "right": {
+              "id": "literal.stopLoss.zero",
+              "kind": "literal.decimal",
+              "value": "0"
+            }
+          },
+          {
+            "id": "exists.stopLoss.pnl",
+            "kind": "exists",
+            "operand": {
+              "id": "reference.stopLoss.pnl.exists",
+              "kind": "reference",
+              "source": "position",
+              "field": "cashPnl",
+              "outcome": "selected"
+            }
+          },
+          {
+            "id": "compare.stopLoss.pnl",
+            "kind": "compare",
+            "operator": "lte",
+            "left": {
+              "id": "reference.stopLoss.pnl.compare",
+              "kind": "reference",
+              "source": "position",
+              "field": "cashPnl",
+              "outcome": "selected"
+            },
+            "right": {
+              "id": "parameter.stopLoss.threshold",
+              "kind": "parameter",
+              "name": "stopLoss"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action.stopLoss.sell",
+          "kind": "order.place",
+          "asset": "selected",
+          "side": "SELL",
+          "order": {
+            "orderType": "market",
+            "amount": {
+              "id": "reference.stopLoss.size.order",
+              "kind": "reference",
+              "source": "position",
+              "field": "size",
+              "outcome": "selected"
+            },
+            "marketOrderType": "FOK"
+          }
+        },
+        {
+          "id": "action.stopLoss.log",
+          "kind": "log.write",
+          "level": "warn",
+          "message": "Stop-loss exit requested"
+        }
+      ]
+    }
+  ],
+  "riskPolicy": {
+    "maximumPositionShares": "100"
+  }
+}

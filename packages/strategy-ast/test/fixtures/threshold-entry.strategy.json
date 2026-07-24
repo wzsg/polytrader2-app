@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "parameters": {
+    "maxEntryPrice": {
+      "type": "decimal",
+      "defaultValue": "0.45",
+      "minimum": "0.01",
+      "maximum": "0.99",
+      "description": "Highest accepted ask price"
+    },
+    "orderShares": {
+      "type": "decimal",
+      "defaultValue": "5",
+      "minimum": "1",
+      "maximum": "100"
+    }
+  },
+  "state": {
+    "lastOrderSequence": {
+      "type": "integer",
+      "initialValue": -1
+    }
+  },
+  "rules": [
+    {
+      "id": "rule.entry",
+      "trigger": {
+        "id": "trigger.entry.book",
+        "kind": "orderBook.changed",
+        "outcome": "selected"
+      },
+      "condition": {
+        "id": "condition.entry",
+        "kind": "logical",
+        "operator": "all",
+        "items": [
+          {
+            "id": "exists.entry.ask",
+            "kind": "exists",
+            "operand": {
+              "id": "reference.entry.ask.exists",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestAsk",
+              "outcome": "selected"
+            }
+          },
+          {
+            "id": "compare.entry.price",
+            "kind": "compare",
+            "operator": "lte",
+            "left": {
+              "id": "reference.entry.ask.compare",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestAsk",
+              "outcome": "selected"
+            },
+            "right": {
+              "id": "parameter.entry.maxPrice",
+              "kind": "parameter",
+              "name": "maxEntryPrice"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action.entry.place",
+          "kind": "order.place",
+          "asset": "selected",
+          "side": "BUY",
+          "order": {
+            "orderType": "limit",
+            "price": {
+              "id": "reference.entry.ask.order",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestAsk",
+              "outcome": "selected"
+            },
+            "shares": {
+              "id": "parameter.entry.shares",
+              "kind": "parameter",
+              "name": "orderShares"
+            },
+            "postOnly": false
+          }
+        },
+        {
+          "id": "action.entry.sequence",
+          "kind": "state.set",
+          "name": "lastOrderSequence",
+          "value": {
+            "id": "reference.entry.sequence",
+            "kind": "reference",
+            "source": "event",
+            "field": "sequence"
+          }
+        }
+      ],
+      "policy": {
+        "cooldownMs": 1000
+      }
+    }
+  ],
+  "riskPolicy": {
+    "maximumOpenOrders": 2,
+    "maximumOrderValue": "10",
+    "minimumOrderIntervalMs": 1000
+  }
+}

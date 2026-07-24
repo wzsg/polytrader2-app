@@ -46,7 +46,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 21,
           allowDefaultProject: [
             'apps/bot-vm/tsup.config.ts',
             'packages/contracts/bot-runtime-contract/tsup.config.ts',
@@ -61,6 +61,7 @@ export default tseslint.config(
             'packages/polymarket-wallet/tsup.config.ts',
             'packages/orderfilled-activity/tsup.config.ts',
             'packages/remote-access/tsup.config.ts',
+            'packages/strategy-ast/tsup.config.ts',
             'packages/trading-account/tsup.config.ts',
             'packages/trading-strategy/tsup.config.ts',
             'packages/strategy-runtime/tsup.config.ts',
@@ -119,6 +120,8 @@ export default tseslint.config(
       'packages/orderfilled-activity/src/**/*.{ts,js}',
       'packages/remote-access/tsup.config.ts',
       'packages/remote-access/src/**/*.{ts,js}',
+      'packages/strategy-ast/tsup.config.ts',
+      'packages/strategy-ast/src/**/*.{ts,js}',
       'packages/trading-account/tsup.config.ts',
       'packages/trading-account/src/**/*.{ts,js}',
       'packages/trading-strategy/tsup.config.ts',
