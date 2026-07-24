@@ -47,12 +47,11 @@ const strategyAutomationEnabled = __STRATEGY_AUTOMATION_ENABLED__;
 const tradingItems = [
   { nav: 'live-trades', labelKey: 'nav.liveTrades', icon: Radio },
   { nav: 'leaderboard', labelKey: 'nav.leaderboard', icon: Medal },
-  ...(strategyAutomationEnabled
-    ? [
-        { nav: 'bots', labelKey: 'nav.botManagement', icon: Bot },
-        { nav: 'strategies', labelKey: 'nav.strategyManagement', icon: Code2 },
-      ]
-    : []),
+];
+
+const automationTradingItems = [
+  { nav: 'strategies', labelKey: 'nav.strategyManagement', icon: Code2 },
+  { nav: 'bots', labelKey: 'nav.botManagement', icon: Bot },
 ];
 
 function navClass(activeNav: string, nav: string): string {
@@ -106,7 +105,7 @@ function authHint(): string {
       <div
         class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"
       >
-        {{ t('nav.trading') }}
+        {{ t('nav.discover') }}
       </div>
       <button
         v-for="item in tradingItems"
@@ -119,6 +118,25 @@ function authHint(): string {
         <component :is="item.icon" :size="16" />
         {{ t(item.labelKey) }}
       </button>
+
+      <template v-if="strategyAutomationEnabled">
+        <div
+          class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"
+        >
+          {{ t('nav.automationTrading') }}
+        </div>
+        <button
+          v-for="item in automationTradingItems"
+          :key="item.nav"
+          type="button"
+          class="flex w-full items-center gap-2 rounded-md px-3.5 py-2.5 text-left text-sm transition-colors"
+          :class="navClass(activeNav, item.nav)"
+          @click="emit('change-nav', item.nav)"
+        >
+          <component :is="item.icon" :size="16" />
+          {{ t(item.labelKey) }}
+        </button>
+      </template>
 
       <div
         class="text-muted mt-3 px-3.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase"

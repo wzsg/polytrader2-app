@@ -14,7 +14,7 @@ const exactTerms: Record<string, TranslationTerm> = {
   'app.webBrowser': { zh: 'Polytrader2 网页浏览器', en: 'Polytrader2 Web Browser' },
   'app.tradingWindowShort': { zh: '交易窗口', en: 'Trading Window' },
   'nav.markets': { zh: '市场', en: 'Markets' },
-  'nav.trading': { zh: '交易', en: 'Trading' },
+  'nav.discover': { zh: '发现', en: 'Discover' },
   'nav.system': { zh: '系统', en: 'System' },
   'nav.settings': { zh: '系统设置', en: 'Settings' },
   'nav.watchlist': { zh: '自选列表', en: 'Watchlist' },
