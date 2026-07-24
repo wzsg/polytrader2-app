@@ -152,6 +152,9 @@ importers:
       '@polytrader/sqlite-repository':
         specifier: workspace:*
         version: link:../../packages/repositories/sqlite-repository
+      '@polytrader/strategy-ast':
+        specifier: workspace:*
+        version: link:../../packages/strategy-ast
       '@polytrader/strategy-runtime':
         specifier: workspace:*
         version: link:../../packages/strategy-runtime
@@ -456,6 +459,9 @@ importers:
       '@polytrader/sqlite-repository':
         specifier: workspace:*
         version: link:../repositories/sqlite-repository
+      '@polytrader/strategy-ast':
+        specifier: workspace:*
+        version: link:../strategy-ast
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

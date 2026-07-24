@@ -26,7 +26,7 @@ interface PolytraderMcpPorts {
   strategyCatalog: McpStrategyCatalogPort;
   botRuntime: McpBotRuntimePort;
   strategyRun: McpStrategyRunPort;
-  compileStrategySource: (sourceCode: string) => StrategyCompileResult;
+  compileStrategySource: (sourceCode: string) => Promise<StrategyCompileResult>;
 }
 
 interface McpServerManagerOptions {

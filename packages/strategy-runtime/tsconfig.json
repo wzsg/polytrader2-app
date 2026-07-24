@@ -15,6 +15,7 @@
     { "path": "../contracts/bot-runtime-contract" },
     { "path": "../contracts/repository-contract" },
     { "path": "../shared" },
+    { "path": "../strategy-ast" },
     { "path": "../polymarket-api" },
     { "path": "../repositories/sqlite-repository" }
   ]

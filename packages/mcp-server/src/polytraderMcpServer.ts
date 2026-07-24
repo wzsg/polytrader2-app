@@ -157,7 +157,7 @@ class PolytraderMcpToolRegistrar {
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ sourceCode }) => this._json(this._ports.compileStrategySource(sourceCode)),
+      async ({ sourceCode }) => this._json(await this._ports.compileStrategySource(sourceCode)),
     );
 
     this._server.registerTool(

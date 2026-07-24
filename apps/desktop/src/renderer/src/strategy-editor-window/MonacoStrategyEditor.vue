@@ -2,34 +2,21 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
-import 'monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution.js';
-import * as typescriptContribution from 'monaco-editor/esm/vs/language/typescript/monaco.contribution.js';
+import 'monaco-editor/esm/vs/language/json/monaco.contribution.js';
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import TypeScriptWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
-import { STRATEGY_CONTEXT_DTS } from '@polytrader/shared';
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 
 const MONACO_THEME = 'polytrader-dark';
-// Monaco 0.55's contribution wrapper omits these newer enum names, but the TS worker supports them.
-const TS_SCRIPT_TARGET_ES2022 = 9;
-const TS_MODULE_KIND_COMMONJS = 1;
-
-type TypeScriptDefaults = {
-  setCompilerOptions: (options: Record<string, unknown>) => void;
-  setDiagnosticsOptions: (options: Record<string, unknown>) => void;
-  addExtraLib: (content: string, filePath?: string) => monaco.IDisposable;
-};
-
-const monacoTypescript = typescriptContribution as unknown as {
-  typescriptDefaults: TypeScriptDefaults;
-};
 
 const props = withDefaults(
   defineProps<{
     modelValue: string;
     modelPath: string;
+    language?: string;
     readOnly?: boolean;
   }>(),
   {
+    language: 'json',
     readOnly: false,
   },
 );
@@ -53,9 +40,7 @@ let configured = false;
 function configureMonacoEnvironment(): void {
   globalThis.MonacoEnvironment = {
     getWorker(_workerId: string, label: string) {
-      if (label === 'typescript' || label === 'javascript') {
-        return new TypeScriptWorker();
-      }
+      if (label === 'json') return new JsonWorker();
       return new EditorWorker();
     },
   };
@@ -64,26 +49,6 @@ function configureMonacoEnvironment(): void {
 function configureMonaco(): void {
   if (configured) return;
   configured = true;
-
-  monacoTypescript.typescriptDefaults.setCompilerOptions({
-    target: TS_SCRIPT_TARGET_ES2022,
-    module: TS_MODULE_KIND_COMMONJS,
-    allowNonTsExtensions: true,
-    esModuleInterop: true,
-    skipLibCheck: true,
-    noEmit: true,
-    strict: true,
-    lib: ['lib.es2022.d.ts'],
-    types: [],
-  });
-  monacoTypescript.typescriptDefaults.setDiagnosticsOptions({
-    noSemanticValidation: false,
-    noSyntaxValidation: false,
-  });
-  monacoTypescript.typescriptDefaults.addExtraLib(
-    STRATEGY_CONTEXT_DTS,
-    'file:///strategy-context.d.ts',
-  );
 
   monaco.editor.defineTheme(MONACO_THEME, {
     base: 'vs-dark',
@@ -131,7 +96,7 @@ function syncModelValue(model: monaco.editor.ITextModel, value: string): void {
 function setEditorModel(modelPath: string, value: string): void {
   const uri = createModelUri(modelPath);
   const existingModel = monaco.editor.getModel(uri);
-  const nextModel = existingModel ?? monaco.editor.createModel(value, 'typescript', uri);
+  const nextModel = existingModel ?? monaco.editor.createModel(value, props.language, uri);
 
   if (ownedModel && ownedModel !== nextModel) {
     ownedModel.dispose();

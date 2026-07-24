@@ -73,8 +73,8 @@ export function openStrategyEditorWindow(input: StrategyEditorWindowInput): Brow
     title:
       normalizedInput.mode === 'new' ? 'Polytrader2 New Strategy' : 'Polytrader2 Strategy Editor',
     icon: getWindowIcon(),
-    width: 1280,
-    height: 860,
+    width: 1680,
+    height: 1050,
     minWidth: 960,
     minHeight: 620,
     ...getWindowChromeOptions(),

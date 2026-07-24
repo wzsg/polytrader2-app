@@ -53,7 +53,7 @@ class StrategyCatalogService {
     if (!name) throw new Error('Strategy name is required');
     if (!sourceCode) throw new Error('Strategy code is required');
 
-    const compiled = this._compiler.compile(sourceCode);
+    const compiled = await this._compiler.compile(sourceCode);
     const timestamp = now();
     const id = randomUUID();
     const versionId = randomUUID();
@@ -89,7 +89,7 @@ class StrategyCatalogService {
     const sourceChanged = sourceCode !== current.sourceCode || name !== current.name;
     if (!sourceChanged) return current;
 
-    const compiled = this._compiler.compile(sourceCode);
+    const compiled = await this._compiler.compile(sourceCode);
     const timestamp = now();
     const nextVersion = current.currentVersion + 1;
 

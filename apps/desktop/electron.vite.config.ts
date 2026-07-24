@@ -35,6 +35,10 @@ const featureDefines = {
 
 const workspacePackageAliases = [
   {
+    find: '@polytrader/strategy-ast/ast',
+    replacement: resolve('../../packages/strategy-ast/src/ast.ts'),
+  },
+  {
     find: '@polytrader/sqlite-repository/schema',
     replacement: resolve('../../packages/repositories/sqlite-repository/src/schema/index.ts'),
   },
@@ -93,6 +97,10 @@ const workspacePackageAliases = [
   {
     find: '@polytrader/sqlite-repository',
     replacement: resolve('../../packages/repositories/sqlite-repository/src/index.ts'),
+  },
+  {
+    find: '@polytrader/strategy-ast',
+    replacement: resolve('../../packages/strategy-ast/src/index.ts'),
   },
   {
     find: '@polytrader/strategy-runtime',
@@ -174,6 +182,7 @@ export default defineConfig({
           '@polytrader/polymarket-wallet',
           '@polytrader/remote-access',
           '@polytrader/orderfilled-activity',
+          '@polytrader/strategy-ast',
           '@polytrader/strategy-runtime',
           '@polytrader/trading-account',
           '@polytrader/trading-market',

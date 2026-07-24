@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CheckCircle2, Save, Trash2, XCircle } from '@lucide/vue';
+import { Braces, CheckCircle2, Code2, Play, Save, Trash2, XCircle } from '@lucide/vue';
+import type { StrategyAstDocument } from '@polytrader/strategy-ast/ast';
 import type { StrategyCompileResult, StrategyDetail } from '@polytrader/shared';
 import LoadingSpinner from '@/shared/components/LoadingSpinner.vue';
 import TitleBar from '@/shared/components/TitleBar.vue';
 import MonacoStrategyEditor from './MonacoStrategyEditor.vue';
+import StrategyVisualEditor from './StrategyVisualEditor.vue';
+import { StrategyAstEditorModel } from './strategyAstEditorModel';
 
 const params = new URLSearchParams(window.location.search);
 const initialMode = params.get('mode') === 'edit' ? 'edit' : 'new';
@@ -16,48 +19,75 @@ const { t } = useI18n();
 const strategy = ref<StrategyDetail | null>(null);
 const name = ref('');
 const sourceCode = ref('');
+const astDocument = ref<StrategyAstDocument | null>(null);
+const editorMode = ref<'visual' | 'code'>('visual');
 const loading = ref(false);
 const saving = ref(false);
 const compiling = ref(false);
 const deleting = ref(false);
 const error = ref('');
+const codeError = ref('');
 const compileResult = ref<StrategyCompileResult | null>(null);
 const showDeleteDialog = ref(false);
+const simulationVisible = ref(false);
 
-const isEditMode = computed(() => Boolean(strategy.value));
-const title = computed(() => (isEditMode.value ? t('strategy.editor') : t('strategy.new')));
 const subtitle = computed(() =>
-  isEditMode.value && strategy.value
-    ? `${strategy.value.name} v${strategy.value.currentVersion}`
-    : '',
+  strategy.value ? `${strategy.value.name} · v${strategy.value.currentVersion}` : '',
 );
 const status = computed(
   () => compileResult.value?.status || strategy.value?.compileStatus || 'pending',
 );
 const statusError = computed(
-  () => compileResult.value?.error || strategy.value?.compileError || '',
+  () => codeError.value || compileResult.value?.error || strategy.value?.compileError || '',
 );
-const canSave = computed(() =>
-  Boolean(
-    name.value.trim() &&
-    sourceCode.value.trim() &&
+const canSave = computed(
+  () =>
+    Boolean(name.value.trim() && sourceCode.value.trim() && astDocument.value) &&
     !loading.value &&
     !saving.value &&
     !compiling.value &&
     !deleting.value,
-  ),
 );
 const canCompile = computed(
-  () => !loading.value && !saving.value && !compiling.value && !deleting.value,
+  () =>
+    Boolean(astDocument.value) &&
+    !loading.value &&
+    !saving.value &&
+    !compiling.value &&
+    !deleting.value,
 );
 const editorModelPath = computed(() =>
-  strategy.value ? `strategy-${strategy.value.id}.ts` : 'strategy-new.ts',
+  strategy.value ? `strategy-${strategy.value.id}.json` : 'strategy-new.json',
 );
 
 function statusClass(value: string): string {
   if (value === 'success') return 'text-emerald-400';
   if (value === 'failed') return 'text-red-400';
   return 'text-amber-400';
+}
+
+function parseSource(value: string): void {
+  try {
+    astDocument.value = StrategyAstEditorModel.parse(value);
+    codeError.value = '';
+  } catch (parseError) {
+    astDocument.value = null;
+    const message = parseError instanceof Error ? parseError.message : String(parseError);
+    codeError.value = t('strategy.visual.invalidJson', { error: message });
+  }
+}
+
+function updateCode(value: string): void {
+  sourceCode.value = value;
+  compileResult.value = null;
+  parseSource(value);
+}
+
+function updateVisual(document: StrategyAstDocument): void {
+  astDocument.value = document;
+  sourceCode.value = StrategyAstEditorModel.stringify(document);
+  compileResult.value = null;
+  codeError.value = '';
 }
 
 async function loadInitialData(): Promise<void> {
@@ -71,14 +101,17 @@ async function loadInitialData(): Promise<void> {
       strategy.value = res.data;
       name.value = res.data.name;
       sourceCode.value = res.data.sourceCode;
+      parseSource(sourceCode.value);
+      if (!astDocument.value) editorMode.value = 'code';
       return;
     }
 
     const source = await window.api.getDefaultStrategySource();
-    name.value = 'New Strategy';
+    name.value = t('strategy.new');
     sourceCode.value = source;
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err);
+    parseSource(source);
+  } catch (loadError) {
+    error.value = loadError instanceof Error ? loadError.message : String(loadError);
   } finally {
     loading.value = false;
   }
@@ -92,8 +125,8 @@ async function compileOnly(): Promise<void> {
     const res = await window.api.compileStrategySource(sourceCode.value);
     if (!res.ok) throw new Error(res.error);
     compileResult.value = res.data;
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err);
+  } catch (compileError) {
+    error.value = compileError instanceof Error ? compileError.message : String(compileError);
   } finally {
     compiling.value = false;
   }
@@ -116,12 +149,17 @@ async function saveStrategy(): Promise<void> {
     strategy.value = res.data;
     name.value = res.data.name;
     sourceCode.value = res.data.sourceCode;
+    parseSource(sourceCode.value);
     compileResult.value = null;
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err);
+  } catch (saveError) {
+    error.value = saveError instanceof Error ? saveError.message : String(saveError);
   } finally {
     saving.value = false;
   }
+}
+
+function showSimulation(): void {
+  simulationVisible.value = true;
 }
 
 function requestDelete(): void {
@@ -142,8 +180,8 @@ async function confirmDelete(): Promise<void> {
     const res = await window.api.deleteStrategy(strategy.value.id);
     if (!res.ok) throw new Error(res.error);
     window.api.windowClose();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err);
+  } catch (deleteError) {
+    error.value = deleteError instanceof Error ? deleteError.message : String(deleteError);
   } finally {
     deleting.value = false;
   }
@@ -156,80 +194,118 @@ onMounted(() => {
 
 <template>
   <div class="bg-bg text-text flex h-screen min-h-0 flex-col overflow-hidden">
-    <TitleBar :title="title" :subtitle="subtitle" show-brand-icon />
+    <TitleBar :title="t('strategy.editor')" :subtitle="subtitle" show-brand-icon />
 
-    <div
-      class="border-border bg-surface flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
-    >
-      <div class="min-w-0 flex-1">
+    <div class="border-border bg-surface flex shrink-0 items-center gap-4 border-b px-4 py-2.5">
+      <div class="min-w-[220px] flex-1">
         <input
           v-model="name"
           class="border-border bg-bg text-text focus:border-primary w-full rounded-md border px-3 py-2 text-sm outline-none"
           :placeholder="t('strategy.name')"
           :disabled="loading"
         />
-        <p v-if="error" class="mt-2 text-sm text-red-400">{{ error }}</p>
+        <p v-if="error" class="mt-1.5 truncate text-xs text-red-400" :title="error">{{ error }}</p>
       </div>
 
-      <div class="flex shrink-0 items-center gap-2">
-        <span class="inline-flex items-center gap-1 text-xs" :class="statusClass(status)">
-          <CheckCircle2 v-if="status === 'success'" :size="13" />
-          <XCircle v-else-if="status === 'failed'" :size="13" />
-          {{ status }}
-        </span>
+      <span class="inline-flex shrink-0 items-center gap-1.5 text-xs" :class="statusClass(status)">
+        <CheckCircle2 v-if="status === 'success'" :size="14" />
+        <XCircle v-else-if="status === 'failed'" :size="14" />
+        <Braces v-else :size="14" />
+        {{ status === 'success' ? t('strategy.visual.valid') : status }}
+      </span>
+
+      <div class="border-border bg-bg flex shrink-0 rounded-md border p-0.5">
         <button
           type="button"
-          class="border-border text-text inline-flex items-center gap-2 rounded-md border bg-[#1e1e35] px-3 py-2 text-sm transition-colors hover:bg-[#2a2a45] disabled:opacity-50"
-          :disabled="loading || compiling"
-          @click="compileOnly"
+          class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors"
+          :class="editorMode === 'visual' ? 'bg-primary text-white' : 'text-muted hover:text-white'"
+          :disabled="!astDocument"
+          @click="editorMode = 'visual'"
         >
-          <LoadingSpinner v-if="compiling" :size="14" :title="t('strategy.compileStrategy')" />
-          <CheckCircle2 v-else :size="14" />
-          {{ t('strategy.compile') }}
+          <Braces :size="14" />
+          {{ t('strategy.visual.visualMode') }}
         </button>
         <button
           type="button"
-          class="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
-          :disabled="loading || !canSave"
-          @click="saveStrategy"
+          class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors"
+          :class="editorMode === 'code' ? 'bg-primary text-white' : 'text-muted hover:text-white'"
+          @click="editorMode = 'code'"
         >
-          <LoadingSpinner v-if="saving" :size="14" :title="t('strategy.saveStrategy')" />
-          <Save v-else :size="14" />
-          {{ t('common.save') }}
-        </button>
-        <button
-          v-if="strategy"
-          type="button"
-          class="border-border text-muted inline-flex h-9 w-9 items-center justify-center rounded border transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
-          :title="t('strategy.deleteStrategy')"
-          :disabled="loading || saving || deleting"
-          @click="requestDelete"
-        >
-          <LoadingSpinner v-if="deleting" :size="14" :title="t('strategy.deleteStrategy')" />
-          <Trash2 v-else :size="14" />
+          <Code2 :size="14" />
+          {{ t('strategy.visual.codeMode') }}
         </button>
       </div>
+
+      <button
+        type="button"
+        class="border-border text-text inline-flex shrink-0 items-center gap-2 rounded-md border bg-[#1e1e35] px-3 py-2 text-sm transition-colors hover:bg-[#2a2a45] disabled:opacity-50"
+        :disabled="!canCompile"
+        @click="compileOnly"
+      >
+        <LoadingSpinner v-if="compiling" :size="14" :title="t('strategy.compileStrategy')" />
+        <CheckCircle2 v-else :size="14" />
+        {{ t('strategy.compile') }}
+      </button>
+      <button
+        type="button"
+        class="border-border text-text inline-flex shrink-0 items-center gap-2 rounded-md border bg-[#1e1e35] px-3 py-2 text-sm transition-colors hover:bg-[#2a2a45] disabled:opacity-50"
+        :disabled="!astDocument"
+        @click="showSimulation"
+      >
+        <Play :size="14" />
+        {{ t('strategy.visual.simulate') }}
+      </button>
+      <button
+        type="button"
+        class="bg-primary hover:bg-primary-hover inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+        :disabled="!canSave"
+        @click="saveStrategy"
+      >
+        <LoadingSpinner v-if="saving" :size="14" :title="t('strategy.saveStrategy')" />
+        <Save v-else :size="14" />
+        {{ t('common.save') }}
+      </button>
+      <button
+        v-if="strategy"
+        type="button"
+        class="border-border text-muted inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+        :title="t('strategy.deleteStrategy')"
+        :disabled="loading || saving || deleting"
+        @click="requestDelete"
+      >
+        <LoadingSpinner v-if="deleting" :size="14" :title="t('strategy.deleteStrategy')" />
+        <Trash2 v-else :size="14" />
+      </button>
     </div>
 
     <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div v-if="loading" class="flex flex-1 items-center justify-center">
         <LoadingSpinner :size="22" :title="t('strategy.loadStrategy')" />
       </div>
-      <MonacoStrategyEditor
-        v-else
-        v-model="sourceCode"
-        :model-path="editorModelPath"
-        :read-only="saving || deleting"
-        @save="saveStrategy"
-        @compile="compileOnly"
+      <StrategyVisualEditor
+        v-else-if="editorMode === 'visual' && astDocument"
+        :document="astDocument"
+        :compile-error="statusError"
+        :simulation-visible="simulationVisible"
+        @update:document="updateVisual"
       />
-
-      <div
-        v-if="statusError"
-        class="selectable-text border-border max-h-44 shrink-0 overflow-auto border-t bg-red-950/20 p-4 font-mono text-xs whitespace-pre-wrap text-red-300"
-      >
-        {{ statusError }}
-      </div>
+      <template v-else>
+        <MonacoStrategyEditor
+          :model-value="sourceCode"
+          :model-path="editorModelPath"
+          language="json"
+          :read-only="saving || deleting"
+          @update:model-value="updateCode"
+          @save="saveStrategy"
+          @compile="compileOnly"
+        />
+        <div
+          v-if="statusError"
+          class="selectable-text border-border max-h-40 shrink-0 overflow-auto border-t bg-red-950/20 p-4 font-mono text-xs whitespace-pre-wrap text-red-300"
+        >
+          {{ statusError }}
+        </div>
+      </template>
     </main>
 
     <Transition name="bot-dialog">
@@ -243,9 +319,7 @@ onMounted(() => {
         >
           <div class="border-border border-b px-5 py-4">
             <h2 class="text-base font-semibold text-white">{{ t('strategy.deleteStrategy') }}</h2>
-            <p class="text-muted mt-2 text-sm">
-              {{ t('strategy.deleteDescription') }}
-            </p>
+            <p class="text-muted mt-2 text-sm">{{ t('strategy.deleteDescription') }}</p>
             <p class="mt-3 truncate text-sm text-white" :title="strategy.name">
               {{ strategy.name }}
             </p>
@@ -253,7 +327,7 @@ onMounted(() => {
           <div class="border-border flex justify-end gap-2 border-t px-5 py-4">
             <button
               type="button"
-              class="border-border text-text inline-flex items-center justify-center rounded-md border bg-[#1e1e35] px-4 py-2 text-sm transition-colors hover:bg-[#2a2a45] disabled:opacity-50"
+              class="border-border text-text rounded-md border bg-[#1e1e35] px-4 py-2 text-sm"
               :disabled="deleting"
               @click="closeDeleteDialog"
             >
@@ -261,7 +335,7 @@ onMounted(() => {
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-md border border-red-500/40 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+              class="inline-flex items-center gap-2 rounded-md border border-red-500/40 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-500/10"
               :disabled="deleting"
               @click="confirmDelete"
             >

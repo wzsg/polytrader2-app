@@ -1,41 +1,135 @@
-export const DEFAULT_STRATEGY_SOURCE = `export class Strategy extends StrategyBase {
-  public async onStart(ctx: StrategyContext) {
-    ctx.logger.info('bot started', {
-      botId: ctx.bot.id,
-      runId: ctx.run.id,
-      marketId: ctx.market.id,
-      walletId: ctx.account.id,
-    });
+export const DEFAULT_STRATEGY_SOURCE = `{
+  "schemaVersion": 1,
+  "parameters": {
+    "maxEntryPrice": {
+      "type": "decimal",
+      "defaultValue": "0.45",
+      "minimum": "0.01",
+      "maximum": "0.99",
+      "description": "Highest accepted ask price"
+    },
+    "orderShares": {
+      "type": "decimal",
+      "defaultValue": "5",
+      "minimum": "1",
+      "maximum": "100"
+    }
+  },
+  "state": {
+    "positionEntered": {
+      "type": "boolean",
+      "initialValue": false
+    }
+  },
+  "rules": [
+    {
+      "id": "rule.entry",
+      "trigger": {
+        "id": "trigger.entry.book",
+        "kind": "orderBook.changed",
+        "outcome": "selected"
+      },
+      "condition": {
+        "id": "condition.entry",
+        "kind": "logical",
+        "operator": "all",
+        "items": [
+          {
+            "id": "condition.market.active",
+            "kind": "compare",
+            "operator": "eq",
+            "left": {
+              "id": "reference.market.active",
+              "kind": "reference",
+              "source": "market",
+              "field": "active"
+            },
+            "right": {
+              "id": "literal.market.active",
+              "kind": "literal.boolean",
+              "value": true
+            }
+          },
+          {
+            "id": "condition.entry.price",
+            "kind": "compare",
+            "operator": "lte",
+            "left": {
+              "id": "reference.entry.ask",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestAsk",
+              "outcome": "selected"
+            },
+            "right": {
+              "id": "parameter.entry.maxPrice",
+              "kind": "parameter",
+              "name": "maxEntryPrice"
+            }
+          },
+          {
+            "id": "condition.account.balance",
+            "kind": "compare",
+            "operator": "gte",
+            "left": {
+              "id": "reference.account.balance",
+              "kind": "reference",
+              "source": "account",
+              "field": "availableBalance"
+            },
+            "right": {
+              "id": "literal.account.balance",
+              "kind": "literal.decimal",
+              "value": "100"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action.entry.place",
+          "kind": "order.place",
+          "asset": "selected",
+          "side": "BUY",
+          "order": {
+            "orderType": "limit",
+            "price": {
+              "id": "reference.entry.orderPrice",
+              "kind": "reference",
+              "source": "orderBook",
+              "field": "bestAsk",
+              "outcome": "selected"
+            },
+            "shares": {
+              "id": "parameter.entry.shares",
+              "kind": "parameter",
+              "name": "orderShares"
+            },
+            "postOnly": false
+          }
+        },
+        {
+          "id": "action.entry.state",
+          "kind": "state.set",
+          "name": "positionEntered",
+          "value": {
+            "id": "literal.entry.state",
+            "kind": "literal.boolean",
+            "value": true
+          }
+        }
+      ],
+      "policy": {
+        "cooldownMs": 1000
+      }
+    }
+  ],
+  "riskPolicy": {
+    "maximumOpenOrders": 2,
+    "maximumOrderValue": "10",
+    "minimumOrderIntervalMs": 1000
   }
-
-  public async onMarketData(ctx: StrategyContext, snapshot: StrategyRuntimeSnapshot) {
-    const selected = ctx.outcomes.find((outcome) => outcome.tokenId === ctx.assetId);
-    if (!selected) throw new Error('Selected outcome is unavailable');
-    ctx.logger.info('market data received', {
-      assetId: selected.tokenId,
-      wsStatus: snapshot.wsStatus,
-    });
-  }
-
-  public async onOrderBook(ctx: StrategyContext, orderBooks: StrategyOrderBook[]) {
-    const selectedBook = orderBooks.find((book) => book.tokenId === ctx.assetId);
-    if (!selectedBook) return;
-    // Real trading is explicit. Uncomment after filling your own price and size logic.
-    // await ctx.trading.placeOrder({
-    //   assetId: selectedBook.tokenId,
-    //   side: 'BUY',
-    //   orderType: 'limit',
-    //   price: 0.5,
-    //   shares: 5,
-    //   tickSize: selectedBook.tickSize,
-    // });
-  }
-
-  public async onStop(ctx: StrategyContext) {
-    ctx.logger.info('bot stopped');
-  }
-}
-`;
+}`;
 
 export const STRATEGY_CONTEXT_DTS = `
 type StrategyOrderSide = 'BUY' | 'SELL';

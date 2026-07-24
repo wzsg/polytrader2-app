@@ -87,6 +87,7 @@
     "@polytrader/repository-contract": "workspace:*",
     "@polytrader/shared": "workspace:*",
     "@polytrader/sqlite-repository": "workspace:*",
+    "@polytrader/strategy-ast": "workspace:*",
     "@polytrader/strategy-runtime": "workspace:*",
     "@polytrader/system-performance": "workspace:*",
     "@polytrader/trading-account": "workspace:*",

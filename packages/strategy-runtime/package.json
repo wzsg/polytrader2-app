@@ -13,6 +13,7 @@
     "@polytrader/repository-contract": "workspace:*",
     "@polytrader/shared": "workspace:*",
     "@polytrader/sqlite-repository": "workspace:*",
+    "@polytrader/strategy-ast": "workspace:*",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
