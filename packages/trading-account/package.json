@@ -13,7 +13,7 @@
     "@polytrader/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3"
+    "@types/node": "^26.1.1"
   },
   "exports": {
     ".": {
