@@ -6,7 +6,7 @@ on:
     - cron: '0 20 * * *'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: nightly
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   prepare:
-    name: Prepare nightly release
+    name: Prepare nightly build
     runs-on: ubuntu-latest
 
     outputs:
@@ -49,37 +49,6 @@ jobs:
             echo "sha=$sha"
             echo "version=$version"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Create nightly prerelease
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          P2_NIGHTLY_DATE: ${{ steps.nightly-version.outputs.date }}
-          P2_NIGHTLY_SHA: ${{ steps.nightly-version.outputs.sha }}
-          P2_NIGHTLY_VERSION: ${{ steps.nightly-version.outputs.version }}
-        shell: bash
-        run: |
-          git tag -f nightly HEAD
-          git push origin refs/tags/nightly --force
-          notes_path="$RUNNER_TEMP/nightly-release-notes.md"
-          cat > "$notes_path" <<EOF
-          Nightly build from develop.
-
-          - Version: $P2_NIGHTLY_VERSION
-          - Commit: $P2_NIGHTLY_SHA
-          - Built at: $P2_NIGHTLY_DATE
-
-          Nightly releases are for testing the latest development build and may be less stable than tagged releases.
-          EOF
-          if gh release view nightly --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" \
-              --jq '.assets[].id' | \
-              while read -r asset_id; do
-                gh api "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" -X DELETE
-              done
-            gh release edit nightly --title nightly --notes-file "$notes_path" --prerelease --repo "$GITHUB_REPOSITORY"
-          else
-            gh release create nightly --title nightly --notes-file "$notes_path" --prerelease --repo "$GITHUB_REPOSITORY"
-          fi
 
   build-windows:
     name: Build Windows nightly
@@ -148,6 +117,7 @@ jobs:
             dist/Polytrader2-Setup-${{ needs.prepare.outputs.version }}.exe.blockmap
             dist/latest.yml
           if-no-files-found: error
+          retention-days: 14
 
   build-macos:
     name: Build macOS nightly
@@ -239,21 +209,40 @@ jobs:
             dist/Polytrader2-${{ needs.prepare.outputs.version }}-mac-arm64.zip.blockmap
             dist/latest-mac.yml
           if-no-files-found: error
+          retention-days: 14
 
   finalize:
-    name: Publish nightly assets
+    name: Publish nightly branch
     needs: [prepare, build-windows, build-macos]
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Download nightly assets
-        uses: actions/download-artifact@v7
-        with:
-          path: artifacts
-          merge-multiple: true
+    permissions:
+      contents: write
 
-      - name: Publish nightly assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout successful nightly commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+
+      - name: Update nightly branch
         shell: bash
-        run: gh release upload nightly artifacts/* --clobber --repo "$GITHUB_REPOSITORY"
+        run: git push origin HEAD:refs/heads/nightly
+
+      - name: Write nightly summary
+        env:
+          P2_NIGHTLY_DATE: ${{ needs.prepare.outputs.date }}
+          P2_NIGHTLY_SHA: ${{ needs.prepare.outputs.sha }}
+          P2_NIGHTLY_VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          printf '%s\n' \
+            '## Nightly build published' \
+            '' \
+            '- Branch: nightly' \
+            "- Version: $P2_NIGHTLY_VERSION" \
+            "- Commit: $P2_NIGHTLY_SHA" \
+            "- Built at: $P2_NIGHTLY_DATE" \
+            '- Artifacts: windows-nightly-assets and macos-nightly-assets (retained for 14 days)' \
+            >> "$GITHUB_STEP_SUMMARY"

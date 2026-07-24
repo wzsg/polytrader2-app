@@ -1,12 +1,13 @@
 # Polytrader2 正式版发布流程
 
-本文记录 Polytrader2 桌面应用的正式版发布流程。当前约定是：普通分支构建只做校验，正式发布只通过 `v*` Git tag 触发 GitHub Actions。
+本文记录 Polytrader2 桌面应用的正式版发布流程。正式发布只通过 `v*` Git tag 触发 GitHub Actions；Nightly 构建使用独立分支和 Actions artifacts，不属于正式发布。
 
 ## 环境约定
 
 - 下文命令均在仓库根目录执行。
 - 主开发分支：`develop`
 - 受保护主分支：`master`
+- 自动化 Nightly 分支：`nightly`
 - GitHub 仓库：`wzsg/polytrader2-app`
 - 正式发布 tag 格式：`v<major>.<minor>.<patch>`，例如 `v1.2.3`
 - Windows 安装包命名格式：`Polytrader2-Setup-<version>.exe`
@@ -21,6 +22,15 @@
 - 推送 `v*` tag 后，`.github/workflows/release.yml` 会把 tag 中的版本号写入 `apps/desktop/package.json`，再构建 Windows 和 macOS 安装包。
 - `Release` workflow 会读取上一个正式版本 tag 到当前 tag 之间的非合并提交，并把每条提交标题写入 GitHub Release 的 `What's Changed`。
 - `Release` workflow 会先创建 draft release；Windows 和 macOS 资产全部构建、签名并上传成功后，会自动将该 release 发布为 Latest。
+
+## Nightly 构建
+
+- `.github/workflows/nightly.yml` 每天从 `develop` 取出一个确定的提交，并行构建 Windows 和 macOS 安装包。
+- 仅当两个平台均构建并上传成功后，工作流才将远端 `nightly` 分支快进到该提交；失败的构建不会移动分支。
+- Nightly 不创建或滚动 `nightly` tag，也不创建同名 GitHub prerelease。
+- Nightly 安装包保存在对应 Actions 运行的 `windows-nightly-assets` 和 `macos-nightly-assets` artifacts 中，保留 14 天。
+- `nightly` 分支由工作流独占维护，不得直接开发、提交或手工改写历史。
+- Nightly artifacts 不参与正式客户端自动更新；正式更新目标仍只来自公开的稳定版 Release。
 
 ## Release Notes 约定
 
